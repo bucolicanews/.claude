@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    }
+  },
+  "theme": "dark",
+  "enabledPlugins": {
+    "caveman@caveman": true
+  }
+}
