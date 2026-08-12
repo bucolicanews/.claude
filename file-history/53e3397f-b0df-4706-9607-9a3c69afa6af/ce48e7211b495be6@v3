@@ -1,0 +1,42 @@
+---
+name: deliveryhub-garcom-confirma-entrega-item
+description: Botão "Entregar" na comanda do garçom, liberado já em 'preparando' — MERGEADO EM MAIN + migration aplicada em produção, sincroniza com Painel do Bar
+metadata:
+  type: project
+  originSessionId: current
+  modified: 2026-07-25T14:01:04.308Z
+---
+
+Fluxo Salão: garçom envia item pro bar (`enviado`) → bar inicia preparo (`preparando`) → bar marca `pronto` (endpoint `marcarItemPronto`, `restaurante.service.ts`). Nesse ponto o portal garçom já tocava alarme sonoro via polling em `itens-prontos` (`itensProntos` em `salao.service.ts`), mas não tinha confirmação — item ficava com badge estático "Pronto" pra sempre.
+
+Pedido do usuário: linha do produto na comanda do garçom ganha botão "Confirmar entrega" quando `status === 'pronto'`; ao clicar, vira "Entregue".
+
+**Importante — rótulos enganosos no Painel do Bar** (`restaurante-bar/index.jsx`): as colunas se chamam "Aguardando Motoboy" e "Entregue pra Motoboy" só por texto legado (reaproveitado do delivery), mas isso é usado igual pro Salão — não tem motoboy real ali, é só nome de UI. Não confundir com o fluxo motoboy de verdade (delivery).
+
+**Decisão de schema**: pedido explícito do usuário pra NÃO mexer no enum/CHECK `order_items_status_check` (compartilhado com delivery) — coluna própria em vez de status novo `'entregue'`. Implementado como `entregue_garcom BOOLEAN DEFAULT false` + `entregue_em TIMESTAMPTZ`. Delivery nunca escreve nessas colunas, comportamento dele intocado.
+
+Backend novo: `SalaoService.confirmarEntregaItem` (exige item já `pronto`, comanda do garçom) + rota `PATCH /garcom/comandas/:id/itens/:itemId/entregar`. `itensProntos` passou a filtrar `entregue_garcom = false` (evita alarme repetido pro que já foi confirmado). `obterComanda` agora seleciona `entregue_garcom` também.
+
+**Gotcha grande descoberto no meio da tarefa — drift de migration history no Supabase Cloud:** `supabase db push` recusou aplicar a migration nova (`20260725000001_item_entregue_garcom.sql`) porque o histórico remoto tinha 2 versões (`20260721000002_caixas_multiplos_simultaneos.sql`, `20260721000003_colaboradores.sql`) que não existem na pasta local `supabase/migrations/` da `main` — porque pertencem à feature de multi-caixa/colaboradores (ver [[deliveryhub_caixa_fiado_multi_caixa]]) que ficou numa **branch não mergeada**. Alguém rodou `db push` estando nessa branch em algum momento, aplicou de fato no banco Cloud (produção), depois voltou pra `main` sem mergear os arquivos — histórico do banco ficou à frente dos arquivos que a `main` conhece.
+
+Corrigido com autorização explícita do usuário ("ajuste tudo"):
+```
+supabase migration repair --status reverted 20260721000002 20260721000003
+supabase db push
+```
+`migration repair` só mexe na tabela de tracking (`supabase_migrations.schema_migrations`), não altera schema real — então os objetos físicos que aquela branch criou (se já existirem no banco) continuam lá, só o histórico do CLI que agora não espera mais arquivo local pra essas duas versões.
+
+**Pendência que sobrou:** se um dia a branch de multi-caixa/colaboradores for mergeada em `main`, os arquivos `20260721000002`/`003` voltam a existir localmente — como o schema já foi aplicado direto no Cloud antes, rodar `db push` nessa hora pode dar erro "already exists" se as migrations não usarem `CREATE TABLE IF NOT EXISTS`/`ADD COLUMN IF NOT EXISTS`. Checar isso antes de mergear aquela feature.
+
+Commits mergeados em `main` (2026-07-25):
+- backend (`server_delivery`, submodule + standalone sincronizados): branch `feat/garcom-confirma-entrega-item`, commit `793386f`.
+- frontend (`deliveryhub_white_label`, inclui a migration SQL): branch `feat/garcom-confirma-entrega-item`, commit `3f85c51`.
+- migration aplicada direto no Supabase Cloud via `supabase db push` (2026-07-25) e também no Supabase local via `supabase migration up` (esquecido na primeira rodada, só tinha ido pro Cloud — testar sempre local primeiro, ver [[feedback_sempre_local_sem_permissao_web]]).
+
+**Refinamento pedido pelo usuário no teste (mesmo dia):** testando, viu que item "cerveja" com status `preparando` mostrava badge "Pronto" (rótulo antigo colapsava `preparando`+`pronto` no mesmo texto) sem botão — confuso. Depois, pediu pra mudar a regra: botão "Entregar" (renomeado de "Confirmar entrega") aparece já quando o Bar clica o primeiro passo (`preparando`), não precisa esperar o segundo clique do Bar (`pronto`). Isso deixou o item preso na coluna ativa "Entregue pra Motoboy" do Painel do Bar (`restaurante-bar/index.jsx`) mesmo depois do garçom confirmar, porque o status no banco continuava `preparando` — o Bar não sabia que já tinha sido entregue. Fix: `confirmarEntregaItem` agora também força `status: 'pronto'` (+ `pronto_em`) quando ainda tava `preparando`, além de marcar `entregue_garcom` — assim o item sai da fila ativa do Bar e cai em "Entregues recentemente" lá, sincronizando os dois painéis.
+
+Commits do refinamento, mergeados em `main` (2026-07-25):
+- backend: branch `fix/garcom-entrega-preparando-e-pronto`, commit `fa2b8e5` (submodule + standalone sincronizados).
+- frontend: branch `fix/garcom-entrega-preparando-e-pronto`, commit `15eb7bf`.
+
+Sem migration nova nesse refinamento (mesmas colunas `entregue_garcom`/`entregue_em` de antes). Push feito, dispara deploy EasyPanel. Teste em produção ainda pendente de confirmação do usuário.

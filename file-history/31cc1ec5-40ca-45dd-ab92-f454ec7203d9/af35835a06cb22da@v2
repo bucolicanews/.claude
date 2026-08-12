@@ -1,0 +1,15 @@
+---
+name: deliveryhub-decrementar-estoque-venda
+description: "TODO — quantidade_estoque não diminui automaticamente com as vendas, só bloqueia quando chega a 0"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 31cc1ec5-40ca-45dd-ab92-f454ec7203d9
+  modified: 2026-07-30T17:34:43.416Z
+---
+
+Pergunta do usuário 2026-07-30: estoque diminui de acordo com as vendas? Resposta checada no código: **não**. `quantidade_estoque` (`products`) só é lido pra filtrar/bloquear venda quando chega a 0/null (ver [[deliveryhub_estoque_zero_bloqueia_venda]], mergeado 2026-07-25). Não existe nenhum `UPDATE` decrementando estoque em `restaurante.service.ts`, `salao.service.ts`, `salao-pdv.service.ts` ou `catalogo.controller.ts` quando um pedido delivery é criado, quando o garçom adiciona item numa comanda, ou quando a comanda fecha. O dono ajusta a quantidade manualmente.
+
+**Status: NÃO IMPLEMENTADO — só anotado, tarefa 1 de 2 combinadas com o usuário nesta sessão (fazer uma, depois a outra).**
+
+**How to apply:** quando for implementar, decidir onde decrementa (delivery: na criação do pedido ou na confirmação/pagamento? Salão: ao adicionar item na comanda ou só ao fechar/pagar?) e se decrementa por `order_items`/itens de comanda — perguntar ao usuário a regra antes de mexer, mesmo padrão de decisão que rolou em [[deliveryhub_estoque_zero_bloqueia_venda]] (bloqueio em 0/null sem exceção, sem toggle "controla estoque").

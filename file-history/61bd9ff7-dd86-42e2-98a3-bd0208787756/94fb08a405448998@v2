@@ -1,0 +1,108 @@
+import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
+import fs from 'fs';
+
+const envPath = 'C:/Users/Micro/3D Objects/DEV/deliveryhub_white_label/server_delivery/.env';
+const env = Object.fromEntries(
+  fs.readFileSync(envPath, 'utf8')
+    .split('\n')
+    .filter((l) => l.includes('='))
+    .map((l) => {
+      const idx = l.indexOf('=');
+      return [l.slice(0, idx).trim(), l.slice(idx + 1).trim()];
+    }),
+);
+
+const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+
+async function main() {
+  const { data: restaurante, error: errRest } = await supabase
+    .from('restaurants')
+    .select('id, name')
+    .limit(1)
+    .maybeSingle();
+  if (errRest || !restaurante) throw errRest ?? new Error('nenhum restaurante encontrado');
+  console.log('restaurante teste:', restaurante);
+
+  const passwordHash = await bcrypt.hash('senha123', 10);
+  const loginKey = 'smoke' + Date.now().toString(36).slice(-4);
+  const { data: garcom, error: errGarcom } = await supabase
+    .from('garcons')
+    .insert({ restaurant_id: restaurante.id, nome: 'Garçom Smoke', telefone: '11999990000', login_key: loginKey, password_hash: passwordHash })
+    .select()
+    .single();
+  if (errGarcom) throw errGarcom;
+  console.log('garcom criado:', garcom.id, garcom.login_key);
+
+  const { data: mesa, error: errMesa } = await supabase
+    .from('mesas')
+    .insert({ restaurant_id: restaurante.id, numero: 9999, nome: 'Mesa Smoke' })
+    .select()
+    .single();
+  if (errMesa) throw errMesa;
+  console.log('mesa criada:', mesa.id, mesa.status);
+
+  const { data: comanda, error: errComanda } = await supabase
+    .from('orders')
+    .insert({
+      restaurant_id: restaurante.id,
+      canal: 'presencial',
+      status: 'aberta',
+      garcom_id: garcom.id,
+      mesa_id: mesa.id,
+      cliente_mesa_nome: 'Cliente Smoke',
+      cliente_mesa_telefone: '11988887777',
+      total: 0,
+    })
+    .select()
+    .single();
+  if (errComanda) throw errComanda;
+  console.log('comanda aberta:', comanda.id, comanda.status, comanda.tracking_token);
+
+  await supabase.from('mesas').update({ status: 'ocupada' }).eq('id', mesa.id);
+
+  const { data: produto } = await supabase.from('products').select('id, price').limit(1).maybeSingle();
+  if (!produto) {
+    console.log('nenhum produto existente pra testar order_items — pulando etapa de itens');
+  } else {
+    const { data: item, error: errItem } = await supabase
+      .from('order_items')
+      .insert({ order_id: comanda.id, product_id: produto.id, quantity: 2, unit_price: produto.price, status: 'pendente' })
+      .select()
+      .single();
+    if (errItem) throw errItem;
+    console.log('item adicionado:', item.id, item.status);
+
+    const { error: errEnviar } = await supabase
+      .from('order_items')
+      .update({ status: 'enviado', enviado_em: new Date().toISOString() })
+      .eq('id', item.id);
+    if (errEnviar) throw errEnviar;
+    console.log('item marcado enviado ok');
+  }
+
+  const { error: errFechar } = await supabase
+    .from('orders')
+    .update({ status: 'fechada_garcom', payment_method: 'pix' })
+    .eq('id', comanda.id);
+  if (errFechar) throw errFechar;
+  console.log('comanda fechada_garcom ok (CHECK constraint aceitou o novo status)');
+
+  await supabase.from('mesas').update({ status: 'aguardando_pagamento' }).eq('id', mesa.id);
+
+  const { error: errPaga } = await supabase.from('orders').update({ status: 'paga' }).eq('id', comanda.id);
+  if (errPaga) throw errPaga;
+  console.log('comanda paga ok');
+
+  // cleanup
+  await supabase.from('order_items').delete().eq('order_id', comanda.id);
+  await supabase.from('orders').delete().eq('id', comanda.id);
+  await supabase.from('mesas').delete().eq('id', mesa.id);
+  await supabase.from('garcons').delete().eq('id', garcom.id);
+  console.log('cleanup ok — smoke test passou');
+}
+
+main().catch((e) => {
+  console.error('SMOKE TEST FALHOU:', e);
+  process.exit(1);
+});

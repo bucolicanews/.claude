@@ -1,10 +1,5 @@
 .credentials.json
-history.jsonl
-.caveman-mode-log.jsonl
-.last-cleanup
-.last-update-result.json
-paste-cache/
-cache/
-file-history/
 backups/
-projects/
+*secret*
+*.env
+*.env.*

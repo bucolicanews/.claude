@@ -1,0 +1,44 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+:3002/restaurante/impressoras/6/teste:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+restauranteService.js:12  POST http://localhost:3002/restaurante/impressoras/6/teste 404 (Not Found)
+apiFetch @ restauranteService.js:12
+await in apiFetch
+(anonymous) @ restauranteService.js:230
+(anonymous) @ index.jsx:167
+(anonymous) @ index.jsx:260
+callCallback2 @ chunk-I3FFXTTZ.js?v=1ea0efd7:3674
+invokeGuardedCallbackDev @ chunk-I3FFXTTZ.js?v=1ea0efd7:3699
+invokeGuardedCallback @ chunk-I3FFXTTZ.js?v=1ea0efd7:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-I3FFXTTZ.js?v=1ea0efd7:3736
+executeDispatch @ chunk-I3FFXTTZ.js?v=1ea0efd7:7016
+processDispatchQueueItemsInOrder @ chunk-I3FFXTTZ.js?v=1ea0efd7:7036
+processDispatchQueue @ chunk-I3FFXTTZ.js?v=1ea0efd7:7045
+dispatchEventsForPlugins @ chunk-I3FFXTTZ.js?v=1ea0efd7:7053
+(anonymous) @ chunk-I3FFXTTZ.js?v=1ea0efd7:7177
+batchedUpdates$1 @ chunk-I3FFXTTZ.js?v=1ea0efd7:18941
+batchedUpdates @ chunk-I3FFXTTZ.js?v=1ea0efd7:3579
+dispatchEventForPluginEventSystem @ chunk-I3FFXTTZ.js?v=1ea0efd7:7176
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-I3FFXTTZ.js?v=1ea0efd7:5478
+dispatchEvent @ chunk-I3FFXTTZ.js?v=1ea0efd7:5472
+dispatchDiscreteEvent @ chunk-I3FFXTTZ.js?v=1ea0efd7:5449
+restauranteService.js:12  POST http://localhost:3002/restaurante/impressoras/6/teste 404 (Not Found)
+apiFetch @ restauranteService.js:12
+await in apiFetch
+(anonymous) @ restauranteService.js:230
+(anonymous) @ index.jsx:167
+(anonymous) @ index.jsx:260
+callCallback2 @ chunk-I3FFXTTZ.js?v=1ea0efd7:3674
+invokeGuardedCallbackDev @ chunk-I3FFXTTZ.js?v=1ea0efd7:3699
+invokeGuardedCallback @ chunk-I3FFXTTZ.js?v=1ea0efd7:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-I3FFXTTZ.js?v=1ea0efd7:3736
+executeDispatch @ chunk-I3FFXTTZ.js?v=1ea0efd7:7016
+processDispatchQueueItemsInOrder @ chunk-I3FFXTTZ.js?v=1ea0efd7:7036
+processDispatchQueue @ chunk-I3FFXTTZ.js?v=1ea0efd7:7045
+dispatchEventsForPlugins @ chunk-I3FFXTTZ.js?v=1ea0efd7:7053
+(anonymous) @ chunk-I3FFXTTZ.js?v=1ea0efd7:7177
+batchedUpdates$1 @ chunk-I3FFXTTZ.js?v=1ea0efd7:18941
+batchedUpdates @ chunk-I3FFXTTZ.js?v=1ea0efd7:3579
+dispatchEventForPluginEventSystem @ chunk-I3FFXTTZ.js?v=1ea0efd7:7176
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-I3FFXTTZ.js?v=1ea0efd7:5478
+dispatchEvent @ chunk-I3FFXTTZ.js?v=1ea0efd7:5472
+dispatchDiscreteEvent @ chunk-I3FFXTTZ.js?v=1ea0efd7:5449

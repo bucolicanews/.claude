@@ -1,0 +1,36 @@
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcryptjs';
+import * as jwt from 'jsonwebtoken';
+import { SupabaseService } from '../supabase/supabase.service';
+
+@Injectable()
+export class ColaboradorAuthService {
+  constructor(
+    private supabase: SupabaseService,
+    private config: ConfigService,
+  ) {}
+
+  private gerarToken(colaboradorId: number): string {
+    const secret = this.config.getOrThrow('COLABORADOR_JWT_SECRET');
+    return jwt.sign({ colaboradorId }, secret, { expiresIn: '12h' });
+  }
+
+  async login(loginKey: string, password: string) {
+    if (!loginKey || !password) throw new BadRequestException('Informe usuário e senha');
+
+    const { data: colaborador } = await this.supabase.client
+      .from('colaboradores')
+      .select('id, password_hash, ativo')
+      .eq('login_key', loginKey)
+      .maybeSingle();
+
+    if (!colaborador?.password_hash) throw new UnauthorizedException('Credenciais inválidas');
+    if (!colaborador.ativo) throw new UnauthorizedException('Acesso desativado');
+
+    const ok = await bcrypt.compare(password, colaborador.password_hash);
+    if (!ok) throw new UnauthorizedException('Credenciais inválidas');
+
+    return { token: this.gerarToken(colaborador.id) };
+  }
+}

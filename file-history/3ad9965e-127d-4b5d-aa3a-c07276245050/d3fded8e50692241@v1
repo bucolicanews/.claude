@@ -1,0 +1,19 @@
+---
+name: deliveryhub-admin-header-e-status-dot
+description: AdminHeader compartilhado (hambúrguer mobile) + bolinha de status do plano no header do restaurante
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: a3d059f5-e5a3-4f97-a884-e047f4bf4636
+  modified: 2026-08-07T23:27:56.556Z
+---
+
+Painel `/admin/*` tinha nav duplicado (levemente divergente) em cada uma das 9 páginas, sem colapsar em mobile — usuário reportou "barra bagunçada" e "movimentação lateral indesejada". Criado `src/components/admin/AdminHeader.jsx` + `AdminMobileMenu.jsx` + `src/config/adminNavLinks.js` (lista única), mesmo padrão hambúrguer já usado em `RestauranteHeader`/`MobileMenu` de `/restaurante/*`. Todas as 9 páginas trocadas pra usar `<AdminHeader active title subtitle />`.
+
+**Gotcha:** primeira versão usava breakpoint `md` sem `flex-wrap` na nav desktop — estourava lateral em telas médias (nem mobile nem larga o suficiente pros 8 botões). Fix: breakpoint subiu pra `lg` + `flex-wrap` de volta.
+
+Também adicionado: bolinha verde/laranja/vermelha no `RestauranteHeader` (barra do dono da loja) refletindo `planoStatus` do `AuthContext` (já existia, usado pelo `RestauranteGuard` — só faltava indicador visual). Verde = em dia, laranja = vencendo em ≤5 dias ou vencida dentro da tolerância, vermelho = bloqueado. Clica e vai pra `/restaurante/plano`.
+
+**Why:** consistência de UX mobile entre `/admin/*` e `/restaurante/*`, que já tinha o padrão certo.
+
+Status: commitado local em `fix/admin-header-lg-breakpoint-e-status-dot` (main repo), build limpo confirmado. **NÃO mergeado/pushado/deployado. NÃO testado visualmente em mobile real ainda** — próxima sessão deve confirmar no celular antes de subir.

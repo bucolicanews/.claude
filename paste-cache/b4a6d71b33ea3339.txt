@@ -1,0 +1,182 @@
+[
+  {
+    "id": 16,
+    "restaurant_id": 1,
+    "status": "fechado",
+    "saidas": [
+      {
+        "meio": "dinheiro",
+        "valor": 145.9,
+        "criado_em": "2026-07-23T11:37:45.066Z",
+        "descricao": "Cofre"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 14.2,
+        "criado_em": "2026-07-23T20:57:00.030Z",
+        "descricao": "Gorjeta - Comanda #10"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "troco",
+        "valor": 13.8,
+        "criado_em": "2026-07-23T20:57:00.516Z",
+        "descricao": "Troco - Comanda #10"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 2,
+        "criado_em": "2026-07-23T21:06:00.767Z",
+        "descricao": "suely"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 50,
+        "criado_em": "2026-07-23T22:51:23.377Z",
+        "descricao": "JOão"
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "restaurant_id": 1,
+    "status": "fechado",
+    "saidas": [
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 4.2,
+        "criado_em": "2026-07-22T16:47:06.898Z",
+        "descricao": "Gorjeta - Comanda #4"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "troco",
+        "valor": 53.8,
+        "criado_em": "2026-07-22T16:47:07.615Z",
+        "descricao": "Troco - Comanda #4"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 50,
+        "criado_em": "2026-07-22T18:49:03.058Z",
+        "descricao": "Comprar Gelo"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "restaurant_id": 1,
+    "status": "fechado",
+    "saidas": [
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 3,
+        "criado_em": "2026-07-21T17:19:42.772Z",
+        "descricao": "Gorjeta - Comanda #1"
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "restaurant_id": 1,
+    "status": "aberto",
+    "saidas": [
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 1.6,
+        "criado_em": "2026-07-25T16:17:24.504Z",
+        "descricao": "Gorjeta - Comanda #12"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 5.3,
+        "criado_em": "2026-07-25T16:32:10.517Z",
+        "descricao": "Gorjeta - Comanda #5"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "troco",
+        "valor": 41.7,
+        "criado_em": "2026-07-25T16:32:10.978Z",
+        "descricao": "Troco - Comanda #5"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 2,
+        "criado_em": "2026-07-25T16:34:55.994Z",
+        "descricao": "Gorjeta - Comanda #11"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "troco",
+        "valor": 19.7,
+        "criado_em": "2026-07-25T16:34:56.439Z",
+        "descricao": "Troco - Comanda #11"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 20,
+        "criado_em": "2026-07-25T16:42:56.354Z",
+        "descricao": "CAMARÃO"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 5,
+        "criado_em": "2026-07-25T17:19:43.629Z",
+        "descricao": "Gorjeta - Comanda #10"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "troco",
+        "valor": 15,
+        "criado_em": "2026-07-25T17:19:44.089Z",
+        "descricao": "Troco - Comanda #10"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "gorjeta",
+        "valor": 8.5,
+        "criado_em": "2026-07-25T20:00:06.248Z",
+        "descricao": "Gorjeta - Comanda #4"
+      },
+      {
+        "meio": "dinheiro",
+        "tipo": "troco",
+        "valor": 6.5,
+        "criado_em": "2026-07-25T20:00:06.713Z",
+        "descricao": "Troco - Comanda #4"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 90,
+        "criado_em": "2026-07-25T21:53:09.061Z",
+        "descricao": "Robson hj"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 71,
+        "criado_em": "2026-07-25T23:29:04.450Z",
+        "descricao": "rafa hj"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 51,
+        "criado_em": "2026-07-25T23:30:20.708Z",
+        "descricao": "felipe hj"
+      },
+      {
+        "meio": "dinheiro",
+        "valor": 50,
+        "criado_em": "2026-07-25T23:31:16.946Z",
+        "descricao": "Manuela"
+      }
+    ]
+  }
+]

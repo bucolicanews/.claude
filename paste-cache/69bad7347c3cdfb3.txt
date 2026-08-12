@@ -1,0 +1,76 @@
+Access to fetch at 'https://application.rocket.new/preview/v1/track' from origin 'https://app-desenvolvimento-delivery.ubjifz.easypanel.host' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1  POST https://application.rocket.new/preview/v1/track net::ERR_FAILED
+(anonymous) @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+u @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+E @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+(anonymous) @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+(anonymous) @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+app-desenvolvimento-delivery.ubjifz.easypanel.host/:1 Access to fetch at 'https://application.rocket.new/preview/v1/track' from origin 'https://app-desenvolvimento-delivery.ubjifz.easypanel.host' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1  POST https://application.rocket.new/preview/v1/track net::ERR_FAILED
+(anonymous) @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+u @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+window.history.replaceState @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+k @ index-Cm-Vmbt3.js:40
+(anonymous) @ index-Cm-Vmbt3.js:49
+(anonymous) @ index-Cm-Vmbt3.js:49
+qB @ index-Cm-Vmbt3.js:40
+_d @ index-Cm-Vmbt3.js:40
+(anonymous) @ index-Cm-Vmbt3.js:40
+_ @ index-Cm-Vmbt3.js:25
+O @ index-Cm-Vmbt3.js:25
+postMessage
+K @ index-Cm-Vmbt3.js:25
+q @ index-Cm-Vmbt3.js:25
+e.unstable_scheduleCallback @ index-Cm-Vmbt3.js:25
+b$ @ index-Cm-Vmbt3.js:40
+Dt @ index-Cm-Vmbt3.js:40
+xn @ index-Cm-Vmbt3.js:40
+wO @ index-Cm-Vmbt3.js:38
+(anonymous) @ index-Cm-Vmbt3.js:7929
+(anonymous) @ index-Cm-Vmbt3.js:7929
+_useSession @ index-Cm-Vmbt3.js:7929
+await in _useSession
+_emitInitialSession @ index-Cm-Vmbt3.js:7929
+(anonymous) @ index-Cm-Vmbt3.js:7929
+await in (anonymous)
+onAuthStateChange @ index-Cm-Vmbt3.js:7929
+(anonymous) @ index-Cm-Vmbt3.js:7929
+qB @ index-Cm-Vmbt3.js:40
+_d @ index-Cm-Vmbt3.js:40
+(anonymous) @ index-Cm-Vmbt3.js:40
+_ @ index-Cm-Vmbt3.js:25
+O @ index-Cm-Vmbt3.js:25
+postMessage
+K @ index-Cm-Vmbt3.js:25
+O @ index-Cm-Vmbt3.js:25
+postMessage
+K @ index-Cm-Vmbt3.js:25
+q @ index-Cm-Vmbt3.js:25
+e.unstable_scheduleCallback @ index-Cm-Vmbt3.js:25
+b$ @ index-Cm-Vmbt3.js:40
+Dt @ index-Cm-Vmbt3.js:40
+xn @ index-Cm-Vmbt3.js:40
+VB @ index-Cm-Vmbt3.js:40
+UB.render.EF.render @ index-Cm-Vmbt3.js:40
+(anonymous) @ index-Cm-Vmbt3.js:8067
+/restaurante:1 Access to fetch at 'https://application.rocket.new/preview/v1/track' from origin 'https://app-desenvolvimento-delivery.ubjifz.easypanel.host' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1  POST https://application.rocket.new/preview/v1/track net::ERR_FAILED
+(anonymous) @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+u @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+window.history.pushState @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+g @ index-Cm-Vmbt3.js:40
+(anonymous) @ index-Cm-Vmbt3.js:49
+onClick @ index-Cm-Vmbt3.js:7929
+iH @ index-Cm-Vmbt3.js:37
+lH @ index-Cm-Vmbt3.js:37
+pH @ index-Cm-Vmbt3.js:37
+nP @ index-Cm-Vmbt3.js:37
+jR @ index-Cm-Vmbt3.js:37
+(anonymous) @ index-Cm-Vmbt3.js:37
+DF @ index-Cm-Vmbt3.js:40
+OL @ index-Cm-Vmbt3.js:37
+ND @ index-Cm-Vmbt3.js:37
+nF @ index-Cm-Vmbt3.js:37
+BH @ index-Cm-Vmbt3.js:37
+motoboys:1 Access to fetch at 'https://application.rocket.new/preview/v1/track' from origin 'https://app-desenvolvimento-delivery.ubjifz.easypanel.host' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1  POST https://application.rocket.new/preview/v1/track net::ERR_FAILED

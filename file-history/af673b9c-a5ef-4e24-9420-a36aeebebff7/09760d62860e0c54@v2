@@ -1,0 +1,20 @@
+
+
+SUPABASE_URL=https://gkeolhhcptavftwloucj.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrZW9saGhjcHRhdmZ0d2xvdWNqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzY5OTMwOSwiZXhwIjoyMDk5Mjc1MzA5fQ.tHha_ekGk2eKyHAE0XWE8lEZlot5nS9mOm4md-3rRhM
+PORT=3002
+
+# Motoboy (login próprio, JWT — não usa Supabase Auth)
+MOTOBOY_JWT_SECRET=91c13ad7098c49ab24fad516df47b2d8b714c891238328ec85890551e1431778
+NOMINATIM_USER_AGENT=DeliveryHub/1.0 (bacudigital@gmail.com)
+
+# Garçom / módulo Salão (login próprio, JWT — não usa Supabase Auth)
+GARCOM_JWT_SECRET=ba3fdb0af91a81b160be08857b3849cb8b09d15339d73af0592e83a813a971bd
+
+# Colaboradores (login próprio por setor/caixa, JWT — não usa Supabase Auth)
+COLABORADOR_JWT_SECRET=afbd98d9dddc6d2bfb0daa47812cc0df36742d8a2282ba917a69ef0eb4598262
+
+# PagBank
+PAGBANK_TOKEN=
+PAGBANK_SANDBOX=true
+PAGBANK_WEBHOOK_URL=http://localhost:3002/pagamentos/webhook

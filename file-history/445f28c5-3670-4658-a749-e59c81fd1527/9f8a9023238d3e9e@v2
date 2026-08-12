@@ -1,0 +1,21 @@
+---
+name: deliveryhub-alerta-visual-pedido-pronto
+description: "Alerta visual de item pronto no portal do garçom vira faixa fixa no topo com Mesa+Cliente+Pedido — commitado, não mergeado"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 445f28c5-3670-4658-a749-e59c81fd1527
+  modified: 2026-07-26T01:23:08.753Z
+---
+
+Alerta de "pedido pronto pra buscar" no portal do garçom (`/garcom/:loginKey`, aba Salão) era um toast pequeno no rodapé (`avisoPronto`, bottom-2, texto curto). Trocado por faixa vermelha (`#FF441F`) fixa no topo, `animate-pulse`, texto completo "Seu pedido está pronto! Mesa: X · Cliente: Y · Pedido: Z", duração 8s→10s.
+
+**Implementado e commitado em 2026-07-26 (branch `feat/alerta-visual-pedido-pronto` em ambos repos):**
+- Backend (`server_delivery`, commit `e60e512`): `SalaoService.itensProntos()` (`src/salao/salao.service.ts`) passa a selecionar `cliente_mesa_nome` da comanda e retornar campo `cliente` no item.
+- Frontend (`deliveryhub_white_label`, commit `ef979a5`): `src/pages/garcom-portal/index.jsx`, componente `GarcomHome`, useEffect de polling (`getItensProntos`) monta a mensagem nova; `avisoProntoToast` virou faixa full-width top.
+
+Validado com `tsc --noEmit` (backend) e `vite build` (frontend), ambos limpos. Sem teste funcional real ainda (usuário roda servers manualmente, ver [[feedback_usuario_roda_servers]]).
+
+**Why:** toast pequeno no rodapé passava despercebido no salão; garçom precisa ver na hora que pedido ficou pronto pra buscar, com detalhe de mesa/cliente pra não confundir comandas.
+
+**How to apply:** branch ainda não mergeada em main nem testada end-to-end. Antes de mergear, pedir pro usuário testar localmente (pedido passando por preparando→pronto e ver a faixa aparecer), depois seguir fluxo padrão de sincronizar clone standalone do submodule ([[deliveryhub_dois_clones_server_delivery]]) antes de subir pra produção.

@@ -1,0 +1,1148 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  login, getGarcomToken, setGarcomToken, clearGarcomToken, getMe,
+  getMesas, getProdutos, getMinhasComandas, getComanda, getItensProntos, getFilaCozinha,
+  abrirComanda, adicionarItens, editarItem, removerItem, enviarItens, fecharComanda,
+  registrarPagamento, editarPagamento, removerPagamento, editarClienteComanda, excluirComanda,
+  confirmarEntregaItem,
+} from '../../services/garcomService';
+import { printTicketSetor } from '../../utils/printComanda';
+import { getAcompanharUrls } from '../../utils/mesaAcompanharUrl';
+import { useNotificacaoSonora } from '../../hooks/useNotificacaoSonora';
+import { useNowTick } from '../../hooks/useNowTick';
+import { formatDuracao } from '../../utils/formatDuracao';
+import Icon from '../../components/AppIcon';
+import TempoMedioTile from '../../components/TempoMedioTile';
+
+const fmt = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v ?? 0);
+const PAGAMENTO_LABEL = { pix: 'PIX', credit_card: 'Cartão crédito', debit_card: 'Cartão débito', cash: 'Dinheiro' };
+
+const MESA_STATUS_COR = {
+  livre: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  ocupada: 'bg-orange-100 text-orange-700 border-orange-200',
+  aguardando_pagamento: 'bg-blue-100 text-blue-700 border-blue-200',
+  bloqueada: 'bg-zinc-200 text-zinc-500 border-zinc-300',
+};
+const MESA_STATUS_LABEL = { livre: 'Livre', ocupada: 'Ocupada', aguardando_pagamento: 'Aguard. pagamento', bloqueada: 'Bloqueada' };
+const MESA_OCUPADA_OUTRO_COR = 'bg-purple-100 text-purple-700 border-purple-200';
+
+const responsavelMesa = (comanda) =>
+  comanda?.garcons?.nome ?? (comanda?.aberto_por_nome ? `Caixa: ${comanda.aberto_por_nome}` : null);
+
+const GarcomLogin = ({ loginKey, onLogin }) => {
+  const [password, setPassword] = useState('');
+  const [erro, setErro] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErro(null);
+    setLoading(true);
+    try {
+      const { token } = await login(loginKey, password);
+      setGarcomToken(token);
+      onLogin();
+    } catch (err) {
+      setErro(err.message ?? 'Senha inválida.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F5] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl border border-[#E4E4E7] p-6 w-full max-w-sm shadow-lg">
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 bg-[#FF441F]/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Icon name="UtensilsCrossed" size={28} className="text-[#FF441F]" />
+          </div>
+          <h1 className="text-lg font-black text-[#18181B]">Portal do Garçom</h1>
+          <p className="text-sm text-[#71717A] mt-1">Digite sua senha pra entrar</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Senha"
+            autoFocus
+            required
+            className="w-full border border-[#E4E4E7] rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-[#FF441F]"
+          />
+          {erro && <p className="text-xs text-red-600">{erro}</p>}
+          <button type="submit" disabled={loading}
+            className="w-full py-3 bg-[#FF441F] text-white font-bold rounded-xl hover:bg-[#E63A19] disabled:opacity-50 text-sm">
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const AbrirComandaModal = ({ mesa, onFechar, onAberta }) => {
+  const [nome, setNome] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [erro, setErro] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      const comanda = await abrirComanda({ mesa_id: mesa?.id ?? null, cliente_nome: nome.trim(), cliente_telefone: telefone.trim() });
+      onAberta(comanda);
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível abrir a comanda.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h2 className="text-base font-bold text-[#18181B] mb-1">
+          {mesa ? `Abrir Mesa ${mesa.numero}` : 'Abrir comanda avulsa'}
+        </h2>
+        <p className="text-xs text-[#71717A] mb-4">Nome e telefone do cliente são obrigatórios antes de vender.</p>
+        <form onSubmit={submit} className="space-y-3">
+          <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do cliente" required
+            className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#FF441F]" />
+          <input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="Telefone do cliente" required
+            className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#FF441F]" />
+          {erro && <p className="text-xs text-red-600">{erro}</p>}
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onFechar}
+              className="flex-1 py-2.5 text-sm border border-[#E4E4E7] rounded-xl text-[#71717A] hover:bg-[#F4F4F5]">
+              Cancelar
+            </button>
+            <button type="submit" disabled={salvando}
+              className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white bg-[#FF441F] hover:bg-[#E63A19] disabled:opacity-50">
+              {salvando ? 'Abrindo...' : 'Abrir'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const EditarClienteModal = ({ comanda, onFechar, onEditado }) => {
+  const [nome, setNome] = useState(comanda.cliente_mesa_nome ?? '');
+  const [telefone, setTelefone] = useState(comanda.cliente_mesa_telefone ?? '');
+  const [erro, setErro] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setErro(null);
+    setSalvando(true);
+    try {
+      await editarClienteComanda(comanda.id, nome.trim(), telefone.trim());
+      await onEditado();
+      onFechar();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível salvar.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h2 className="text-base font-bold text-[#18181B] mb-1">Editar dados do cliente</h2>
+        <p className="text-xs text-[#71717A] mb-4">Corrige nome ou telefone digitados errado na abertura.</p>
+        <form onSubmit={submit} className="space-y-3">
+          <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do cliente" required
+            className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#FF441F]" />
+          <input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="Telefone do cliente" required
+            className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#FF441F]" />
+          {erro && <p className="text-xs text-red-600">{erro}</p>}
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onFechar}
+              className="flex-1 py-2.5 text-sm border border-[#E4E4E7] rounded-xl text-[#71717A] hover:bg-[#F4F4F5]">
+              Cancelar
+            </button>
+            <button type="submit" disabled={salvando}
+              className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white bg-[#FF441F] hover:bg-[#E63A19] disabled:opacity-50">
+              {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const FecharComandaModal = ({ comanda, onFechar, onFechada }) => {
+  const [forma, setForma] = useState('pix');
+  const [erro, setErro] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const confirmar = async () => {
+    setErro(null);
+    setSalvando(true);
+    try {
+      await fecharComanda(comanda.id, forma);
+      onFechada();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível fechar a comanda.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h2 className="text-base font-bold text-[#18181B] mb-1">Fechar comanda</h2>
+        <p className="text-xs text-[#71717A] mb-4">
+          A mesa fica bloqueada aguardando pagamento — quem finaliza e emite o recibo é o caixa.
+        </p>
+        <label className="text-xs text-[#71717A]">Forma de pagamento informada pelo cliente</label>
+        <select value={forma} onChange={(e) => setForma(e.target.value)}
+          className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-sm mt-1 mb-3">
+          <option value="pix">PIX</option>
+          <option value="credit_card">Cartão de crédito</option>
+          <option value="debit_card">Cartão de débito</option>
+          <option value="cash">Dinheiro</option>
+        </select>
+        {erro && <p className="text-xs text-red-600 mb-2">{erro}</p>}
+        <div className="flex gap-2">
+          <button onClick={onFechar} className="flex-1 py-2.5 text-sm border border-[#E4E4E7] rounded-xl text-[#71717A] hover:bg-[#F4F4F5]">
+            Voltar
+          </button>
+          <button onClick={confirmar} disabled={salvando}
+            className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white bg-[#FF441F] hover:bg-[#E63A19] disabled:opacity-50">
+            {salvando ? 'Fechando...' : 'Fechar comanda'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const QuickAddModal = ({ produto, onFechar, onConfirmar }) => {
+  const [quantidade, setQuantidade] = useState(1);
+  const [observacao, setObservacao] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const confirmar = async () => {
+    setSalvando(true);
+    try {
+      await onConfirmar({ product_id: produto.id, quantity: quantidade, observacao: observacao.trim() || undefined });
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F4F4F5] flex-shrink-0">
+            {produto.image_url
+              ? <img src={produto.image_url} alt="" className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center"><Icon name="UtensilsCrossed" size={20} className="text-[#A1A1AA]" /></div>}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-[#18181B] truncate">{produto.name}</p>
+            <p className="text-xs text-[#71717A]">{fmt(produto.price)}</p>
+          </div>
+        </div>
+
+        <label className="text-xs text-[#71717A]">Quantidade</label>
+        <div className="flex items-center gap-3 mt-1 mb-3">
+          <button onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
+            className="w-10 h-10 rounded-xl border border-[#E4E4E7] flex items-center justify-center text-lg font-bold text-[#27272A]">−</button>
+          <span className="text-lg font-bold text-[#18181B] w-8 text-center">{quantidade}</span>
+          <button onClick={() => setQuantidade((q) => q + 1)}
+            className="w-10 h-10 rounded-xl border border-[#E4E4E7] flex items-center justify-center text-lg font-bold text-[#27272A]">+</button>
+        </div>
+
+        <label className="text-xs text-[#71717A]">Observação (opcional)</label>
+        <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2}
+          placeholder="Ex: sem cebola, ponto da carne..."
+          className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2 text-sm mt-1 mb-4 resize-none" />
+
+        <div className="flex gap-2">
+          <button onClick={onFechar} className="flex-1 py-2.5 text-sm border border-[#E4E4E7] rounded-xl text-[#71717A]">
+            Cancelar
+          </button>
+          <button onClick={confirmar} disabled={salvando}
+            className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white bg-[#FF441F] hover:bg-[#E63A19] disabled:opacity-50">
+            {salvando ? 'Adicionando...' : 'Adicionar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProdutoPickerModal = ({ produtos, onFechar, onAdicionado }) => {
+  const [busca, setBusca] = useState('');
+  const [categoria, setCategoria] = useState('todas');
+  const [produtoAtivo, setProdutoAtivo] = useState(null);
+
+  const categorias = ['todas', ...new Set(produtos.map((p) => p.category_name ?? 'Outros'))];
+  const filtrados = produtos.filter((p) => {
+    const bateBusca = p.name.toLowerCase().includes(busca.toLowerCase());
+    const bateCategoria = categoria === 'todas' || (p.category_name ?? 'Outros') === categoria;
+    return bateBusca && bateCategoria;
+  });
+
+  return (
+    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+      <div className="p-4 border-b border-[#E4E4E7] sticky top-0 bg-white max-w-2xl w-full mx-auto">
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={onFechar} className="p-1 text-[#71717A]"><Icon name="ArrowLeft" size={20} /></button>
+          <h2 className="text-base font-bold text-[#18181B]">Adicionar produto</h2>
+        </div>
+        <div className="relative">
+          <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1AA]" />
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto..." autoFocus
+            className="w-full border border-[#E4E4E7] rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-[#FF441F]" />
+        </div>
+        <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1">
+          {categorias.map((c) => (
+            <button key={c} onClick={() => setCategoria(c)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${
+                categoria === c ? 'bg-[#FF441F] text-white' : 'bg-[#F4F4F5] text-[#71717A]'
+              }`}>
+              {c === 'todas' ? 'Todas' : c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 max-w-2xl w-full mx-auto space-y-2">
+        {filtrados.map((p) => (
+          <button key={p.id} onClick={() => setProdutoAtivo(p)}
+            className="w-full bg-white border border-[#E4E4E7] rounded-xl p-2.5 flex items-center gap-3 text-left active:scale-[0.98] transition-transform">
+            <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#F4F4F5] flex-shrink-0">
+              {p.image_url
+                ? <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center"><Icon name="UtensilsCrossed" size={18} className="text-[#A1A1AA]" /></div>}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#18181B] truncate">{p.name}</p>
+              <p className="text-xs text-[#71717A]">{fmt(p.price)}</p>
+            </div>
+            <Icon name="Plus" size={18} className="text-[#FF441F] flex-shrink-0" />
+          </button>
+        ))}
+        {filtrados.length === 0 && <p className="text-sm text-[#A1A1AA] text-center py-6">Nenhum produto encontrado.</p>}
+      </div>
+
+      {produtoAtivo && (
+        <QuickAddModal
+          produto={produtoAtivo}
+          onFechar={() => setProdutoAtivo(null)}
+          onConfirmar={async (item) => { await onAdicionado(item); setProdutoAtivo(null); }}
+        />
+      )}
+    </div>
+  );
+};
+
+const PagamentoParcial = ({ comanda, onRegistrado, podePagamentoParcial }) => {
+  const [valor, setValor] = useState('');
+  const [forma, setForma] = useState('pix');
+  const [valorRecebido, setValorRecebido] = useState('');
+  const [erro, setErro] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
+  const [valorEdicao, setValorEdicao] = useState('');
+  const [formaEdicao, setFormaEdicao] = useState('pix');
+
+  const saldo = comanda.saldo?.saldo ?? 0;
+  const troco = forma === 'cash' && valorRecebido ? Number(valorRecebido) - Number(valor || 0) : null;
+  // Comanda paga/cancelada não deixa mais mexer nos pagamentos, mesma regra de editar itens.
+  const podeMexer = ['aberta', 'fechada_garcom'].includes(comanda.status);
+  const isCartao = forma === 'credit_card' || forma === 'debit_card';
+  const taxaCartaoPercentual = comanda.taxa_cartao_percentual ?? 0;
+  const taxaCartaoValorParcial = isCartao ? parseFloat((Number(valor || 0) * (taxaCartaoPercentual / 100)).toFixed(2)) : 0;
+
+  const registrar = async () => {
+    const v = Number(valor);
+    if (!v || v <= 0) return;
+    if (forma === 'cash' && valorRecebido && Number(valorRecebido) < v) {
+      setErro('Valor recebido não pode ser menor que o valor a pagar.');
+      return;
+    }
+    setErro(null);
+    setSalvando(true);
+    try {
+      await registrarPagamento(comanda.id, v, forma, forma === 'cash' && valorRecebido ? Number(valorRecebido) : undefined);
+      setValor('');
+      setValorRecebido('');
+      await onRegistrado();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível registrar o pagamento.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const iniciarEdicao = (p) => {
+    setEditandoId(p.id);
+    setValorEdicao(String(p.valor));
+    setFormaEdicao(p.forma_pagamento);
+  };
+
+  const salvarEdicao = async () => {
+    const v = Number(valorEdicao);
+    if (!v || v <= 0) return;
+    setErro(null);
+    setSalvando(true);
+    try {
+      await editarPagamento(comanda.id, editandoId, v, formaEdicao);
+      setEditandoId(null);
+      await onRegistrado();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível editar o pagamento.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const remover = async (p) => {
+    if (!window.confirm('Remover este pagamento?')) return;
+    setErro(null);
+    try {
+      await removerPagamento(comanda.id, p.id);
+      await onRegistrado();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível remover o pagamento.');
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-[#E4E4E7] p-3 space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="text-[#71717A]">Saldo devedor</span>
+        <strong className={saldo > 0.01 ? 'text-[#FF441F]' : 'text-emerald-600'}>{fmt(saldo)}</strong>
+      </div>
+      {(comanda.pagamentos ?? []).length > 0 && (
+        <div className="space-y-1">
+          {comanda.pagamentos.map((p) => (
+            editandoId === p.id ? (
+              <div key={p.id} className="flex items-center gap-1.5 bg-[#F4F4F5] rounded-lg p-1.5">
+                <input type="number" value={valorEdicao} onChange={(e) => setValorEdicao(e.target.value)}
+                  className="w-16 border border-[#E4E4E7] rounded-lg px-1.5 py-1 text-xs" />
+                <select value={formaEdicao} onChange={(e) => setFormaEdicao(e.target.value)}
+                  className="flex-1 border border-[#E4E4E7] rounded-lg px-1.5 py-1 text-xs">
+                  <option value="pix">PIX</option>
+                  <option value="credit_card">Cartão de crédito</option>
+                  <option value="debit_card">Cartão de débito</option>
+                  <option value="cash">Dinheiro</option>
+                </select>
+                <button onClick={salvarEdicao} disabled={!valorEdicao || salvando}
+                  className="text-xs font-bold text-emerald-700 disabled:opacity-40 flex-shrink-0">Salvar</button>
+                <button onClick={() => setEditandoId(null)} className="text-xs text-[#71717A] flex-shrink-0">Cancelar</button>
+              </div>
+            ) : (
+              <p key={p.id} className="text-xs text-[#71717A] flex justify-between items-center gap-2">
+                <span>
+                  {PAGAMENTO_LABEL[p.forma_pagamento] ?? p.forma_pagamento} ({p.origem === 'garcom' ? 'garçom' : 'caixa'})
+                  {p.taxa_cartao_valor > 0 && <span className="text-[#FF441F]"> + taxa {fmt(p.taxa_cartao_valor)}</span>}
+                </span>
+                <span className="flex items-center gap-1.5 flex-shrink-0">
+                  {fmt(p.valor + (p.taxa_cartao_valor || 0))}
+                  {podeMexer && podePagamentoParcial && p.origem === 'garcom' && (
+                    <>
+                      <button onClick={() => iniciarEdicao(p)} className="w-6 h-6 rounded-md border border-zinc-300 bg-zinc-50 text-zinc-600 flex items-center justify-center hover:bg-zinc-100 flex-shrink-0">
+                        <Icon name="Pencil" size={13} strokeWidth={2.5} />
+                      </button>
+                      <button onClick={() => remover(p)} className="w-6 h-6 rounded-md border border-red-200 bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 flex-shrink-0">
+                        <Icon name="X" size={14} strokeWidth={2.5} />
+                      </button>
+                    </>
+                  )}
+                </span>
+              </p>
+            )
+          ))}
+        </div>
+      )}
+      {saldo > 0.01 && podePagamentoParcial && (
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center gap-1.5">
+            <input type="number" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Valor"
+              className="w-20 border border-[#E4E4E7] rounded-lg px-2 py-1.5 text-xs" />
+            <select value={forma} onChange={(e) => setForma(e.target.value)}
+              className="flex-1 border border-[#E4E4E7] rounded-lg px-2 py-1.5 text-xs">
+              <option value="pix">PIX</option>
+              <option value="credit_card">Cartão de crédito</option>
+              <option value="debit_card">Cartão de débito</option>
+              <option value="cash">Dinheiro</option>
+            </select>
+            <button onClick={registrar} disabled={salvando || !valor}
+              className="px-2.5 py-1.5 bg-zinc-800 text-white rounded-lg text-xs font-bold disabled:opacity-40 flex-shrink-0">
+              Pagar
+            </button>
+          </div>
+          {taxaCartaoValorParcial > 0 && (
+            <p className="text-xs text-[#FF441F]">
+              + taxa cartão ({taxaCartaoPercentual}%): {fmt(taxaCartaoValorParcial)} — cobrar {fmt(Number(valor || 0) + taxaCartaoValorParcial)}
+            </p>
+          )}
+          {forma === 'cash' && (
+            <div className="flex items-center gap-1.5">
+              <input type="number" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)}
+                placeholder="Valor recebido do cliente"
+                className="flex-1 border border-[#E4E4E7] rounded-lg px-2 py-1.5 text-xs" />
+              {troco !== null && (
+                <span className={`text-xs font-bold flex-shrink-0 ${troco < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                  Troco: {fmt(Math.max(troco, 0))}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {saldo > 0.01 && !podePagamentoParcial && (
+        <p className="text-xs text-[#A1A1AA] pt-1">Você não tem permissão para registrar pagamento parcial.</p>
+      )}
+      {erro && <p className="text-xs text-red-600">{erro}</p>}
+    </div>
+  );
+};
+
+const ComandaDetalhe = ({ comandaId, onVoltar, podePagamentoParcial }) => {
+  const [comanda, setComanda] = useState(null);
+  const [produtos, setProdutos] = useState([]);
+  const [mostrarPicker, setMostrarPicker] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [mostrarFechar, setMostrarFechar] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [mostrarQr, setMostrarQr] = useState(false);
+  const [qrModo, setQrModo] = useState('online'); // 'online' | 'local'
+  const [mostrarEditarCliente, setMostrarEditarCliente] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const carregar = useCallback(async () => {
+    const [c, p] = await Promise.all([getComanda(comandaId), getProdutos()]);
+    setComanda(c);
+    setProdutos(p);
+  }, [comandaId]);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const excluir = async () => {
+    if (!window.confirm('Excluir esta comanda? Essa ação não pode ser desfeita.')) return;
+    setErro(null);
+    setExcluindo(true);
+    try {
+      await excluirComanda(comandaId);
+      onVoltar();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível excluir a comanda.');
+      setExcluindo(false);
+    }
+  };
+
+  const adicionarProduto = async (item) => {
+    setErro(null);
+    try {
+      await adicionarItens(comandaId, [item]);
+      await carregar();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível adicionar o item.');
+    }
+  };
+
+  const alterarQuantidade = async (item, delta) => {
+    const novaQtd = item.quantity + delta;
+    if (novaQtd < 1) return;
+    setErro(null);
+    try {
+      await editarItem(comandaId, item.id, { quantity: novaQtd });
+      await carregar();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível alterar a quantidade.');
+    }
+  };
+
+  const removerItemComanda = async (item) => {
+    if (!window.confirm(`Remover ${item.products?.name}?`)) return;
+    setErro(null);
+    try {
+      await removerItem(comandaId, item.id);
+      await carregar();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível remover o item.');
+    }
+  };
+
+  const confirmarEntrega = async (item) => {
+    setErro(null);
+    try {
+      await confirmarEntregaItem(comandaId, item.id);
+      await carregar();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível confirmar a entrega.');
+    }
+  };
+
+  const enviar = async () => {
+    setEnviando(true);
+    setErro(null);
+    try {
+      const { grupos } = await enviarItens(comandaId);
+      grupos.forEach((grupo) => printTicketSetor(grupo.itens, comanda, grupo.setor));
+      await carregar();
+    } catch (err) {
+      setErro(err.message ?? 'Não foi possível enviar os itens.');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  if (!comanda) return <div className="p-6 text-sm text-[#71717A]">Carregando...</div>;
+
+  const total = (comanda.itens ?? []).reduce((acc, i) => acc + i.quantity * i.unit_price, 0);
+  const temPendente = (comanda.itens ?? []).some((i) => i.status === 'pendente');
+  const fechada = comanda.status === 'fechada_garcom';
+  // Só dá pra excluir enquanto nada foi mandado pra cozinha ainda — depois disso quem
+  // decide é o estabelecimento (cancelar via PDV), pra não sumir pedido em preparo.
+  const podeExcluir = (comanda.itens ?? []).every((i) => i.status === 'pendente');
+
+  return (
+    <div className={`min-h-screen bg-[#F4F4F5] ${!fechada ? 'pb-44' : 'pb-6'}`}>
+      <div className="bg-white border-b border-[#E4E4E7] p-4 sticky top-0 z-10">
+        <button onClick={onVoltar} className="flex items-center gap-1 text-sm text-[#71717A] mb-2">
+          <Icon name="ArrowLeft" size={16} /> Voltar
+        </button>
+        <h1 className="text-base font-bold text-[#18181B]">
+          #{comanda.numero_comanda ?? comanda.id}{comanda.mesa_id ? ` — Mesa ${comanda.mesas?.numero ?? comanda.mesa_id}` : ''}
+        </h1>
+        <div className="flex items-center gap-1.5">
+          <p className="text-xs text-[#71717A]">{comanda.cliente_mesa_nome} · {comanda.cliente_mesa_telefone}</p>
+          <button onClick={() => setMostrarEditarCliente(true)} className="text-[#71717A] hover:text-[#FF441F] flex-shrink-0" title="Editar dados do cliente">
+            <Icon name="Pencil" size={12} />
+          </button>
+        </div>
+        {fechada && (
+          <p className="text-xs text-blue-700 bg-blue-50 rounded-lg px-2 py-1 mt-2 inline-block">
+            Fechada — aguardando pagamento no caixa
+          </p>
+        )}
+        {comanda.tracking_token && (
+          <div className="mt-2">
+            <button onClick={() => setMostrarQr((v) => !v)}
+              className="flex items-center gap-1 text-xs font-bold text-[#FF441F]">
+              <Icon name="QrCode" size={14} /> {mostrarQr ? 'Esconder QR' : 'Mostrar QR pro cliente'}
+            </button>
+            {mostrarQr && (() => {
+              const urls = getAcompanharUrls(comanda.tracking_token);
+              const urlAtiva = qrModo === 'local' && urls.lan ? urls.lan : urls.principal;
+              return (
+                <div className="mt-2">
+                  {urls.lan && (
+                    <div className="flex gap-2 mb-2">
+                      <button onClick={() => setQrModo('online')}
+                        className={`px-3 py-1 rounded-lg text-[10px] font-bold ${qrModo === 'online' ? 'bg-[#FF441F] text-white' : 'bg-[#F4F4F5] text-[#71717A]'}`}>
+                        ONLINE
+                      </button>
+                      <button onClick={() => setQrModo('local')}
+                        className={`px-3 py-1 rounded-lg text-[10px] font-bold ${qrModo === 'local' ? 'bg-[#FF441F] text-white' : 'bg-[#F4F4F5] text-[#71717A]'}`}>
+                        LOCAL
+                      </button>
+                    </div>
+                  )}
+                  <div className="bg-white border border-[#E4E4E7] rounded-xl p-3 inline-flex flex-col items-center gap-1">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(urlAtiva)}`}
+                      alt="QR de acompanhamento" width={150} height={150}
+                    />
+                    <p className="text-[10px] text-[#71717A]">Cliente escaneia pra acompanhar o preparo</p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 space-y-2">
+        {(comanda.itens ?? []).map((item) => (
+          <div key={item.id} className="bg-white rounded-xl border border-[#E4E4E7] p-3 flex justify-between items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#F4F4F5] flex-shrink-0">
+                {item.products?.image_url
+                  ? <img src={item.products.image_url} alt="" className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><Icon name="UtensilsCrossed" size={16} className="text-[#A1A1AA]" /></div>}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#18181B] truncate">{item.quantity}x {item.products?.name}</p>
+                <p className="text-xs text-[#71717A]">{fmt(item.unit_price)} un.</p>
+                {item.observacao && <p className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 mt-0.5 inline-block">{item.observacao}</p>}
+              </div>
+            </div>
+            {item.status === 'pendente' ? (
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button onClick={() => alterarQuantidade(item, -1)} className="w-6 h-6 rounded-lg border border-[#E4E4E7] text-sm font-bold text-[#27272A]">−</button>
+                <button onClick={() => alterarQuantidade(item, 1)} className="w-6 h-6 rounded-lg border border-[#E4E4E7] text-sm font-bold text-[#27272A]">+</button>
+                <button onClick={() => removerItemComanda(item)} className="w-6 h-6 rounded-lg border border-red-200 text-red-500 flex items-center justify-center">
+                  <Icon name="X" size={12} />
+                </button>
+              </div>
+            ) : (item.status === 'preparando' || item.status === 'pronto') && !item.entregue_garcom ? (
+              <button onClick={() => confirmarEntrega(item)}
+                className="text-[10px] px-2.5 py-1.5 rounded-full font-bold flex-shrink-0 bg-[#FF441F] text-white flex items-center gap-1">
+                <Icon name="Check" size={12} /> Entregar
+              </button>
+            ) : (
+              <span className={`text-[10px] px-2 py-1 rounded-full font-medium flex-shrink-0 ${
+                item.status === 'enviado' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
+              }`}>
+                {item.status === 'enviado' ? 'Enviado' : 'Entregue'}
+              </span>
+            )}
+          </div>
+        ))}
+        {(comanda.itens ?? []).length === 0 && (
+          <p className="text-sm text-[#A1A1AA] text-center py-6">Nenhum item ainda.</p>
+        )}
+      </div>
+
+      <div className="px-4 pb-4">
+        <PagamentoParcial comanda={comanda} onRegistrado={carregar} podePagamentoParcial={podePagamentoParcial} />
+      </div>
+
+      {/* Resumo financeiro fica no fluxo normal da página (não fixo) — com desconto/acréscimo/
+          taxa de cartão/gorjeta ficou grande demais pra caber num rodapé fixo sem cobrir os
+          lançamentos e travar o scroll (o pb-24 do container não acompanhava a altura real). */}
+      <div className="px-4 pb-4">
+        {(() => {
+          // Gorjeta só vira valor definitivo quando o caixa fecha a conta (orders.gorjeta_valor).
+          // Antes disso é só estimativa (gorjeta_sugestao) — não soma junto do saldo real do
+          // backend (que já inclui a gorjeta confirmada + taxa de cartão), senão duplica.
+          const gorjetaConfirmada = comanda.gorjeta_valor != null;
+          const gorjetaExibida = gorjetaConfirmada ? comanda.gorjeta_valor : (comanda.gorjeta_sugestao?.valor_sugerido ?? 0);
+          const totalComGorjeta = (comanda.saldo?.total ?? total) + (gorjetaConfirmada ? 0 : gorjetaExibida);
+          const faltaPagar = (comanda.saldo?.saldo ?? total) + (gorjetaConfirmada ? 0 : gorjetaExibida);
+          const totalTaxaCartao = (comanda.pagamentos ?? []).reduce((acc, p) => acc + (p.taxa_cartao_valor ?? 0), 0);
+          return (
+            <div className="bg-[#FAFAFA] rounded-xl px-3 py-2 space-y-1 mt-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-[#71717A]">Valor da comanda</span>
+                <span className="text-[#18181B]">{fmt(total)}</span>
+              </div>
+              {comanda.desconto_valor > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#71717A]">Desconto</span>
+                  <span className="text-emerald-700">- {fmt(comanda.desconto_valor)}</span>
+                </div>
+              )}
+              {comanda.acrescimo_valor > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#71717A]">Acréscimo</span>
+                  <span className="text-[#18181B]">+ {fmt(comanda.acrescimo_valor)}</span>
+                </div>
+              )}
+              {totalTaxaCartao > 0.001 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#71717A]">Taxa cartão</span>
+                  <span className="text-[#18181B]">+ {fmt(totalTaxaCartao)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-[#71717A]">Gorjeta{gorjetaConfirmada ? '' : ' (estimada)'}</span>
+                <span className="text-[#18181B]">{fmt(gorjetaExibida)}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-[#18181B] pt-1 border-t border-[#E4E4E7]">
+                <span>Total (comanda + gorjeta)</span>
+                <span>{fmt(totalComGorjeta)}</span>
+              </div>
+              {(comanda.saldo?.total_pago ?? 0) > 0.01 && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#71717A]">Já pago</span>
+                    <span className="text-emerald-700">- {fmt(comanda.saldo.total_pago)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold text-[#FF441F] pt-1 border-t border-[#E4E4E7]">
+                    <span>Falta pagar (com gorjeta)</span>
+                    <span>{fmt(faltaPagar)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
+        {!fechada && podeExcluir && (
+          <button onClick={excluir} disabled={excluindo}
+            className="w-full mt-2 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl disabled:opacity-50">
+            {excluindo ? 'Excluindo...' : 'Excluir comanda'}
+          </button>
+        )}
+      </div>
+
+      {!fechada && (
+        <div className="p-4 bg-white border-t border-[#E4E4E7] fixed bottom-0 left-0 right-0">
+          <button onClick={() => setMostrarPicker(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 mb-2 border-2 border-dashed border-[#FF441F]/40 rounded-xl text-sm font-bold text-[#FF441F]">
+            <Icon name="Plus" size={18} /> Adicionar produto
+          </button>
+          {erro && <p className="text-xs text-red-600 mb-2">{erro}</p>}
+          <div className="flex gap-2">
+            <button onClick={enviar} disabled={!temPendente || enviando}
+              className="flex-1 py-2.5 text-sm font-bold rounded-xl border border-[#FF441F] text-[#FF441F] disabled:opacity-40">
+              {enviando ? 'Enviando...' : 'Enviar novos itens'}
+            </button>
+            <button onClick={() => setMostrarFechar(true)} disabled={(comanda.itens ?? []).length === 0}
+              className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white bg-[#FF441F] disabled:opacity-40">
+              Fechar comanda
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mostrarEditarCliente && (
+        <EditarClienteModal comanda={comanda} onFechar={() => setMostrarEditarCliente(false)} onEditado={carregar} />
+      )}
+
+      {mostrarFechar && (
+        <FecharComandaModal comanda={comanda} onFechar={() => setMostrarFechar(false)} onFechada={() => { setMostrarFechar(false); onVoltar(); }} />
+      )}
+
+      {mostrarPicker && (
+        <ProdutoPickerModal
+          produtos={produtos}
+          onFechar={() => setMostrarPicker(false)}
+          onAdicionado={adicionarProduto}
+        />
+      )}
+    </div>
+  );
+};
+
+const RESTAURANTE_FECHADO_MSG = 'Restaurante fechado. Aguarde o caixa ser aberto para entrar.';
+
+const RestauranteFechado = () => (
+  <div className="min-h-screen bg-[#F4F4F5] flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl border border-[#E4E4E7] p-6 w-full max-w-sm shadow-lg text-center">
+      <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+        <Icon name="Lock" size={28} className="text-red-600" />
+      </div>
+      <h1 className="text-lg font-black text-[#18181B]">Restaurante fechado</h1>
+      <p className="text-sm text-[#71717A] mt-1">Aguarde o caixa ser aberto para acessar o salão.</p>
+      <button onClick={() => window.location.reload()}
+        className="w-full mt-4 py-3 bg-[#FF441F] text-white font-bold rounded-xl hover:bg-[#E63A19] text-sm">
+        Tentar novamente
+      </button>
+      <button onClick={() => { clearGarcomToken(); window.location.reload(); }}
+        className="w-full mt-2 py-2.5 text-xs font-medium text-[#71717A] hover:text-red-600">
+        Sair
+      </button>
+    </div>
+  </div>
+);
+
+// Fila de preparo do restaurante inteiro (não só as comandas do garçom logado) — pra
+// ele responder o cliente presencial "quantos faltam antes do meu" e "quanto tempo
+// em média demora", sem precisar ir até a cozinha.
+const FilaCozinha = ({ itens, tempoMedioEsperaSegundos, tempoMedioPreparoSegundos, tempoMedioGeralSegundos }) => {
+  const now = useNowTick();
+  const preparando = itens.filter((i) => i.status === 'preparando');
+  const aguardando = itens.filter((i) => i.status === 'enviado');
+
+  const linha = (item, posicao, desde) => (
+    <div key={item.item_id} className="w-full bg-white rounded-xl border border-[#E4E4E7] p-3 flex justify-between items-center">
+      <div>
+        <p className="text-sm font-medium text-[#18181B]">{posicao}º — {item.quantity}x {item.product_name}</p>
+        <p className="text-xs text-[#71717A]">
+          {item.mesa ?? `Comanda #${item.numero_comanda}`}{item.cliente_mesa_nome ? ` — ${item.cliente_mesa_nome}` : ''}
+        </p>
+      </div>
+      {desde && <p className="text-sm font-bold text-[#18181B]">{formatDuracao(now - new Date(desde).getTime())}</p>}
+    </div>
+  );
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="grid grid-cols-3 gap-2">
+        <TempoMedioTile label="Espera média" segundos={tempoMedioEsperaSegundos} />
+        <TempoMedioTile label="Preparo médio" segundos={tempoMedioPreparoSegundos} />
+        <TempoMedioTile label="Total médio" segundos={tempoMedioGeralSegundos} />
+      </div>
+
+      <div>
+        <p className="text-xs font-bold text-[#71717A] mb-2">EM PREPARO ({preparando.length})</p>
+        <div className="space-y-2">
+          {preparando.map((item, idx) => linha(item, idx + 1, item.preparando_em))}
+          {preparando.length === 0 && <p className="text-sm text-[#A1A1AA] text-center py-3">Nada em preparo agora.</p>}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-bold text-[#71717A] mb-2">AGUARDANDO ({aguardando.length})</p>
+        <div className="space-y-2">
+          {aguardando.map((item, idx) => linha(item, idx + 1, null))}
+          {aguardando.length === 0 && <p className="text-sm text-[#A1A1AA] text-center py-3">Nada aguardando.</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GarcomHome = () => {
+  const [meuId, setMeuId] = useState(null);
+  const [permissoes, setPermissoes] = useState({});
+  const [salaoModo, setSalaoModo] = useState('ambos');
+  const [bloqueado, setBloqueado] = useState(false);
+  const [mesas, setMesas] = useState([]);
+  const [comandas, setComandas] = useState([]);
+  const [aba, setAba] = useState('mesas');
+  const [filaCozinha, setFilaCozinha] = useState({
+    itens: [], tempoMedioEsperaSegundos: null, tempoMedioPreparoSegundos: null, tempoMedioGeralSegundos: null,
+  });
+  const [mesaParaAbrir, setMesaParaAbrir] = useState(undefined);
+  const [comandaAtivaId, setComandaAtivaId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [avisoPronto, setAvisoPronto] = useState(null);
+
+  const tocarAlarmePronto = useNotificacaoSonora('motoboy');
+  const idsProntosVistos = useRef(new Set());
+  const tocarAlarmeConferencia = useNotificacaoSonora('pedido');
+  const idsConferenciaVistos = useRef(new Set());
+
+  useEffect(() => {
+    getMe().then((m) => { setMeuId(m.id); setPermissoes(m.permissoes ?? {}); setSalaoModo(m.salaoModo ?? 'ambos'); }).catch((err) => {
+      if (err.message === RESTAURANTE_FECHADO_MSG) setBloqueado(true);
+    });
+  }, []);
+
+  const carregar = useCallback(async () => {
+    try {
+      const [m, c] = await Promise.all([getMesas(), getMinhasComandas()]);
+      setMesas(m);
+      setComandas(c);
+
+      // Cliente pediu conferência via QR — avisa aqui uma vez, até o caixa atender
+      // (o campo só é limpo quando o caixa imprime a conferência de verdade).
+      const solicitadas = c.filter((comanda) => comanda.conferencia_solicitada_em);
+      const novas = solicitadas.filter((comanda) => !idsConferenciaVistos.current.has(comanda.id));
+      idsConferenciaVistos.current = new Set(solicitadas.map((comanda) => comanda.id));
+      if (novas.length > 0) {
+        tocarAlarmeConferencia();
+        const nc = novas[0];
+        setAvisoPronto(`${nc.cliente_mesa_nome} pediu conferência — #${nc.numero_comanda ?? nc.id}`);
+      }
+    } catch (err) {
+      if (err.message === RESTAURANTE_FECHADO_MSG) setBloqueado(true);
+      else if (!getGarcomToken()) window.location.reload();
+    } finally {
+      setLoading(false);
+    }
+  }, [tocarAlarmeConferencia]);
+
+  useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => { if (salaoModo === 'comandas') setAba('comandas'); }, [salaoModo]);
+
+  // Sem push real — polling comparando quais itens "prontos" já vimos, igual à tela da
+  // cozinha, e recarrega mesas/comandas junto (pega pedido de conferência do cliente).
+  // Só alerta enquanto essa aba estiver aberta.
+  useEffect(() => {
+    if (bloqueado) return;
+    const checar = async () => {
+      try {
+        const itens = await getItensProntos();
+        const novos = itens.filter((i) => !idsProntosVistos.current.has(i.item_id));
+        idsProntosVistos.current = new Set(itens.map((i) => i.item_id));
+        if (novos.length > 0) {
+          tocarAlarmePronto();
+          const i = novos[0];
+          const mesaLabel = i.mesa ?? `Comanda #${i.numero_comanda}`;
+          setAvisoPronto(`Seu pedido está pronto! Mesa: ${mesaLabel}${i.cliente ? ` · Cliente: ${i.cliente}` : ''} · Pedido: ${i.product_name}`);
+        }
+      } catch {}
+      try {
+        setFilaCozinha(await getFilaCozinha());
+      } catch {}
+      carregar();
+    };
+    checar();
+    const interval = setInterval(checar, 15000);
+    return () => clearInterval(interval);
+  }, [bloqueado, tocarAlarmePronto, carregar]);
+
+  const clicarMesa = (mesa) => {
+    if (mesa.status === 'livre') {
+      if (salaoModo === 'comandas') return;
+      setMesaParaAbrir(mesa);
+      return;
+    }
+    if (mesa.comanda && mesa.comanda.garcom_id === meuId) { setComandaAtivaId(mesa.comanda.id); }
+  };
+
+  if (bloqueado) return <RestauranteFechado />;
+
+  const avisoProntoToast = avisoPronto && (
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+        <Icon name="BellRing" size={40} className="mx-auto text-[#FF441F] mb-3 animate-pulse" />
+        <p className="text-base font-bold text-[#18181B] mb-5">{avisoPronto}</p>
+        <button onClick={() => setAvisoPronto(null)}
+          className="w-full py-2.5 text-sm font-bold rounded-xl text-white bg-[#FF441F]">
+          OK, entendi
+        </button>
+      </div>
+    </div>
+  );
+
+  if (comandaAtivaId) {
+    return (
+      <>
+        {avisoProntoToast}
+        <ComandaDetalhe
+          comandaId={comandaAtivaId}
+          onVoltar={() => { setComandaAtivaId(null); carregar(); }}
+          podePagamentoParcial={permissoes?.pagamento_parcial !== false}
+        />
+      </>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F5] pb-6">
+      {avisoProntoToast}
+      <div className="bg-white border-b border-[#E4E4E7] p-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-base font-bold text-[#18181B]">Salão</h1>
+          <button onClick={() => { clearGarcomToken(); window.location.reload(); }}
+            className="flex items-center gap-1 text-xs font-medium text-[#71717A] hover:text-red-600 px-2 py-1">
+            <Icon name="LogOut" size={14} /> Sair
+          </button>
+        </div>
+        <div className="flex gap-2 mt-3">
+          {salaoModo !== 'comandas' && (
+            <button onClick={() => setAba('mesas')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium ${aba === 'mesas' ? 'bg-[#FF441F] text-white' : 'bg-[#F4F4F5] text-[#71717A]'}`}>
+              Mesas
+            </button>
+          )}
+          <button onClick={() => setAba('comandas')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium ${aba === 'comandas' ? 'bg-[#FF441F] text-white' : 'bg-[#F4F4F5] text-[#71717A]'}`}>
+            Minhas comandas ({comandas.length})
+          </button>
+          <button onClick={() => setAba('cozinha')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium ${aba === 'cozinha' ? 'bg-[#FF441F] text-white' : 'bg-[#F4F4F5] text-[#71717A]'}`}>
+            Cozinha
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="p-6 text-sm text-[#71717A]">Carregando...</div>
+      ) : aba === 'mesas' ? (
+        <div className="p-4 grid grid-cols-3 gap-3">
+          {mesas.map((mesa) => {
+            const minhaComanda = mesa.status !== 'livre' && mesa.comanda && mesa.comanda.garcom_id === meuId;
+            const clicavel = (mesa.status === 'livre' && salaoModo !== 'comandas') || minhaComanda;
+            const cor = mesa.status === 'ocupada' && mesa.comanda && !minhaComanda
+              ? MESA_OCUPADA_OUTRO_COR
+              : (MESA_STATUS_COR[mesa.status] ?? '');
+            return (
+              <button
+                key={mesa.id}
+                onClick={() => clicarMesa(mesa)}
+                disabled={!clicavel}
+                className={`rounded-xl border p-3 text-center ${cor} disabled:opacity-70`}
+              >
+                <p className="text-lg font-black">{mesa.numero}</p>
+                <p className="text-[10px] font-medium">{MESA_STATUS_LABEL[mesa.status] ?? mesa.status}</p>
+                {mesa.comanda && (
+                  <>
+                    <p className="text-[10px] truncate">{responsavelMesa(mesa.comanda) ?? '—'}</p>
+                    <p className="text-[10px] truncate">{mesa.comanda.cliente_mesa_nome}</p>
+                    {mesa.comanda.conferencia_solicitada_em && (
+                      <p className="text-[9px] font-bold text-white bg-[#FF441F] rounded-full px-1.5 py-0.5 mt-1 inline-flex items-center gap-1">
+                        <Icon name="BellRing" size={9} /> Conferência
+                      </p>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+          {mesas.length === 0 && <p className="col-span-3 text-sm text-[#A1A1AA] text-center py-6">Nenhuma mesa cadastrada.</p>}
+        </div>
+      ) : aba === 'cozinha' ? (
+        <FilaCozinha
+          itens={filaCozinha.itens}
+          tempoMedioEsperaSegundos={filaCozinha.tempoMedioEsperaSegundos}
+          tempoMedioPreparoSegundos={filaCozinha.tempoMedioPreparoSegundos}
+          tempoMedioGeralSegundos={filaCozinha.tempoMedioGeralSegundos}
+        />
+      ) : (
+        <div className="p-4 space-y-2">
+          {comandas.map((c) => (
+            <button key={c.id} onClick={() => setComandaAtivaId(c.id)}
+              className="w-full bg-white rounded-xl border border-[#E4E4E7] p-3 flex justify-between items-center text-left">
+              <div>
+                <p className="text-sm font-medium text-[#18181B]">
+                  #{c.numero_comanda ?? c.id}{c.mesa_id ? ` — Mesa ${c.mesa_id}` : ''} — {c.cliente_mesa_nome}
+                </p>
+                <p className="text-xs text-[#71717A]">{c.status === 'aberta' ? 'Em aberto' : 'Aguardando pagamento'}</p>
+                {c.conferencia_solicitada_em && (
+                  <p className="text-[9px] font-bold text-white bg-[#FF441F] rounded-full px-1.5 py-0.5 mt-1 inline-flex items-center gap-1">
+                    <Icon name="BellRing" size={9} /> Pediu conferência
+                  </p>
+                )}
+              </div>
+              <p className="text-sm font-bold text-[#18181B]">{fmt(c.total)}</p>
+            </button>
+          ))}
+          {comandas.length === 0 && <p className="text-sm text-[#A1A1AA] text-center py-6">Nenhuma comanda em aberto.</p>}
+        </div>
+      )}
+
+      {salaoModo !== 'mesas' && (
+        <button
+          onClick={() => setMesaParaAbrir(null)}
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[#FF441F] text-white shadow-lg flex items-center justify-center"
+        >
+          <Icon name="Plus" size={24} />
+        </button>
+      )}
+
+      {mesaParaAbrir !== undefined && (
+        <AbrirComandaModal
+          mesa={mesaParaAbrir}
+          onFechar={() => setMesaParaAbrir(undefined)}
+          onAberta={(comanda) => { setMesaParaAbrir(undefined); setComandaAtivaId(comanda.id); }}
+        />
+      )}
+    </div>
+  );
+};
+
+const GarcomPortal = () => {
+  const { loginKey } = useParams();
+  const [authed, setAuthed] = useState(null);
+
+  useEffect(() => {
+    if (!getGarcomToken()) { setAuthed(false); return; }
+    // Token salvo pode ser de outro garçom/restaurante (localStorage não é escopado por
+    // loginKey) — valida antes de confiar, senão a tela trava vazia num token velho.
+    getMe().then(() => setAuthed(true)).catch(() => { clearGarcomToken(); setAuthed(false); });
+  }, []);
+
+  if (authed === null) {
+    return <div className="min-h-screen bg-[#F4F4F5] flex items-center justify-center text-sm text-[#71717A]">Carregando...</div>;
+  }
+
+  if (!authed) {
+    return <GarcomLogin loginKey={loginKey} onLogin={() => setAuthed(true)} />;
+  }
+
+  return <GarcomHome />;
+};
+
+export default GarcomPortal;

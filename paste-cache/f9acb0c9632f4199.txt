@@ -1,0 +1,19 @@
+9:15.257 project=realtime-dev external_id=realtime-dev [info] Applying migrations to supabase_db_deliveryhub_white_label
+13:29:15.606 project=realtime-dev external_id=realtime-dev [info] Migrations already up
+13:29:15.607 project=realtime-dev external_id=realtime-dev [info] Finished applying 0 migrations for tenant realtime-dev in 350ms
+13:29:15.816 error_code=DatabaseIpVersionIsIpv4 [warning] DatabaseIpVersionIsIpv4: Tenant database host supabase_db_deliveryhub_white_label resolved to an IPv4 address
+13:29:16.399 [info] Creating partitions for realtime.messages
+13:29:17.475 [info] Tenant set-up successfully
+[os_mon] memory supervisor port (memsup): Erlang has closed
+[os_mon] cpu supervisor port (cpu_sup): Erlang has closed
++ echo 'Starting Realtime'
+Starting Realtime
++ ulimit -n
+1048576
++ exec /app/bin/server
+supabase_storage_deliveryhub_white_label container logs:
+Stopping containers...
+supabase_realtime_deliveryhub_white_label container is not ready: unhealthy
+supabase_storage_deliveryhub_white_label container is not ready: unhealthy 
+Try rerunning the command with --debug to troubleshoot the error.
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> 

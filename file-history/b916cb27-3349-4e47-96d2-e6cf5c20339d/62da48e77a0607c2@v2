@@ -1,0 +1,19 @@
+---
+name: deliveryhub-venda-balcao-pdv
+description: "venda balcão virou PDV tipo mercado (catálogo+carrinho lado a lado) com pagamento multi-forma — branch feat/venda-balcao-pdv-completo, não mergeada ainda"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: b916cb27-3349-4e47-96d2-e6cf5c20339d
+  modified: 2026-07-23T19:32:47.385Z
+---
+
+Tela "Venda balcão" (`restaurante-salao/index.jsx`, componente `VendaBalcaoModal`, era `VendaDiretaModal`) foi reescrita a pedido do usuário: layout tela cheia dividido — catálogo de produtos (busca/categoria/grade, 4 colunas no desktop) de um lado, carrinho + pagamento do outro, igual PDV de supermercado.
+
+**Arquitetura:** em vez de manter endpoint de venda instantânea (1 forma de pagamento só), passou a abrir uma **comanda avulsa** (sem mesa, sem exigir nome/telefone do cliente) e reaproveita os mesmos endpoints já existentes de comanda de mesa (itens, desconto/acréscimo, pagamento parcial, pagar) — isso já dava de graça o pagamento dividido em várias formas (pix + dinheiro + cartão na mesma venda, cada parcela com taxa de cartão própria), sem duplicar lógica.
+
+Backend: endpoint antigo `POST /salao/venda-direta` removido, novo `POST /salao/venda-balcao/abrir` (método `abrirVendaBalcao` em `salao-pdv.service.ts`).
+
+**Status (2026-07-23):** commitado e pushed em ambos os repos na branch `feat/venda-balcao-pdv-completo` — **ainda não mergeada em main**. Standalone (`DEV/server_delivery`) continua em main, sem essa feature, e VPS/produção também não tem. Ver [[feedback-trigger-suba-para-deploy]] pro fluxo de fechamento de tarefa.
+
+**Cuidado:** editei por engano o clone standalone (`DEV/server_delivery`) primeiro nessa tarefa antes de lembrar que dev é sempre no submodule (`deliveryhub_white_label/server_delivery`) — revertido a tempo, sem dano. Reforça [[deliveryhub-dois-clones-server-delivery]]: sempre checar em qual clone está antes de editar backend.

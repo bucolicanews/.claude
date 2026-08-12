@@ -1,0 +1,82 @@
+---
+name: deliveryhub-modulo-restaurante-ideias
+description: Ideias em coleta (ainda sem plano) pro módulo RESTAURANTE — features exclusivas de estabelecimentos tipo Restaurante
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Coleta de ideias iniciada em 2026-07-14, usuário pediu explicitamente "só registra" — ainda não é plano, só captura de requisitos. Fluxo: registrar ideias → montar plano → executar (nessa ordem, não pular etapas).
+
+**Ideia 1:** criar módulo "RESTAURANTE" — funcionalidades disponíveis **somente** para estabelecimentos cujo tipo (`restaurants.type_id` → `establishment_types`) seja "Restaurante". Implica que outros tipos (Farmácia, Material de Construção — ver [[deliveryhub_multi_tipo_estabelecimento]]) **não** veem essas telas/features — sugere visão maior de módulos específicos por tipo de estabelecimento, não só o restaurante.
+
+**Ideia 2:** botão de acesso ao módulo aparece na barra superior (nav do painel) — só pra quem for tipo Restaurante (reforça ideia 1).
+
+**Ideia 3:** dentro do módulo Restaurante, controle de pedidos **configurável pelo estabelecimento**, com dois modos (dono escolhe um):
+- **Por mesa**: painel mostrando mesa por mesa (grid visual, status de cada mesa).
+- **Por comanda**: comanda é criada à medida que os clientes vão chegando (não necessariamente presa a uma mesa física).
+
+**Ideia 4:** tabela de cadastro de **garçons** (novo tipo de colaborador do restaurante, separado de motoboy).
+
+**Ideia 5:** comissão do garçom configurável — dois tipos de comissão, podendo cadastrar **mais de uma comissão** simultânea, cada uma com: nome, valor, e base de cálculo (ex: % sobre venda, valor fixo, etc. — base de cálculo ainda não detalhada, definir no plano).
+
+**Ideia 6:** relatórios de vendas do módulo restaurante, com filtros por:
+- Total
+- Por garçom
+- Descontos
+- Comissão por garçom
+- Gorjeta por garçom
+- Comissão + gorjeta somadas (visão combinada)
+- Período: por mês, por dia, ou intervalo customizado
+
+**Ideia 7 — cadastro e acesso do garçom:**
+- Garçom é cadastrado **pelo estabelecimento** (não self-service como motoboy — diferença importante em relação ao módulo motoboy).
+- Cada garçom tem **key própria + senha própria** pra entrar no app.
+- Garçom recebe um **link próprio** (só entra com a senha) — acessa pelo celular.
+- Fluxo de venda do garçom: abre mesa OU cria comanda → inclui produtos.
+- **Obrigatório**: ao abrir mesa/comanda, informar nome e telefone do cliente **antes** de iniciar as vendas — precisa de nova tabela pra guardar esse cadastro de cliente da mesa/comanda (pode ou não ser o mesmo `customers` já existente do módulo delivery — decidir no plano).
+
+**Ideia 8 — permissões/restrições do garçom** (configuráveis pelo estabelecimento, por garçom ou globalmente — decidir no plano):
+- Não pode dar desconto.
+- Não pode cancelar mesa/comanda.
+- Sugestões adicionais pra avaliar no plano (ainda não confirmadas com o usuário):
+  - Não pode remover item já enviado pra cozinha.
+  - Não pode alterar preço de produto.
+  - Não pode mexer no caixa (abrir/fechar).
+  - Não pode ver comissão/vendas de outros garçons.
+  - Limite máximo de desconto (se a permissão de desconto for liberada).
+  - Não pode reabrir mesa/comanda já fechada.
+  - Transferência de mesa/comanda entre garçons só com autorização do dono.
+
+**Ideia 9 — fluxo de fechamento de mesa/comanda:**
+1. Garçom fecha a comanda → mesa fica **bloqueada pra pagamento** (não aceita mais pedidos/alterações).
+2. Garçom **informa a forma de pagamento**, mas não finaliza — só o **caixa do estabelecimento** fecha de fato.
+3. Caixa fecha e **gera o recibo do cliente** nesse momento.
+
+Ou seja: garçom = frente de venda e coleta da forma de pagamento; caixa = conferência e emissão de recibo (separação de responsabilidade, provável controle antifraude/conferência de valores).
+
+**Ideia 10 — painel do caixa (lado estabelecimento):**
+- Fluxo começa com **abertura do caixa**.
+- Visão de **garçons online** no momento.
+- Painel de **mesas e comandas** (grid/lista).
+- Clicar numa mesa/comanda abre **detalhes** dela.
+- Dentro do detalhe, ações liberadas **só pro caixa/estabelecimento** (não pro garçom): **cancelar**, **dar desconto**, **acréscimo**.
+
+Reforça ideia 9: garçom só vende e informa forma de pagamento; cancelamento/desconto/acréscimo é exclusivo do caixa, no painel de abertura de caixa.
+
+**Ideia 11 — controle por impressora (cozinha/bar/salgados etc.):**
+- Cadastro de **impressoras** (instalada local ou em rede), cada uma com um nome/setor (ex: cozinha, bar, salgados).
+- Ao cadastrar **produto**, informar qual impressora ele deve imprimir quando vendido.
+- Envio pro KDS/impressão é **incremental**: item só é impresso **uma vez**, no momento em que o pedido (ou parte dele) é enviado.
+- Se depois for adicionado outro item à mesma comanda, **só o item novo** é enviado/impresso — os que já foram enviados **não** são reenviados.
+
+Implica: preciso rastrear por item da comanda um status tipo "enviado/impresso" (timestamp ou flag), pra não duplicar impressão em pedidos com múltiplos envios (comanda aberta recebendo itens ao longo do tempo).
+
+**Ideia 12 — telas por setor (KDS):**
+- Tela da **cozinha** já existe (módulo delivery atual).
+- Nova tela do **bar**: mostra pedidos enviados pelos garçons, com status tipo "recebido o pedido" → "bebida enviada".
+- Toda vez que um item é enviado (pro setor/impressora correspondente, ver ideia 11), ele **também imprime** o pedido nesse momento.
+- Sugere: tela por setor = mesma lógica da cozinha, só filtrando pelo `impressora`/setor do produto (ideia 11) — provável tela genérica reaproveitável (cozinha/bar/salgados) em vez de uma tela hardcoded por setor.
+
+**How to apply:** não implementar nada ainda. Continuar registrando as próximas ideias do usuário aqui até ele sinalizar que a coleta terminou e pedir o plano.

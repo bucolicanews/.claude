@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+use strict; use warnings;
+
+my $file = shift @ARGV or die "usage: $0 <file>\n";
+open my $fh, '<', $file or die $!;
+local $/;
+my $content = <$fh>;
+close $fh;
+
+my @patterns = (
+  'border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[#FF441F]',
+  'flex-1 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-1.5 py-1 text-xs',
+  'flex-1 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1.5 text-xs',
+  'flex-1 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-xl px-3 py-2 text-sm',
+  'flex-1 text-xs border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1 focus:outline-none focus:border-[#FF441F]',
+  'w-20 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1 text-right text-sm',
+  'w-20 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1.5 text-xs',
+  'w-24 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1 text-right text-sm',
+  'w-24 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[#FF441F]',
+  'w-32 border border-[#E4E4E7] dark:border-[#3F3F46] rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[#FF441F]',
+  'w-full border border-[#E4E4E7] dark:border-[#3F3F46] rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[#FF441F]',
+  'w-full border border-[#E4E4E7] dark:border-[#3F3F46] rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-[#FF441F]',
+  'w-full border border-[#E4E4E7] dark:border-[#3F3F46] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#FF441F]',
+  'w-full border border-[#E4E4E7] dark:border-[#3F3F46] rounded-xl px-3 py-2 text-sm mt-1 mb-4 resize-none',
+  'w-full border border-[#E4E4E7] dark:border-[#3F3F46] rounded-xl px-3 py-2 text-sm',
+  'w-full border border-[#E4E4E7] dark:border-[#3F3F46] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#FF441F]',
+);
+
+my $bg = 'bg-white dark:bg-[#18181B] text-[#18181B] dark:text-[#F4F4F5]';
+my $marker = 'dark:border-[#3F3F46]';
+my $count = 0;
+
+for my $p (sort { length($b) <=> length($a) } keys %{{ map { $_ => 1 } @patterns }}) {
+  my $replacement = $p;
+  $replacement =~ s/\Q$marker\E/$marker $bg/;
+  my $needle = 'className="' . $p . '"';
+  my $repl   = 'className="' . $replacement . '"';
+  my $n = () = $content =~ /\Q$needle\E/g;
+  if ($n) {
+    $content =~ s/\Q$needle\E/$repl/g;
+    $count += $n;
+  }
+}
+
+open my $out, '>', $file or die $!;
+print $out $content;
+close $out;
+print "replaced $count\n";

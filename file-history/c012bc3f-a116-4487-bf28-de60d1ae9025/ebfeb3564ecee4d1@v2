@@ -1,0 +1,25 @@
+---
+name: deliveryhub-repasse-garcom-dinheiro-pix
+description: "Repasse gorjeta/comissão pro garçom com split dinheiro/pix + estorno, e trava de saldo pendente no fechamento de comanda"
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: c012bc3f-a116-4487-bf28-de60d1ae9025
+  modified: 2026-07-28T03:14:32.163Z
+---
+
+Branch `feat/repasse-garcom-gorjeta-comissao` (frontend commit `64c316d`, submodule `server_delivery` commit `217e929`, ambos pushados 2026-07-28, **não mergeados em main** — ver [[feedback-trigger-suba-para-deploy]]).
+
+**Features entregues nessa branch:**
+1. **Repasse garçom** (`/restaurante/relatorios/garcom`): botão "Pagar" abre modal com split dinheiro/pix — valor em dinheiro gera sangria automática no caixa aberto (vinculada por `caixa_id`+`saida_criado_em` em `garcom_repasses`). Botão ↺ estorna repasse pago por engano (apaga registro + desfaz sangria se o caixa ainda estiver aberto).
+2. **Trava de saldo pendente**: comanda (mesa/garçom via caixa, balcão, e fechamento do garçom no portal) só fecha/finaliza com saldo devedor zero ou negativo — sem mais "auto-quitar" o restante numa forma só no clique final. Operador é obrigado a lançar pagamentos parciais (com a forma certa de cada um) até zerar.
+3. **Fechar comanda do garçom**: não pede mais forma de pagamento (quem decide é o caixa no fechamento real) — só aviso + botão, sem popup de confirmação (usuário pediu pra tirar).
+4. **Check "Não cobrar gorjeta"** reaplicado nessa branch (ver [[deliveryhub_check_nao_cobrar_gorjeta]]).
+5. **Toggle tema claro/escuro**: infra só (`ThemeContext` + ícone canto superior direito) — páginas ainda não adaptadas pro dark mode (57 arquivos com cor hex fixa).
+
+**Why:** dono queria controle preciso de forma de pagamento por repasse (pra reconciliar caixa certo) e travar fechamento de comanda com saldo aberto (evitar perder rastro de qual forma o cliente realmente pagou).
+
+**How to apply:**
+- Ver [[feedback_migration_editada_nao_reaplica]] — bug real encontrado nessa branch: editar migration já aplicada localmente não atualiza o banco sozinho, precisa `ALTER TABLE` manual ou reset.
+- Gorjeta na tela do garçom (portal) é só **estimativa** até o caixa confirmar no fechamento real — por isso a trava de saldo do `fecharComanda` (garçom) só valida saldo dos itens no backend; a garantia incluindo gorjeta estimada é só frontend (`faltaPagar`).
+- `pagar()` (mesa/garçom e balcão) ainda cobra a gorjeta no clique final do caixa — isso foi confirmado como comportamento desejado (não virou pagamento parcial separado).

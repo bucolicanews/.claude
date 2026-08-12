@@ -1,0 +1,77 @@
+# Motoboy multi-estabelecimento: cadastro próprio, afiliação, comissão configurável e dashboard de ganhos
+
+## Contexto
+
+Hoje `motoboys` é 1:1 com `restaurants`: o dono cadastra o motoboy (só nome+telefone) e gera um link com token de acesso — sem senha, sem documentos, sem verificação. O "frete" cobrado do cliente (`restaurants.frete_motoboy`, valor fixo) é a própria remuneração do motoboy — não existe conceito de comissão separada.
+
+Objetivo: motoboy vira uma identidade própria (cadastro self-service com foto, documento e comprovante de endereço, login com senha) que pode se afiliar a **vários** estabelecimentos via fluxo de solicitação/aceite. Cada estabelecimento configura sua própria forma de remunerar o motoboy (fixo, percentual sobre o frete, ou por km rodado — calculado via geocoding gratuito/Nominatim). O motoboy ganha um dashboard de ganhos agregados por estabelecimento e por entrega.
+
+Decisões já fechadas com o usuário:
+- Login do motoboy = conta própria (telefone/email + senha), não mais link-token único.
+- Geocoding via Nominatim/OpenStreetMap (gratuito).
+- Fluxo antigo (restaurante cria motoboy direto) é **substituído** — só sobra o novo fluxo de solicitação.
+- Comissão percentual incide só sobre o **frete cobrado**, não sobre o total do pedido.
+- Documento do motoboy: 1 foto obrigatória, verso opcional.
+
+## Fase 1 — Migrations (`supabase/migrations/`, aplicar com `supabase db push`)
+
+1. `20260713000002_motoboys_auth_fields.sql` — adiciona `email, password_hash, foto_perfil_url, documento_frente_url, documento_verso_url (nullable), comprovante_endereco_url, precisa_completar_cadastro BOOLEAN DEFAULT false` em `motoboys`; marca `precisa_completar_cadastro=true` pros já existentes; índice único em `email` (parcial, ignora NULL); `restaurant_id` vira nullable (mantido só de referência histórica).
+2. `20260713000003_motoboy_estabelecimentos.sql` — nova tabela N:N: `id, motoboy_id FK, restaurant_id FK, status CHECK IN ('pendente','aceito','recusado','removido') DEFAULT 'pendente', motivo_recusa, solicitado_em, respondido_em, created_at, updated_at`, `UNIQUE(motoboy_id, restaurant_id)`. RLS `owner` igual ao padrão de `motoboys_owner`. Backfill: toda relação 1:1 existente vira uma linha `status='aceito'`.
+3. `20260713000004_restaurants_motoboy_comissao_geo.sql` — em `restaurants`: `motoboy_comissao_tipo CHECK IN ('fixo','percentual','km') DEFAULT 'fixo'`, `motoboy_comissao_valor_fixo`, `motoboy_comissao_percentual`, `motoboy_comissao_valor_km`, `motoboy_comissao_km_fallback` (usado se geocoding falhar), `lat`, `lng`, `geocoded_at`, `geocode_falhou BOOLEAN DEFAULT false`.
+4. `20260713000005_customers_geo.sql` — em `customers`: `lat`, `lng`, `address_geocode_hash` (md5 do `address_json`, evita regeocodificar sem necessidade), `address_geocoded_at`.
+5. `20260713000006_motoboy_comissoes.sql` — nova tabela: uma linha por entrega concluída — `id, motoboy_id FK, restaurant_id FK, pedido_id FK UNIQUE (idempotência), tipo, valor_base, percentual, distancia_km, valor_por_km, comissao_valor, status CHECK IN ('pendente','pago') DEFAULT 'pendente', criado_em, pago_em`. Essa tabela sozinha alimenta o dashboard (`GROUP BY restaurant_id` = ganhos por estabelecimento; listagem = histórico por entrega).
+6. `20260713000007_motoboy_documentos_bucket.sql` — bucket `storage.buckets` **privado** `motoboy-documentos` (foto+documentos+comprovante são dados sensíveis — sempre via signed URL gerada no backend, nunca URL pública).
+
+## Fase 2 — Backend: auth própria do motoboy
+
+- `server_delivery/package.json`: adicionar `bcryptjs` + `@types/bcryptjs` (não `bcrypt` nativo — evita build tooling no Windows). Confirmado: projeto não tem lib de hash hoje.
+- `server_delivery/src/main.ts`: `app.use(json({ limit: '12mb' }))` antes do `listen` — confirmado que hoje não há limite customizado (default Express ~100kb), e uploads em base64 (foto+doc+comprovante) vão estourar isso.
+- `.env`/`.env.example`: `MOTOBOY_JWT_SECRET`, `NOMINATIM_USER_AGENT=DeliveryHub/1.0 (bacudigital@gmail.com)`.
+- `server_delivery/src/auth/motoboy.guard.ts` → reescrever: tenta `jwt.verify` do header `x-motoboy-token` (payload `{motoboyId}`) primeiro; fallback pra `access_token` antigo (modo legado, só libera `completar-cadastro`), mantendo compatibilidade com links já distribuídos.
+- Novo `server_delivery/src/motoboy/motoboy-auth.service.ts` + `motoboy-auth.controller.ts` (`@Controller('motoboy/auth')`, rotas públicas): `POST /cadastro` (name, phone, email, password, foto_perfil, documento_frente, documento_verso?, comprovante_endereco — tudo base64; grava no bucket novo; retorna JWT), `POST /login` (email ou phone + senha), `POST /completar-cadastro` (motoboys antigos definem senha+docs, aceita token legado).
+
+## Fase 3 — Backend: afiliação N:N
+
+- Novo `server_delivery/src/motoboy/motoboy-estabelecimentos.controller.ts` (`@Controller('motoboy/estabelecimentos')`, guard do motoboy): `GET /` (buscar restaurantes + status atual), `POST /:restaurantId/solicitar`, `GET /minhas`.
+- `server_delivery/src/motoboy/restaurante-motoboys.controller.ts` (lado dono, `RestaurantOwnerGuard`): remove `POST /` de criação direta; `GET /` lista afiliados aceitos; `GET /solicitacoes` (ficha completa com signed URLs); `PATCH /solicitacoes/:id/aceitar`; `PATCH /solicitacoes/:id/recusar`; `PATCH /:motoboyId/remover` (status `removido`).
+- `motoboy.service.ts`: `pegarPedido`/`reivindicarPedido`/`pedidosDisponiveis` passam a validar afiliação `aceito` em `motoboy_estabelecimentos` em vez de `motoboys.restaurant_id`; `infoMotoboy` retorna lista de estabelecimentos aceitos.
+
+## Fase 4 — Backend: comissão + geocoding
+
+- Novo `server_delivery/src/motoboy/geocoding.service.ts`: `geocodeEndereco(texto)` via `https://nominatim.openstreetmap.org/search?q=...&format=json&limit=1`, header `User-Agent` obrigatório, throttle ~1.1s entre chamadas (rate limit Nominatim).
+- Novo `server_delivery/src/motoboy/comissao.service.ts`: Haversine + `calcularComissao(restaurant, freteCobrado, distanciaKm|null)` — puro, sem I/O.
+- `restaurante.service.ts` (`updateEmpresa`): ao salvar `address`, geocodifica em best-effort (try/catch, nunca falha a request) e persiste `lat/lng/geocoded_at/geocode_falhou`.
+- `restaurante.service.ts` (`getConfig`/`updateConfig`): expõe/aceita os 4 campos de comissão + `geocode_falhou`.
+- `pedidos.service.ts` (`criarPedido`, ~linha 108): se `motoboy_comissao_tipo==='km'`, geocodifica endereço do cliente (cacheado via `address_geocode_hash`) de forma best-effort, sem travar o checkout se falhar.
+- `motoboy.service.ts` (`confirmarEntrega`): após marcar `delivered`, chama `comissao.service` e insere em `motoboy_comissoes` (idempotente via `UNIQUE(pedido_id)`); usa `motoboy_comissao_km_fallback` se geocoding tiver falhado. Novos métodos `ganhosResumo`/`ganhosHistorico`, expostos como `GET /motoboy/ganhos` e `GET /motoboy/ganhos/historico`.
+
+## Fase 5 — Frontend: motoboy self-service
+
+- Novo `src/services/motoboyAuthService.js`: token helpers (movidos de `motoboyService.js`) + `cadastro/login/completarCadastro`.
+- `src/services/motoboyService.js`: adiciona `getEstabelecimentosDisponiveis`, `solicitarAfiliacao`, `getMinhasAfiliacoes`, `getGanhosResumo`, `getGanhosHistorico`; `getPedidosDisponiveis` passa a exigir `restaurantId`.
+- Novo `src/pages/motoboy-cadastro/index.jsx`: form self-service (dados + upload foto/documento/comprovante convertidos pra base64, reusando o padrão já usado em `uploadComprovantePix`).
+- `src/pages/motoboy-portal/index.jsx`: troca login-por-token-colado por login real; gate de "completar cadastro" quando `precisa_completar_cadastro=true`; nova aba "Estabelecimentos" (buscar/solicitar/ver status); seletor de estabelecimento na aba de pedidos disponíveis; nova aba "Meus Ganhos" (resumo por estabelecimento + histórico) consumindo os endpoints da Fase 4.
+- `src/Routes.jsx`: rota `/motoboy/cadastro`.
+
+## Fase 6 — Frontend: lado restaurante
+
+- `src/pages/restaurante-motoboys/index.jsx`: reescrita — remove form de criação direta; lista "Motoboys ativos" + "Solicitações pendentes" (modal com ficha completa: foto/documentos via signed URL, aceitar/recusar).
+- `src/pages/restaurante-config/index.jsx`: nova seção "Comissão do Motoboy" (select tipo + campos condicionais) + status de geocoding do endereço do restaurante.
+- `src/services/restauranteService.js`: remove `criarMotoboy`; adiciona `listarSolicitacoesMotoboy`, `aceitarSolicitacaoMotoboy`, `recusarSolicitacaoMotoboy`, `removerAfiliacaoMotoboy`.
+
+## Riscos / limites aceitos (avisar mas não bloquear)
+
+- Nominatim é rate-limited (~1/s) e menos preciso que provedores pagos — endereços mal formatados podem falhar geocoding; nesse caso cai no `motoboy_comissao_km_fallback`.
+- Reset de senha ("esqueci minha senha") do motoboy fica fora desta rodada.
+- Motoboys antigos usam uma janela de transição (token legado só libera completar-cadastro) até definirem senha.
+
+## Verificação
+
+- Rodar `supabase db push` e confirmar as 6 migrations aplicadas sem erro.
+- Local: subir `server_delivery` (`npm run start:dev`) e front (`npm run dev`), então:
+  1. Cadastrar motoboy novo em `/motoboy/cadastro` (com foto/doc/comprovante) → login funciona, `precisa_completar_cadastro=false`.
+  2. No portal do motoboy, solicitar afiliação a um estabelecimento existente.
+  3. Logado como dono desse restaurante, ver a solicitação em `restaurante-motoboys` com a ficha (fotos abrindo via signed URL) e aceitar.
+  4. Configurar comissão por km em `restaurante-config`, confirmar que o endereço do restaurante geocodificou (`geocode_falhou=false`).
+  5. Fazer um pedido de teste, atribuir o motoboy afiliado, confirmar coleta e entrega — checar que `motoboy_comissoes` ganhou uma linha com `distancia_km` e `comissao_valor` coerentes.
+  6. No portal do motoboy, aba "Meus Ganhos", conferir que a entrega aparece no histórico e no resumo por estabelecimento.

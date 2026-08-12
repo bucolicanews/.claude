@@ -1,0 +1,3 @@
+-- Garçom confirma entrega do item na mesa depois do Bar/Cozinha marcar 'pronto'.
+ALTER TABLE public.order_items
+  ADD COLUMN IF NOT EXISTS entregue_em TIMESTAMPTZ;

@@ -1,0 +1,108 @@
+Sangrias / Saídas
+
+Dinheiro Troco - Comanda #14
+Troco
+- R$ 65,80
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #14
+estorno_pagamento
+- R$ 100,00
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #14
+estorno_pagamento
+- R$ 100,00
+Retornar
+Dinheiro Troco - Comanda #19
+Troco
+- R$ 79,00
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #19
+estorno_pagamento
+- R$ 200,00
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #19
+estorno_pagamento
+- R$ 121,00
+Retornar
+Dinheiro cadeiras
+- R$ 160,00
+Retornar
+Dinheiro Troco - Comanda #21
+Troco
+- R$ 28,00
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #21
+estorno_pagamento
+- R$ 50,00
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #21
+estorno_pagamento
+- R$ 22,00
+Retornar
+Dinheiro Troco - Comanda #21
+Troco
+- R$ 28,00
+Retornar
+Dinheiro Troco - Comanda #15
+Troco
+- R$ 0,30
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #18
+estorno_pagamento
+- R$ 113,30
+Retornar
+Dinheiro Troco - Comanda #6
+Troco
+- R$ 3,20
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #6
+estorno_pagamento
+- R$ 151,80
+Retornar
+Dinheiro Estorno pagamento removido - Comanda #6
+estorno_pagamento
+- R$ 151,80
+Retornar
+Adições
+
+Dinheiro Venda em dinheiro - Comanda #14
++ R$ 200,00
+Dinheiro adição troco
++ R$ 10,00
+Dinheiro Venda em dinheiro - Comanda #19
++ R$ 200,00
+Dinheiro Venda em dinheiro - Comanda #19
++ R$ 200,00
+Dinheiro Venda em dinheiro - Comanda #19
++ R$ 121,00
+Dinheiro Venda em dinheiro - Comanda #14
++ R$ 100,00
+Dinheiro Venda em dinheiro - Comanda #14
++ R$ 100,00
+Dinheiro Venda em dinheiro - Comanda #21
++ R$ 50,00
+Dinheiro Estorno troco (pagamento removido) - Comanda #21
++ R$ 28,00
+Dinheiro Venda em dinheiro - Comanda #21
++ R$ 50,00
+Dinheiro Venda em dinheiro - Comanda #21
++ R$ 22,00
+Dinheiro Venda em dinheiro - Comanda #15
++ R$ 30,00
+Dinheiro Venda em dinheiro - Comanda #18
++ R$ 105,00
+Dinheiro Venda em dinheiro - Comanda #179
++ R$ 50,00
+Dinheiro Venda em dinheiro (corrigido) - Comanda #179
++ R$ 10,00
+Dinheiro Venda em dinheiro - Comanda #18
++ R$ 113,30
+Dinheiro Venda em dinheiro - Comanda #6
++ R$ 155,00
+Dinheiro Venda em dinheiro - Comanda #6
++ R$ 151,80
+Dinheiro adção
++ R$ 10,00
+Dinheiro Venda em dinheiro - Comanda #6
++ R$ 151,80
+Análise por Período

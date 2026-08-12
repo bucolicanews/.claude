@@ -1,0 +1,62 @@
+import re
+
+path = r"c:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx"
+with open(path, encoding="utf-8") as f:
+    content = f.read()
+
+orig = content
+
+# --- context-split tokens (placeholder trick to avoid double-matching) ---
+content = content.replace('min-h-screen bg-[#F4F4F5]', '\x00PAGEBG\x00')
+content = content.replace('hover:bg-[#F4F4F5]', '\x00HOVERBG\x00')
+content = content.replace('bg-[#F4F4F5]', 'bg-[#F4F4F5] dark:bg-[#3F3F46]')
+content = content.replace('\x00PAGEBG\x00', 'min-h-screen bg-[#F4F4F5] dark:bg-[#18181B]')
+content = content.replace('\x00HOVERBG\x00', 'hover:bg-[#F4F4F5] dark:hover:bg-[#3F3F46]')
+
+content = content.replace('fixed inset-0 bg-white', '\x00FULLBG\x00')
+content = content.replace('bg-white', 'bg-white dark:bg-[#27272A]')
+content = content.replace('\x00FULLBG\x00', 'fixed inset-0 bg-white dark:bg-[#18181B]')
+
+# --- simple 1:1 mappings (no substring collisions with each other) ---
+simple_map = [
+    ('bg-[#FAFAFA]', 'dark:bg-[#18181B]'),
+    ('text-[#18181B]', 'dark:text-[#F4F4F5]'),
+    ('text-[#71717A]', 'dark:text-[#A1A1AA]'),
+    ('text-[#27272A]', 'dark:text-[#F4F4F5]'),
+    ('border-[#E4E4E7]', 'dark:border-[#3F3F46]'),
+    ('text-red-600', 'dark:text-red-400'),
+    ('text-red-500', 'dark:text-red-400'),
+    ('text-emerald-700', 'dark:text-emerald-400'),
+    ('text-emerald-600', 'dark:text-emerald-400'),
+    ('text-amber-700', 'dark:text-amber-400'),
+    ('bg-amber-50', 'dark:bg-amber-950/40'),
+    ('border-amber-200', 'dark:border-amber-800'),
+    ('text-orange-700', 'dark:text-orange-400'),
+    ('bg-orange-100', 'dark:bg-orange-950/40'),
+    ('border-orange-200', 'dark:border-orange-800'),
+    ('text-blue-700', 'dark:text-blue-400'),
+    ('bg-blue-100', 'dark:bg-blue-950/40'),
+    ('bg-blue-50', 'dark:bg-blue-950/40'),
+    ('border-blue-200', 'dark:border-blue-800'),
+    ('text-purple-700', 'dark:text-purple-400'),
+    ('bg-purple-100', 'dark:bg-purple-950/40'),
+    ('border-purple-200', 'dark:border-purple-800'),
+    ('bg-emerald-100', 'dark:bg-emerald-950/40'),
+    ('border-emerald-200', 'dark:border-emerald-800'),
+    ('bg-red-100', 'dark:bg-red-950/40'),
+    ('bg-red-50', 'dark:bg-red-950/40'),
+    ('border-red-200', 'dark:border-red-800'),
+    ('text-zinc-600', 'dark:text-zinc-400'),
+    ('text-zinc-500', 'dark:text-zinc-400'),
+    ('border-zinc-300', 'dark:border-zinc-600'),
+    ('bg-zinc-200', 'dark:bg-zinc-700'),
+    ('bg-zinc-50', 'dark:bg-zinc-800'),
+]
+for base, dark in simple_map:
+    content = content.replace(base, f'{base} {dark}')
+
+with open(path, "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("changed:", content != orig)
+print("length before/after:", len(orig), len(content))

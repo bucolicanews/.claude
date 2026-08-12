@@ -1,0 +1,10 @@
+.DS_Store
+node_modules
+.env
+.idea
+/build
+.vscode/
+.idea/
+vite.config.*s.*
+supabase/.branches/
+supabase/.temp/

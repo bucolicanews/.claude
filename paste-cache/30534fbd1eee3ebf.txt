@@ -1,0 +1,94 @@
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> supabase start
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+WARNING: You are running different service versions locally than your linked project:
+supabase/gotrue:v2.193.0 => v2.194.0
+supabase/storage-api:v1.65.1 => v1.67.26
+Run supabase link to update them.
+[+] Pulling 7/7
+ ✔ gateway Skipped - Image is already present locally                                                                                                                         0.0s 
+ ✔ api Skipped - Image is already present locally                                                                                                                             0.0s 
+ ✔ auth Skipped - Image is already present locally                                                                                                                            0.0s 
+ ✔ realtime Skipped - Image is already present locally                                                                                                                        0.0s 
+ ✔ storage Skipped - Image is already present locally                                                                                                                         0.0s 
+ ✔ imgProxy Skipped - Image is already present locally                                                                                                                        0.0s 
+ ✔ db Skipped - Image is already present locally                                                                                                                              0.0s 
+Starting database from backup...
+Starting containers...
+Waiting for health checks...
+supabase_realtime_deliveryhub_white_label container logs:
+1048576
++ ulimit -n
++ '[' -n '' ']'
++ export ERL_CRASH_DUMP=/tmp/erl_crash.dump
++ ERL_CRASH_DUMP=/tmp/erl_crash.dump
++ '[' false = true ']'
++ [[ -n '' ]]
++ echo 'Running migrations'
++ sudo -E -u nobody /app/bin/migrate
+Running migrations
+14:05:12.861 [info] Migrations already up
++ '[' true = true ']'
++ echo 'Seeding selfhosted Realtime'
++ sudo -E -u nobody /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)'
+Seeding selfhosted Realtime
+14:05:19.656 [warning] Failed to load OTP-trusted CAs: :error::function_clause, falling back to hardcoded authorities
+14:05:20.117 [info] Loading 146 CA(s) from :hardcoded store
+14:05:21.414 [info] [driver: :tcp, port: 5369, socket: [~c"#Port<0.6>"], msg: ~c"server_setup_successfully"]
+14:05:21.559 [info] [domain: [:gen_rpc, :dispatcher], "$kind": :gen_rpc_dispatcher_start]
+14:05:26.125 [notice] SYN[nonode@nohost] Adding node to scope <Elixir.RegionNodes>
+14:05:26.169 [notice] SYN[nonode@nohost] Creating tables for scope <Elixir.RegionNodes>
+14:05:26.215 [notice] SYN[nonode@nohost|registry<Elixir.RegionNodes>] Discovering the cluster
+14:05:26.244 [notice] SYN[nonode@nohost|pg<Elixir.RegionNodes>] Discovering the cluster
+14:05:26.245 [notice] SYN[nonode@nohost] Adding node to scope <Elixir.Realtime.Tenants.Connect>
+14:05:26.245 [notice] SYN[nonode@nohost] Creating tables for scope <Elixir.Realtime.Tenants.Connect>
+14:05:26.246 [notice] SYN[nonode@nohost|registry<Elixir.Realtime.Tenants.Connect>] Discovering the cluster
+14:05:26.247 [notice] SYN[nonode@nohost|pg<Elixir.Realtime.Tenants.Connect>] Discovering the cluster
+14:05:31.243 [warning] MFA {Realtime.PromEx.Plugins.Tenant, :execute_tenant_metrics, []} encountered an error but has not been detached: %ArgumentError{message: "errors were found at the given arguments:\n\n  * 1st argument: the table identifier does not refer to an existing ETS table\n"}
+14:05:31.243 [warning] MFA {Realtime.PromEx.Plugins.TenantGlobal, :execute_global_connection_metrics, []} encountered an error but has not been detached: %ArgumentError{message: "errors were found at the given arguments:\n\n  * 1st argument: the table identifier does not refer to an existing ETS table\n"}
+14:05:31.296 [info] Forum[nonode@nohost|users] Starting
+14:05:31.384 [info] [libcluster:postgres] Connected to Postgres database
+14:05:32.037 [info] Running RealtimeWeb.Endpoint with cowboy 2.15.0 at :::4000 (http)
+14:05:32.101 [info] Access RealtimeWeb.Endpoint at http://realtime.supabase.co:443
+14:05:34.424 [notice] SYN[nonode@nohost] Adding node to scope <realtime_postgres_cdc_0>
+14:05:34.425 [notice] SYN[nonode@nohost] Creating tables for scope <realtime_postgres_cdc_0>
+14:05:34.426 [notice] SYN[nonode@nohost|registry<realtime_postgres_cdc_0>] Discovering the cluster
+14:05:34.426 [notice] SYN[nonode@nohost] Adding node to scope <realtime_postgres_cdc_1>
+14:05:34.426 [notice] SYN[nonode@nohost|pg<realtime_postgres_cdc_0>] Discovering the cluster
+14:05:34.427 [notice] SYN[nonode@nohost] Creating tables for scope <realtime_postgres_cdc_1>
+14:05:34.427 [notice] SYN[nonode@nohost|registry<realtime_postgres_cdc_1>] Discovering the cluster
+14:05:34.428 [notice] SYN[nonode@nohost|pg<realtime_postgres_cdc_1>] Discovering the cluster
+14:05:34.428 [notice] SYN[nonode@nohost] Adding node to scope <realtime_postgres_cdc_2>
+14:05:34.429 [notice] SYN[nonode@nohost] Creating tables for scope <realtime_postgres_cdc_2>
+14:05:34.436 [notice] SYN[nonode@nohost|registry<realtime_postgres_cdc_2>] Discovering the cluster
+14:05:34.438 [notice] SYN[nonode@nohost|pg<realtime_postgres_cdc_2>] Discovering the cluster
+14:05:34.440 [notice] SYN[nonode@nohost] Adding node to scope <realtime_postgres_cdc_3>
+14:05:34.440 [notice] SYN[nonode@nohost] Creating tables for scope <realtime_postgres_cdc_3>
+14:05:34.441 [notice] SYN[nonode@nohost|registry<realtime_postgres_cdc_3>] Discovering the cluster
+14:05:34.441 [notice] SYN[nonode@nohost|pg<realtime_postgres_cdc_3>] Discovering the cluster
+14:05:34.441 [notice] SYN[nonode@nohost] Adding node to scope <realtime_postgres_cdc_4>
+14:05:34.442 [notice] SYN[nonode@nohost] Creating tables for scope <realtime_postgres_cdc_4>
+14:05:34.443 [notice] SYN[nonode@nohost|registry<realtime_postgres_cdc_4>] Discovering the cluster
+14:05:34.444 [notice] SYN[nonode@nohost|pg<realtime_postgres_cdc_4>] Discovering the cluster
+14:05:34.447 [info] Janitor started
+14:05:34.448 [info] Starting MetricsCleaner
+14:05:36.207 [warning] Zero region nodes for us-east-1 using :nonode@nohost
+14:05:36.260 project=realtime-dev external_id=realtime-dev error_code=DatabaseIpVersionIsIpv4 [warning] DatabaseIpVersionIsIpv4: Tenant database host supabase_db_deliveryhub_white_label resolved to an IPv4 address
+14:05:36.304 project=realtime-dev external_id=realtime-dev [info] Applying migrations to supabase_db_deliveryhub_white_label
+14:05:36.459 project=realtime-dev external_id=realtime-dev [info] Migrations already up
+14:05:36.460 project=realtime-dev external_id=realtime-dev [info] Finished applying 0 migrations for tenant realtime-dev in 155ms
+14:05:36.657 error_code=DatabaseIpVersionIsIpv4 [warning] DatabaseIpVersionIsIpv4: Tenant database host supabase_db_deliveryhub_white_label resolved to an IPv4 address
+14:05:36.779 [info] Creating partitions for realtime.messages
+14:05:36.901 [info] Tenant set-up successfully
+[os_mon] memory supervisor port (memsup): Erlang has closed
+[os_mon] cpu supervisor port (cpu_sup): Erlang has closed
++ echo 'Starting Realtime'
++ ulimit -n
++ exec /app/bin/server
+Starting Realtime
+1048576
+supabase_storage_deliveryhub_white_label container logs:
+Stopping containers...
+supabase_realtime_deliveryhub_white_label container is not ready: unhealthy
+supabase_storage_deliveryhub_white_label container is not ready: unhealthy 
+Try rerunning the command with --debug to troubleshoot the error.
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> 

@@ -1,0 +1,22 @@
+---
+name: deliveryhub-producao-itens-entregues
+description: "/restaurante/producao ganha 3a coluna 'Entregues (últimos 10min)' por setor — MERGEADO EM MAIN + TESTADO PRODUÇÃO"
+metadata:
+  type: project
+  originSessionId: current
+  modified: 2026-07-25T16:06:40.326Z
+---
+
+`restaurante-producao/index.jsx` (Linha de Produção, visão unificada de todos os setores/impressoras, distinta do [[deliveryhub_garcom_confirma_entrega_item|Painel do Bar]] que é só setor Bar) só mostrava "Aguardando Preparo"/"Em Preparo" por setor — itens `pronto` sumiam da tela mesmo o backend (`getKdsSetor`) já trazendo eles (janela de 10min após `pronto_em`, pensada originalmente só pra permitir desfazer clique errado).
+
+Pedido do usuário: mostrar também os itens já entregues nessa tela.
+
+Implementado terceira coluna "Entregues (últimos 10min)" por setor, mesma janela que já existia no backend. `ItemCard` ganhou um terceiro estado visual (`status === 'pronto'` → badge estático "Entregue" ou "Entregue pelo garçom", sem botão de ação — igual ao padrão do Painel do Bar). Backend só precisou expor `entregue_garcom` no `getKdsSetor` (não selecionava antes) pra diferenciar os dois textos.
+
+Sem migration nova (coluna já existia desde [[deliveryhub_garcom_confirma_entrega_item]]).
+
+Commits mergeados em `main` (2026-07-25), testado local antes do push:
+- backend (`server_delivery`, submodule + standalone sincronizados): branch `feat/producao-itens-entregues`, commit `7ba57e6`.
+- frontend (`deliveryhub_white_label`): branch `feat/producao-itens-entregues`, commit `26cf46f`.
+
+Testado e confirmado pelo usuário em produção 2026-07-25.

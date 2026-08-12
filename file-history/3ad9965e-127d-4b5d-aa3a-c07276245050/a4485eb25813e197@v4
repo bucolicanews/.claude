@@ -1,0 +1,79 @@
+- [Projeto deliveryhub_white_label](project_deliveryhub_white_label.md) — stack real, features recentes, links pra segurança/design
+- [Vault my_memory](my_memory_vault.md) — mapa do vault Obsidian, onde achar política/ADR/design
+- [Política de segurança JHON](security_policy_jhon.md) — regras obrigatórias (Zero Trust, RLS, RBAC, credenciais)
+- [Diretrizes de engenharia JHON](engineering_guidelines_jhon.md) — SOLID, Clean Arch, limite complexidade ciclomática
+- [Design system delivery](design_system_delivery.md) — paleta/tipografia Rappi-style pro deliveryhub
+- [Fluxo: memória antes + commit sempre](feedback_workflow_memory_commits.md) — checar memória antes de projeto, commitar toda ação bem-sucedida
+- [Setup Supabase local deliveryhub](deliveryhub_supabase_local_setup.md) — portas 5433x, grants schema public, .env local
+- [Branch por tarefa](feedback_branch_por_tarefa.md) — sempre criar branch novo (nunca main direto) ao iniciar tarefa
+- [API URL produção (resolvido)](deliveryhub_pendencia_api_url_producao.md) — VITE_API_URL via src/lib/apiUrl.js, era /api fixo antes
+- [Segredos VPS Supabase](deliveryhub_vps_supabase_secrets.md) — rotação de segredos self-hosted, como colar env completo no EasyPanel
+- [Server submodule + pivot Supabase Cloud](deliveryhub_server_submodule_e_supabase_cloud.md) — server_delivery como submodule, saiu do VPS self-host pra Supabase Cloud, fix bug dev URL
+- [Plano motoboy multi-estabelecimento](deliveryhub_plano_motoboy_multi_estabelecimento.md) — motoboy N:N, comissão fixo/percentual/km, dashboard ganhos — MERGEADO EM MAIN
+- [Ideias módulo RESTAURANTE](deliveryhub_modulo_restaurante_ideias.md) — em coleta, features exclusivas de estabelecimento tipo Restaurante
+- [Dois clones server_delivery](deliveryhub_dois_clones_server_delivery.md) — standalone (VPS) vs submodule (dev), sincronizar sempre via git pull
+- [Usuário roda servers manualmente](feedback_usuario_roda_servers.md) — não subir backend/frontend proativamente, deixar o usuário controlar
+- [Melhorias PDV Salão](deliveryhub_salao_melhorias_pdv.md) — numeração comanda, gorjeta configurável, transferir garçom, dono incluir itens — implementado
+- [Restart backend após pull](feedback_backend_restart_apos_pull.md) — git pull não recarrega processo Node rodando, suspeitar disso quando campo novo sumir/zerar
+- [Filtro geográfico na home](deliveryhub_filtro_geografico_home.md) — Estado/Cidade/Bairro/CEP + raio KM automático via GPS, ViaCEP nos cadastros de endereço
+- [Config LAN local vs VPS](deliveryhub_config_local_lan_vs_vps.md) — submodule=LAN (VITE_API_URL/VITE_LAN_URL=IP da rede), standalone=VPS intocado, gotcha do localhost quebrar no celular
+- [Não inferir página errada](feedback_nao_inferir_pagina_errada.md) — checar código da página citada antes de implementar, não presumir por vocabulário parecido de tarefa anterior
+- [Aba Relatórios](deliveryhub_aba_relatorios_plano.md) — Garçom/Financeiro/Produtos + custo/estoque/lucro — MERGEADO EM MAIN
+- [Caixa fiado + múltiplos caixas](deliveryhub_caixa_fiado_multi_caixa.md) — fiado JÁ EM MAIN; multi-caixa/colaboradores ainda só em branches não mergeadas
+- [Agente impressão local](deliveryhub_agente_impressao_local.md) — app Python detecta impressoras pro backend — MERGEADO EM MAIN
+- [Multi-tipo estabelecimento](deliveryhub_multi_tipo_estabelecimento.md) — CRUD admin + seletor no cadastro já implementados
+- [Venda balcão vira PDV mercado](deliveryhub_venda_balcao_pdv.md) — catálogo+carrinho lado a lado, pagamento multi-forma — branch não mergeada
+- [Gatilho "suba para deploy"](feedback_trigger_suba_para_deploy.md) — frase = sincronizar+memória+commit+push, push de branch feature ≠ deploy real
+- [Sempre local, sem permissão não sobe web](feedback_sempre_local_sem_permissao_web.md) — nunca merge/push main ou Supabase Cloud sem pedir de novo a cada tarefa
+- [Deploy ok mas tela antiga = cache](feedback_deploy_cache_navegador.md) — testar hard refresh/aba anônima antes de suspeitar de bug no deploy
+- [Fix taxa cartão total comanda](deliveryhub_fix_taxa_cartao_total.md) — Salão: taxa não somava no Total/impressão — MERGEADO EM MAIN
+- [Fix taxa cartão resumo caixa](deliveryhub_fix_taxa_cartao_resumo_caixa.md) — Fechar Caixa/relatório sem taxa cartão — MERGEADO EM MAIN, gotcha clone standalone vs submodule
+- [Fix fechar caixa libera mesa](deliveryhub_fix_fechar_caixa_libera_mesa.md) — mesa ocupada libera ao fechar caixa, comanda vira fiado — MERGEADO EM MAIN + deployado
+- [Nunca mudar sem permissão](feedback_nao_mudar_sem_permissao.md) — confirmar plano antes de editar código, não só antes de commitar
+- [Aba Cozinha portal garçom](deliveryhub_garcom_fila_cozinha.md) — fila preparo + tempo médio, implementado branch feat/garcom-fila-cozinha, não testado/mergeado
+- [Taxa cartão portal garçom](deliveryhub_taxa_cartao_garcom_portal.md) — comanda soma taxa + prévia antes de pagar cartão — MERGEADO EM MAIN + TESTADO PRODUÇÃO
+- [Garçom confirma entrega item](deliveryhub_garcom_confirma_entrega_item.md) — botão "Entregar" já em preparando, sincroniza c/ Painel Bar — MERGEADO+TESTADO PRODUÇÃO, gotcha drift migration history Supabase Cloud
+- [Estoque zero bloqueia venda](deliveryhub_estoque_zero_bloqueia_venda.md) — filtro >0 em delivery/garçom/salão, admin/relatório continuam vendo zerados — MERGEADO EM MAIN
+- [Produção itens entregues](deliveryhub_producao_itens_entregues.md) — 3a coluna "Entregues" por setor em /restaurante/producao — MERGEADO+TESTADO PRODUÇÃO
+- [Editar slug restaurante](deliveryhub_editar_slug_restaurante.md) — link /r/:slug editável em Aparência, antes era só gerado automático — MERGEADO+TESTADO PRODUÇÃO
+- [Check "Não cobrar gorjeta"](deliveryhub_check_nao_cobrar_gorjeta.md) — comanda mesa/garçom Salão, zera gorjeta — PUSHADO branch feature, não mergeado; taxa cartão foi tentada e revertida a pedido
+- [Export JSON relatório produtos](deliveryhub_export_json_produtos.md) — botão "Baixar JSON" em /restaurante/relatorios/produtos — MERGEADO+PUSHADO MAIN, EasyPanel não confirmado
+- [Alerta visual pedido pronto garçom](deliveryhub_alerta_visual_pedido_pronto.md) — modal central Mesa+Cliente+Pedido, fecha só no clique — MERGEADO EM MAIN, EasyPanel não confirmado
+- [Destaque observação tela cozinha](deliveryhub_obs_cozinha_destaque.md) — fundo azul/letra branca piscando (vermelho foi rejeitado) — MERGEADO EM MAIN
+- [Layout KDS padronizado](deliveryhub_kds_layout_padronizado.md) — garçom destaque/busca/prontos limitados em Cozinha+Produção+Bar — MERGEADO EM MAIN
+- [Fix saldo taxa cartão duplicada](deliveryhub_fix_saldo_taxa_cartao_duplicada.md) — total_pago não somava taxa já cobrada, cobrava de novo no fechamento — MERGEADO+TESTADO PRODUÇÃO
+- [Fix recibo/conferência completos](deliveryhub_fix_recibo_conferencia_completos.md) — TOTAL zerado, taxa/garçom/pagamentos faltando nos comprovantes — MERGEADO+TESTADO PRODUÇÃO
+- [Dividir comanda](deliveryhub_dividir_comanda.md) — separar itens em comanda avulsa nova + editar cliente pelo dono + select lista comandas avulsas — MERGEADO EM MAIN
+- [Relatório Garçom detalhado](deliveryhub_relatorio_garcom_detalhado.md) — vendas por comanda, totais rodapé, filtro+print por garçom, fix fuso horário — MERGEADO+PUSHADO+TESTADO PRODUÇÃO
+- [Módulos Delivery/Salão por empresa](deliveryhub_modulos_delivery_salao.md) — checkbox em /admin/empresas libera nav conforme módulo — MERGEADO+PUSHADO+MIGRATION CLOUD, EasyPanel redeploy não confirmado
+- [Cancelar item Produção](deliveryhub_cancelar_item_producao.md) — botão Cancelar em Aguardando Preparo, some de Produção+Cozinha — MERGEADO+PUSHADO+MIGRATION CLOUD+TESTADO
+- [Gorjeta estimada QR cliente](deliveryhub_gorjeta_estimada_qr_cliente.md) — link mesa-acompanhar mostrava R$0 antes da comanda paga — MERGEADO+PUSHADO+TESTADO
+- [Fix fuso horário impressão](deliveryhub_fix_fuso_horario_impressao.md) — backend imprimia hora UTC (3h adiantada), faltava timeZone America/Sao_Paulo — MERGEADO+PUSHADO
+- [Botão fechar modal comanda](deliveryhub_botao_fechar_modal_comanda.md) — Salão: modal fechava sozinho clicando fora, add X e removeu esse comportamento — MERGEADO+PUSHADO+TESTADO
+- [Banco local, nunca mudar cloud](feedback_banco_local_nunca_mudar_cloud.md) — dev sempre local; Cloud (produção) só SELECT via `db query --linked`, nunca escrita direta
+- [Migration editada não reaplica sozinha](feedback_migration_editada_nao_reaplica.md) — editar .sql já rodado não muda banco local, checar \d tabela e ALTER manual
+- [Repasse garçom dinheiro/pix + trava saldo](deliveryhub_repasse_garcom_dinheiro_pix.md) — split pagamento+estorno, comanda só fecha com saldo zero — MERGEADO+DEPLOYADO
+- [Plano dark mode retrofit](deliveryhub_plano_dark_mode_retrofit.md) — MERGEADO+PUSHADO 2026-07-29 incl. portal garçom; faltam motoboy portal + páginas cliente-público
+- [Trava fechar comanda entrega pendente](deliveryhub_trava_fechar_comanda_entrega_pendente.md) — garçom só fecha comanda com item entregue confirmado — MERGEADO+PUSHADO 2026-07-29
+- [Relatórios gerenciais (rankings)](deliveryhub_relatorios_gerenciais.md) — produto mais/menos vendido, lucro, maiores vendas, ranking garçom+produto favorito — MERGEADO EM MAIN 2026-07-29 (frontend+backend)
+- [Fechar caixa pendências detalhadas](deliveryhub_fechar_caixa_pendencias_detalhadas.md) — modal lista pedidos/comandas/mesas no 409 — MERGEADO+PUSHADO MAIN, EasyPanel não confirmado
+- [Trava botão Voltar entrega pendente](deliveryhub_trava_botao_voltar_entrega_pendente.md) — garçom não pode Voltar com item pronto sem confirmar entrega — MERGEADO+PUSHADO MAIN, EasyPanel não confirmado
+- [Sessão única garçom/motoboy](deliveryhub_sessao_unica_garcom_motoboy.md) — bloqueia login em 2 dispositivos + dono força logout — MERGEADO+PUSHADO ambos repos, TESTADO
+- [Fix dark login/cadastro + toggle sobrepondo Entrar](deliveryhub_fix_dark_login_toggle_overlap.md) — customer-registration-login sem dark: nenhum + ThemeToggle escondido em /menu-catalog-product-browse — MERGEADO+PUSHADO MAIN, TESTADO
+- [Decrementar estoque na venda](deliveryhub_decrementar_estoque_venda.md) — delivery na criação, salão ao adicionar item, cancelamento devolve — MERGEADO+PUSHADO ambos repos, TESTADO
+- [Migration precisa push Cloud após deploy](feedback_migration_precisa_push_cloud_apos_deploy.md) — EasyPanel só faz deploy do código, migration é `supabase db push --linked` separado, senão feature quebra só em produção
+- [Combos venda completa](deliveryhub_combos_venda_completa.md) — combo vende no salão/delivery/marketplace, preço por produto, ativar/desativar — MERGEADO+PUSHADO ambos repos+Cloud, TESTADO
+- [Fix caixa estorno + permissões](deliveryhub_fix_caixa_estorno_permissoes.md) — dinheiro delivery não creditava, clique duplo duplicava, deletar pagamento não estornava (nem o troco), gorjeta direto ao garçom, garçom não exclui comanda — MERGEADO+PUSHADO ambos repos
+- [Ajuste manual caixa 23 (R$16)](deliveryhub_ajuste_manual_caixa_23_16reais.md) — UPDATE direto na Cloud autorizado, pagamento anterior ao fix não creditou — não é permissão permanente, cada caso pede de novo
+- [Resumo dinheiro/troco na comanda](deliveryhub_resumo_dinheiro_troco_comanda.md) — agregado no resumo (garçom+dono) — MERGEADO+PUSHADO+DEPLOY EASYPANEL OK; gotcha: backend não selecionava valor_recebido/troco
+- [Cache Redis catálogo público](deliveryhub_redis_cache_catalogo.md) — cache-aside TTL 15-60s em /r/* — MERGEADO+PUSHADO+TESTADO PRODUÇÃO (confirmado via MONITOR), gotchas de senha/URL-encode e teste com KEYS vs MONITOR
+- [Botão Combos + descrição garçom](deliveryhub_combo_garcom_botao_descricao.md) — portal garçom não tinha botão Combos nem descrição do combo no modal Adicionar produto (só dono tinha) — MERGEADO+PUSHADO+TESTADO, EasyPanel não confirmado
+- [Reordenar fila Produção](deliveryhub_reordenar_fila_producao.md) — setas cima/baixo em Aguardando Preparo, coluna ordem_fila — MERGEADO+PUSHADO+DEPLOY CONFIRMADO PRODUÇÃO
+- [Filtro fluxo caixa + Sangria/Adição período](deliveryhub_filtro_fluxo_caixa_financeiro.md) — cards clicáveis+cliente/atendente/taxa no Fluxo de Caixa, botões Sangria/Adição na Análise por Período — MERGEADO+PUSHADO+DEPLOY CONFIRMADO
+- [Botão Não entreguei garçom](deliveryhub_garcom_nao_entreguei_item.md) — reverte item pronto pra fila com borda vermelha em Cozinha/Bar/Produção — MERGEADO EM MAIN, testado, ganhou Indo buscar/Já entreguei depois
+- [Auto atendimento pela mesa](deliveryhub_auto_atendimento_mesa.md) — cliente pede via QR fixo, entra em comanda já aberta pelo garçom (nunca cria sozinho) — MERGEADO+MIGRATION CLOUD+DEPLOY CONFIRMADO
+- [Planos assinatura + PagBank](deliveryhub_planos_assinatura_pagbank.md) — Pix+cartão testados produção, troca de plano exige pagamento — MERGEADO+PUSHADO+MIGRATION CLOUD
+- [Licenciamento instalações locais](deliveryhub_licenciamento_instalacoes_locais.md) — serial+checkin pra clientes standalone, titular polimórfico — MERGEADO+PUSHADO (feature + fix revogação/intervalo)
+- [AdminHeader + bolinha status plano](deliveryhub_admin_header_e_status_dot.md) — hambúrguer mobile admin + indicador verde/laranja/vermelho + fix flex-wrap empurrando ícones — MERGEADO+PUSHADO+TESTADO
+- [Grid mobile + busca + anti-duplicata admin](deliveryhub_grid_busca_antiduplicata_admin.md) — Categorias/Tipos 2 colunas mobile, Tags/Planos busca+dedupe — MERGEADO+PUSHADO+TESTADO
+- [Venda balcão: nome cliente + envio no fechamento](deliveryhub_venda_balcao_nome_cliente_envio_fechamento.md) — itens só vão pra cozinha/bar ao finalizar; gotcha: guard de status bloqueava editar observação em comanda já paga — MERGEADO+PUSHADO+TESTADO

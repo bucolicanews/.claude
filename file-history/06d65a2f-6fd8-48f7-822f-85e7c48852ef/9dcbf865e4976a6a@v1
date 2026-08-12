@@ -1,0 +1,24 @@
+---
+name: deliveryhub-multi-tipo-estabelecimento
+description: "Pivot do deliveryhub_white_label de \"só restaurante\" pra suportar qualquer tipo de estabelecimento com delivery (farmácia, mat. construção etc)"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Decisão de 2026-07-13: o projeto [[project_deliveryhub_white_label]] deixa de ser exclusivo pra restaurantes — a ideia é permitir cadastro de qualquer estabelecimento que faça delivery (farmácia, material de construção, etc — restaurante é só mais um tipo entre outros).
+
+**Why:** ampliar o mercado do white label além de comida.
+
+**Como foi implementado (fase 1, escopo combinado com o usuário):**
+1. Nova tabela `establishment_types` (migration em `supabase/migrations/`) com seed dos tipos (Restaurante, Farmácia, Material de Construção etc) — populada só pelo dev via SQL, sem tela de CRUD ainda.
+2. Coluna `type_id` adicionada em `restaurants` (nullable/default apontando pro tipo Restaurante), aditiva — não alterou nada existente.
+3. Textos trocados (sem mexer em layout/estrutura): "Cadastrar meu restaurante" → "Cadastrar meu estabelecimento" e variações, em `customer-registration-login/index.jsx` e `menu-catalog-product-browse/index.jsx`.
+4. Removido bloco de credenciais dev exposto na tela de login (`admin@test.com` / `Test@1234`) — não deve vazar credencial de teste em produção.
+
+**Fora de escopo dessa fase (ainda pendente):** formulário `restaurant-registration-setup` ganhar seletor de tipo de estabelecimento; backend/rotas usarem `type_id` pra filtrar; renomear tabela `restaurants` → algo genérico tipo `establishments`. Fazer isso só depois que a base (tabela + coluna) estiver validada.
+
+Branch da fase 1: `feat/tipo-estabelecimento` (front e submodule `server_delivery`), já merged na main dos dois em 2026-07-13.
+
+**Pendência:** migration `20260713000001_establishment_types.sql` ainda não foi aplicada no Supabase Cloud (`supabase link --project-ref gkeolhhcptavftwloucj` + `supabase db push`) — sem isso a tabela `establishment_types` não existe de verdade e o select de tipo no cadastro fica vazio.

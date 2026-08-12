@@ -1,0 +1,20 @@
+---
+name: deliveryhub-pendencia-api-url-producao
+description: "Frontend do deliveryhub usa caminhos relativos /api fixos, quebra em producao com backend separado"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 3fe4b1f0-07c7-4d4c-a1eb-375df490dc6f
+---
+
+Pendência técnica identificada em 2026-07-10, ao separar o backend em [[deliveryhub_supabase_local_setup]] / repo `server_delivery`.
+
+O frontend (`deliveryhub_white_label`) chama o backend com caminhos relativos fixos, ex. `fetch('/api/tags')`, `const API = '/api/restaurante'` — visto em `src/services/restauranteService.js`, `perfilService.js`, `motoboyService.js`, `cozinhaPortalService.js` e várias páginas em `src/pages/`. Isso só funciona em desenvolvimento porque o `vite.config.mjs` tem proxy configurado (`/api` → `http://localhost:3002`).
+
+**Why:** em produção, frontend e backend (`server_delivery`) rodam em domínios/processos separados (ex. front no cPanel, back em VPS própria) — não existe proxy do Vite em build de produção, então toda chamada `/api/*` vai quebrar (404 ou aponta pro próprio domínio do front em vez do backend).
+
+**How to apply:** antes do primeiro deploy real em produção, resolver de uma das duas formas:
+1. Configurar reverse proxy (nginx/Apache) no domínio do frontend roteando `/api/*` pro processo Node do backend; ou
+2. Introduzir uma variável `VITE_API_URL` (ou similar) e trocar os caminhos fixos `/api/...` por uma base configurável, lida em build/runtime.
+
+Nenhuma das duas foi implementada ainda — é bloqueador para deploy em produção, não para desenvolvimento local. Documentado também no README do `server_delivery` (seção "Deploy em produção").

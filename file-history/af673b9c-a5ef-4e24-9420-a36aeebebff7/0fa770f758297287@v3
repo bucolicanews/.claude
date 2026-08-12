@@ -1,0 +1,114 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
+import { SupabaseService } from '../supabase/supabase.service';
+
+export interface CriarColaboradorBody {
+  nome: string;
+  telefone?: string;
+  setor: string;
+  senha: string;
+}
+
+export interface AtualizarColaboradorBody {
+  nome?: string;
+  telefone?: string;
+  setor?: string;
+  ativo?: boolean;
+  senha?: string;
+}
+
+@Injectable()
+export class ColaboradoresService {
+  constructor(private supabase: SupabaseService) {}
+
+  private gerarLoginKey(): string {
+    return crypto.randomBytes(4).toString('hex');
+  }
+
+  async criar(restaurantId: number, body: CriarColaboradorBody) {
+    if (!body.nome?.trim()) throw new BadRequestException('Nome é obrigatório');
+    if (!body.setor?.trim()) throw new BadRequestException('Setor é obrigatório');
+    if (!body.senha || body.senha.length < 4) throw new BadRequestException('Senha deve ter no mínimo 4 caracteres');
+
+    const passwordHash = await bcrypt.hash(body.senha, 10);
+    let loginKey = this.gerarLoginKey();
+
+    for (let tentativas = 0; tentativas < 5; tentativas++) {
+      const { data: existente } = await this.supabase.client
+        .from('colaboradores')
+        .select('id')
+        .eq('login_key', loginKey)
+        .maybeSingle();
+      if (!existente) break;
+      loginKey = this.gerarLoginKey();
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('colaboradores')
+      .insert({
+        restaurant_id: restaurantId,
+        nome: body.nome.trim(),
+        telefone: body.telefone ?? null,
+        setor: body.setor.trim(),
+        login_key: loginKey,
+        password_hash: passwordHash,
+      })
+      .select('id, nome, telefone, setor, login_key, ativo, created_at')
+      .single();
+    if (error) throw error;
+
+    return data;
+  }
+
+  async listar(restaurantId: number) {
+    const { data, error } = await this.supabase.client
+      .from('colaboradores')
+      .select('id, nome, telefone, setor, login_key, ativo, ultimo_acesso_em, created_at')
+      .eq('restaurant_id', restaurantId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+
+  private async garantirPertence(id: number, restaurantId: number) {
+    const { data } = await this.supabase.client
+      .from('colaboradores')
+      .select('id')
+      .eq('id', id)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (!data) throw new NotFoundException('Colaborador não encontrado');
+  }
+
+  async atualizar(id: number, restaurantId: number, body: AtualizarColaboradorBody) {
+    await this.garantirPertence(id, restaurantId);
+
+    const update: Record<string, unknown> = {};
+    if (body.nome !== undefined) update.nome = body.nome;
+    if (body.telefone !== undefined) update.telefone = body.telefone;
+    if (body.setor !== undefined) update.setor = body.setor;
+    if (body.ativo !== undefined) update.ativo = body.ativo;
+    if (body.senha) {
+      if (body.senha.length < 4) throw new BadRequestException('Senha deve ter no mínimo 4 caracteres');
+      update.password_hash = await bcrypt.hash(body.senha, 10);
+    }
+
+    const { data, error } = await this.supabase.client
+      .from('colaboradores')
+      .update(update)
+      .eq('id', id)
+      .select('id, nome, telefone, setor, login_key, ativo, created_at')
+      .single();
+    if (error) throw error;
+
+    return data;
+  }
+
+  async remover(id: number, restaurantId: number) {
+    await this.garantirPertence(id, restaurantId);
+    const { error } = await this.supabase.client.from('colaboradores').delete().eq('id', id);
+    if (error) throw error;
+    return { ok: true };
+  }
+}

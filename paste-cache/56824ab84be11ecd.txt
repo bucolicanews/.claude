@@ -1,0 +1,23 @@
+
+│
+◇  Enter your verification code: 
+│  0a59e6e7
+Token cli_Micro@DESKTOP-K600KQT_1784143447 created successfully.
+You are now logged in. Happy coding!
+│
+
+  
+   LINKED | ORG ID               | REFERENCE ID         | NAME                  | REGION                    | CREATED AT (UTC)    
+  --------|----------------------|----------------------|-----------------------|---------------------------|---------------------
+          | yccsuaxdlgrklyddyerb | ttiynitktolgtmciulez | jota_app_basico       | East US (Ohio)            | 2025-11-02 19:35:10 
+     ●    | yccsuaxdlgrklyddyerb | gkeolhhcptavftwloucj | delivery_jota         | West US (Oregon)          | 2026-07-10 16:01:49 
+          | yccsuaxdlgrklyddyerb | oqiycpjayuzuyefkdujp | calculo_trabalhista   | South America (São Paulo) | 2025-10-01 16:29:24 
+          | yccsuaxdlgrklyddyerb | yveobskzyejuaixqsgid | jota_enem_com_chat_ai | East US (Ohio)            | 2025-09-13 00:53:08 
+
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> supabase link --project-ref gkeolhhcptavftwloucj
+Finished supabase link.
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> supabase migrations up                          
+Connecting to local database...
+failed to connect to postgres: failed to connect to `host=127.0.0.1 user=postgres database=postgres`: dial error (dial tcp 127.0.0.1:54332: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.)
+Try rerunning the command with --debug to troubleshoot the error.
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> 

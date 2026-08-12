@@ -1,0 +1,21 @@
+garcomService.js:14  GET http://192.168.1.31:3002/garcom/comandas/6 500 (Internal Server Error)
+garcomFetch @ garcomService.js:14
+(anonymous) @ garcomService.js:54
+(anonymous) @ index.jsx:529
+(anonymous) @ index.jsx:534
+commitHookEffectListMount @ chunk-I3FFXTTZ.js?v=1ea0efd7:16936
+commitPassiveMountOnFiber @ chunk-I3FFXTTZ.js?v=1ea0efd7:18184
+commitPassiveMountEffects_complete @ chunk-I3FFXTTZ.js?v=1ea0efd7:18157
+commitPassiveMountEffects_begin @ chunk-I3FFXTTZ.js?v=1ea0efd7:18147
+commitPassiveMountEffects @ chunk-I3FFXTTZ.js?v=1ea0efd7:18137
+flushPassiveEffectsImpl @ chunk-I3FFXTTZ.js?v=1ea0efd7:19518
+flushPassiveEffects @ chunk-I3FFXTTZ.js?v=1ea0efd7:19475
+commitRootImpl @ chunk-I3FFXTTZ.js?v=1ea0efd7:19444
+commitRoot @ chunk-I3FFXTTZ.js?v=1ea0efd7:19305
+performSyncWorkOnRoot @ chunk-I3FFXTTZ.js?v=1ea0efd7:18923
+flushSyncCallbacks @ chunk-I3FFXTTZ.js?v=1ea0efd7:9135
+(anonymous) @ chunk-I3FFXTTZ.js?v=1ea0efd7:18655
+garcomService.js:29 Uncaught (in promise) Error: Internal server error
+    at garcomFetch (garcomService.js:29:11)
+    at async Promise.all (index 0)
+    at async index.jsx:529:20

@@ -1,0 +1,60 @@
+npm error path /workspace
+npm error command failed
+npm error signal SIGTERM
+npm error command sh -c serve -s build -l ${PORT:-4028}
+npm error A complete log of this run can be found in: /tmp/npm_cache/_logs/2026-07-13T17_18_31_641Z-debug-0.log
+ INFO  Accepting connections at http://localhost:80
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /menu-catalog-product-browse
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 200 in 28 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /assets/index-CzODuhBo.js
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /manifest.json
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /assets/index-C09usn1O.css
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 4 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 5 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 24 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /api/r
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /api/categorias/globais
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /api/tags
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 4 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /api/r/produtos
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 3 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 3 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 7 ms
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 GET /favicon.ico
+ HTTP  7/13/2026 5:21:04 PM 10.11.0.35 Returned 304 in 5 ms
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 GET /menu-catalog-product-browse
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 Returned 304 in 3 ms
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 GET /assets/index-C09usn1O.css
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 GET /assets/index-CzODuhBo.js
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 GET /manifest.json
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 Returned 304 in 4 ms
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 Returned 304 in 4 ms
+ HTTP  7/13/2026 5:21:06 PM 10.11.0.35 Returned 304 in 4 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /api/r
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /api/r/produtos
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /api/categorias/globais
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /api/tags
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 4 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 2 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 2 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 2 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /favicon.ico
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 2 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /menu-catalog-product-browse
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 3 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /assets/index-CzODuhBo.js
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /assets/index-C09usn1O.css
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 2 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 1 ms
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 GET /manifest.json
+ HTTP  7/13/2026 5:21:07 PM 10.11.0.35 Returned 304 in 0 ms
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 GET /api/r
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 GET /api/r/produtos
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 Returned 304 in 3 ms
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 Returned 304 in 3 ms
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 GET /api/categorias/globais
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 GET /api/tags
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 Returned 304 in 2 ms
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 Returned 304 in 1 ms
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 GET /favicon.ico
+ HTTP  7/13/2026 5:21:08 PM 10.11.0.35 Returned 304 in 2 ms

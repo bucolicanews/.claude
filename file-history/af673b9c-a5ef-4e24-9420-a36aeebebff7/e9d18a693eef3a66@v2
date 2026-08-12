@@ -1,0 +1,12 @@
+import { Body, Controller, Post } from '@nestjs/common';
+import { ColaboradorAuthService } from './colaborador-auth.service';
+
+@Controller('colaborador/auth')
+export class ColaboradorAuthController {
+  constructor(private service: ColaboradorAuthService) {}
+
+  @Post('login')
+  login(@Body() body: { login_key: string; password: string }) {
+    return this.service.login(body.login_key, body.password);
+  }
+}

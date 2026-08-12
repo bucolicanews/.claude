@@ -1,0 +1,39 @@
+---
+name: deliveryhub-plano-motoboy-multi-estabelecimento
+description: "IMPLEMENTADO E MERGEADO EM MAIN (dois repos) — motoboy vira identidade própria N:N com estabelecimentos, comissão configurável (fixo/percentual/km), dashboard de ganhos"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+  modified: 2026-07-23T15:12:26.685Z
+---
+
+**Atualizado 2026-07-23:** feature mergeada em `main` nos dois repos — backend commit `ad33735` ("feat: motoboy N:N com estabelecimentos, login proprio, comissao e geocoding"), frontend merge commit `69dd116` (branch `feat/motoboy-multi-estabelecimento` já deletada dos dois remotos após o merge). Trabalho subsequente sobre esse módulo já mergeado também: `feat/motoboy-alerta-mapa-e-revisao-ocorrencia`, `feature/ver-ficha-motoboy-recusada`, `fix/revisao-solicitacao-motoboy-recusada`. Não presumir mais que é feature de risco/não testada — já está em produção do fluxo normal.
+
+Planejado em 2026-07-13, branch a criar: `feat/motoboy-multi-estabelecimento` (front e submodule `server_delivery`). Plano completo escrito em `C:\Users\Micro\.claude\plans\sorted-kindling-scone.md`.
+
+**Why:** hoje `motoboys` é 1:1 com `restaurants` (dono cadastra nome+telefone, gera link-token sem senha/documentos). Objetivo: motoboy vira conta própria (self-service, com foto/documento/comprovante de endereço), pode se afiliar a VÁRIOS estabelecimentos via solicitação/aceite, e cada estabelecimento configura sua própria comissão (fixo, percentual sobre frete, ou por km rodado via geocoding).
+
+**Decisões fechadas com o usuário** (não re-perguntar):
+- Login motoboy = conta própria telefone/email+senha (JWT via `jsonwebtoken`, não Supabase Auth) — substitui 100% o link-token atual.
+- Geocoding via Nominatim/OpenStreetMap (gratuito, sem API key).
+- Fluxo antigo "restaurante cria motoboy direto" é REMOVIDO — só sobra solicitação/aceite.
+- Comissão percentual incide só sobre o frete cobrado, não sobre o total do pedido.
+- Documento do motoboy: 1 foto obrigatória, verso opcional.
+
+**Arquitetura-chave**:
+- Nova tabela `motoboy_estabelecimentos` (N:N, status pendente/aceito/recusado/removido).
+- Nova tabela `motoboy_comissoes` (1 linha por entrega concluída, alimenta o dashboard de ganhos).
+- `restaurants` ganha colunas de comissão (`motoboy_comissao_tipo/valor_fixo/percentual/valor_km/km_fallback`) e geo (`lat/lng/geocoded_at/geocode_falhou`).
+- `motoboys` ganha auth própria (email/password_hash/foto/documentos) + `precisa_completar_cadastro` pra migrar motoboys antigos sem quebrar acesso.
+- Bucket privado `motoboy-documentos` (signed URL sempre, dados sensíveis).
+
+**How to apply:** ao retomar essa feature, ler o plano completo no arquivo citado antes de codar — tem migrations exatas, endpoints, e ordem de fases (schema → auth → afiliação → comissão/geocoding → frontend motoboy → frontend restaurante). Ver [[project_deliveryhub_white_label]] e [[deliveryhub_server_submodule_e_supabase_cloud]] pro contexto geral do projeto.
+
+---
+
+**Implementado em 2026-07-13.** Branch `feat/motoboy-multi-estabelecimento` pushado em `deliveryhub_white_label` e `server_delivery` — ainda NÃO merged na main (aguardando o usuário testar no navegador antes, dado o tamanho/risco da mudança: substitui 100% o fluxo antigo de motoboy).
+
+**Verificado nesta sessão:** `tsc --noEmit` limpo no backend; todos os arquivos frontend tocados transformam sem erro no Vite; fluxo ponta a ponta testado via curl direto contra o Supabase Cloud real (cadastro → login → me → buscar estabelecimento → solicitar afiliação → listar ganhos) — todos OK. Motoboy de teste (`motoboy.qa@teste.com`) removido do banco depois.
+
+**Não verificado ainda** (extensão Chrome não estava conectada nesta sessão): fluxo completo pela UI — cadastro visual, dono aceitando/recusando solicitação vendo a ficha, comissão por km calculando distância real num pedido de teste, aba "Meus Ganhos" renderizando. Testar isso manualmente antes de mergear na main.

@@ -1,0 +1,53 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { SupabaseService } from '../supabase/supabase.service';
+
+export interface ItemExpandido {
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+  combo_nome?: string;
+}
+
+@Injectable()
+export class CombosService {
+  constructor(private supabase: SupabaseService) {}
+
+  // Combo não é uma entidade vendável própria no pedido — vira várias linhas dos
+  // produtos reais que o compõem (order_items continua só sabendo de products,
+  // então estoque/KDS/impressão por setor funcionam sem mudar nada). O preço de
+  // cada linha é o preço normal do produto escalado pra bater o preço promocional
+  // do combo (ex: combo R$20 com itens que somam R$25 normal → fator 0.8 em cada).
+  async expandir(comboId: number, quantidadeComprada: number, restaurantId: number): Promise<ItemExpandido[]> {
+    if (quantidadeComprada < 1) throw new BadRequestException('Quantidade do combo inválida');
+
+    const { data: combo } = await this.supabase.client
+      .from('combos')
+      .select('id, name, restaurant_id, price, preco_promo, is_active, combo_items(product_id, quantity, products(price, is_active))')
+      .eq('id', comboId)
+      .maybeSingle();
+
+    if (!combo || combo.restaurant_id !== restaurantId) throw new NotFoundException(`Combo ${comboId} não encontrado`);
+    if (!combo.is_active) throw new BadRequestException(`Combo ${comboId} não está disponível`);
+
+    const itens = ((combo as any).combo_items ?? []) as Array<{ product_id: number; quantity: number; products: { price: number; is_active: boolean } | null }>;
+    if (!itens.length) throw new BadRequestException(`Combo ${comboId} não tem itens configurados`);
+
+    for (const it of itens) {
+      if (!it.products) throw new BadRequestException(`Produto do combo ${comboId} não encontrado`);
+      if (!it.products.is_active) throw new BadRequestException(`Um dos produtos do combo ${comboId} está indisponível`);
+    }
+
+    const totalNormal = itens.reduce((acc, it) => acc + it.quantity * it.products!.price, 0);
+    if (totalNormal <= 0) throw new BadRequestException(`Combo ${comboId} com preço inválido`);
+
+    const alvo = combo.preco_promo ?? combo.price;
+    const fator = alvo / totalNormal;
+
+    return itens.map((it) => ({
+      product_id: it.product_id,
+      quantity: it.quantity * quantidadeComprada,
+      unit_price: parseFloat((it.products!.price * fator).toFixed(2)),
+      combo_nome: combo.name,
+    }));
+  }
+}

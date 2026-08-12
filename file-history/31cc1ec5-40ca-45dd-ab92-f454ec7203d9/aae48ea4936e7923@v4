@@ -1,0 +1,26 @@
+---
+name: deliveryhub-sessao-unica-garcom-motoboy
+description: "Bloqueio de login simultâneo de garçom/motoboy em 2 dispositivos + forçar logout pelo dono — MERGEADO+PUSHADO ambos repos (main), TESTADO pelo usuário"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 31cc1ec5-40ca-45dd-ab92-f454ec7203d9
+  modified: 2026-07-30T17:55:11.004Z
+---
+
+Pedido do usuário 2026-07-30: garçom e motoboy não podem logar em dois dispositivos ao mesmo tempo (evita duas pessoas usando o mesmo login). Estabelecimento tem controle pra forçar logout e liberar o acesso em outro aparelho. Escopo confirmado: só garçom/motoboy (dono/admin fica de fora), botão de forçar logout fica na tela de cadastro/edição de cada garçom/motoboy (não numa aba separada).
+
+**Estado anterior:** JWT stateless puro (`jsonwebtoken`), sem nenhuma tabela/coluna de sessão. TTL garçom 12h, motoboy 30d.
+
+**Implementado** (branch `feat/sessao-unica-garcom-motoboy`, ambos os repos, main + submodule `server_delivery`):
+- Migration `supabase/migrations/20260730000001_sessao_unica_garcom_motoboy.sql`: `active_session_id text`, `session_expires_at timestamptz` em `garcons` e `motoboys`.
+- `garcom-auth.service.ts` / `motoboy-auth.service.ts`: método `abrirSessao()` faz update condicional atômico (`.or('active_session_id.is.null,session_expires_at.lt.<now>')`) — se não achar linha pra atualizar, já tem sessão ativa válida → `ConflictException` (409). Token JWT ganhou `sessionId` no payload. Motoboy: `cadastro()`, `login()` e `completarCadastro()` passam pelo mesmo fluxo (todos efetivamente "logam").
+- `garcom.guard.ts` / `motoboy.guard.ts`: comparam `payload.sessionId` com `active_session_id` do banco + checam `session_expires_at` > agora; se não bater, 401 "Sessão encerrada. Faça login novamente." (fallback legado do motoboy — link antigo pré-senha — não entra nessa checagem, só libera completar-cadastro).
+- Logout real: `POST /garcom/logout` (em `salao.controller.ts`) e `POST /motoboy/auth/logout` limpam a sessão no banco — sem isso o garçom que clica "Sair" ficaria travado até o TTL expirar.
+- Forçar logout pelo dono: `POST /restaurante/garcons/:id/forcar-logout` (`garcons.service.ts` + `restaurante-garcons.controller.ts`) e `POST /restaurante/motoboys/:motoboyId/forcar-logout` (`motoboy.service.ts`, reusa `exigirAfiliacaoAceita` — qualquer estabelecimento afiliado ao motoboy pode liberar, já que motoboy é N:N).
+- `listar()` de ambos retorna `sessao_ativa: boolean` (calculado, não expõe o `session_id` cru).
+- Frontend: `garcomService.js`/`motoboyAuthService.js` ganharam `logout()`; botões "Sair" em `garcom-portal` e `motoboy-portal` chamam o logout real antes de limpar o token local. `restaurante-garcons/index.jsx` e `restaurante-motoboys/index.jsx` mostram badge âmbar "Logado em 1 dispositivo" + botão "Forçar logout" quando `sessao_ativa`.
+
+**Status: MERGEADO+PUSHADO main em ambos os repos 2026-07-30 (submodule commit `35f67ce`, main commit `8a716e9`). Deploy feito no EasyPanel. Migration aplicada na Supabase Cloud via `db push --linked` (ficou pendente inicialmente e quebrou a lista de garçons em produção — ver [[feedback_migration_precisa_push_cloud_apos_deploy]]). Testado pelo usuário.**
+
+**How to apply:** atenção ao TTL diferente (garçom 12h vs motoboy 30d) — sessão trava por até esse tempo se ninguém clicar Sair nem o dono forçar.

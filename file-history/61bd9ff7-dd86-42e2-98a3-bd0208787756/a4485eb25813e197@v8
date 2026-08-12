@@ -1,0 +1,18 @@
+- [Projeto deliveryhub_white_label](project_deliveryhub_white_label.md) — stack real, features recentes, links pra segurança/design
+- [Vault my_memory](my_memory_vault.md) — mapa do vault Obsidian, onde achar política/ADR/design
+- [Política de segurança JHON](security_policy_jhon.md) — regras obrigatórias (Zero Trust, RLS, RBAC, credenciais)
+- [Diretrizes de engenharia JHON](engineering_guidelines_jhon.md) — SOLID, Clean Arch, limite complexidade ciclomática
+- [Design system delivery](design_system_delivery.md) — paleta/tipografia Rappi-style pro deliveryhub
+- [Fluxo: memória antes + commit sempre](feedback_workflow_memory_commits.md) — checar memória antes de projeto, commitar toda ação bem-sucedida
+- [Setup Supabase local deliveryhub](deliveryhub_supabase_local_setup.md) — portas 5433x, grants schema public, .env local
+- [Branch por tarefa](feedback_branch_por_tarefa.md) — sempre criar branch novo (nunca main direto) ao iniciar tarefa
+- [Pendência API URL produção](deliveryhub_pendencia_api_url_producao.md) — frontend usa /api relativo, quebra com backend separado em VPS
+- [Segredos VPS Supabase](deliveryhub_vps_supabase_secrets.md) — rotação de segredos self-hosted, como colar env completo no EasyPanel
+- [Server submodule + pivot Supabase Cloud](deliveryhub_server_submodule_e_supabase_cloud.md) — server_delivery como submodule, saiu do VPS self-host pra Supabase Cloud, fix bug dev URL
+- [Multi-tipo estabelecimento](deliveryhub_multi_tipo_estabelecimento.md) — pivot de "só restaurante" pra qualquer estabelecimento com delivery (farmácia, mat. construção...)
+- [Plano motoboy multi-estabelecimento](deliveryhub_plano_motoboy_multi_estabelecimento.md) — motoboy N:N, comissão fixo/percentual/km, dashboard ganhos — plano completo em arquivo separado
+- [Ideias módulo RESTAURANTE](deliveryhub_modulo_restaurante_ideias.md) — em coleta, features exclusivas de estabelecimento tipo Restaurante
+- [Dois clones server_delivery](deliveryhub_dois_clones_server_delivery.md) — standalone (VPS) vs submodule (dev), sincronizar sempre via git pull
+- [Agente de impressão local](deliveryhub_agente_impressao_local.md) — app Python que roda no PC do restaurante, detecta e disponibiliza impressoras pro backend; implementado e testado
+- [Branches pendentes 2026-07-14](deliveryhub_branches_pendentes_2026-07-14.md) — snapshot de branches abertas aguardando teste/merge nos dois repos
+- [Usuário roda servers manualmente](feedback_usuario_roda_servers.md) — não subir backend/frontend proativamente, deixar o usuário controlar

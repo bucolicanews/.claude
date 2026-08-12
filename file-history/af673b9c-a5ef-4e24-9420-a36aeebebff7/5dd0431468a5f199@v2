@@ -1,0 +1,52 @@
+import { CanActivate, ExecutionContext, Injectable, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
+import { SupabaseService } from '../supabase/supabase.service';
+
+export interface ColaboradorJwtPayload {
+  colaboradorId: number;
+}
+
+@Injectable()
+export class ColaboradorGuard implements CanActivate {
+  constructor(
+    private supabase: SupabaseService,
+    private config: ConfigService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers['x-colaborador-token'] as string | undefined;
+
+    if (!token) throw new UnauthorizedException('Token de colaborador necessário');
+
+    let payload: (jwt.JwtPayload & ColaboradorJwtPayload) | null = null;
+    try {
+      const secret = this.config.getOrThrow('COLABORADOR_JWT_SECRET');
+      payload = jwt.verify(token, secret) as jwt.JwtPayload & ColaboradorJwtPayload;
+    } catch {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
+
+    const { data } = await this.supabase.client
+      .from('colaboradores')
+      .select('id, restaurant_id, nome, setor, ativo')
+      .eq('id', payload.colaboradorId)
+      .maybeSingle();
+
+    if (!data) throw new UnauthorizedException('Colaborador não encontrado');
+    if (!data.ativo) throw new ForbiddenException('Acesso desativado');
+
+    request.colaboradorId = data.id;
+    request.colaboradorNome = data.nome;
+    request.colaboradorRestaurantId = data.restaurant_id;
+    request.colaboradorSetor = data.setor;
+
+    await this.supabase.client
+      .from('colaboradores')
+      .update({ ultimo_acesso_em: new Date().toISOString() })
+      .eq('id', data.id);
+
+    return true;
+  }
+}

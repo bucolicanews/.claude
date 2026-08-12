@@ -1,0 +1,3 @@
+# Token real do túnel cloudflared — pegue em Cloudflare Zero Trust > Tunnels > delivery > Atualizar token
+# NUNCA commitar este arquivo (já está no .gitignore)
+CLOUDFLARE_TUNNEL_TOKEN=cole_aqui_o_token_eyJhIjoiXXX...

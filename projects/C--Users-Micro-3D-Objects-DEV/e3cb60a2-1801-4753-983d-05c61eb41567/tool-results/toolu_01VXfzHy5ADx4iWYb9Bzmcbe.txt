@@ -1,0 +1,233 @@
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20250825103853_setup_rls_policies.sql-181--- =============================================
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20250825103853_setup_rls_policies.sql-182-ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+supabase\migrations\20250825103853_setup_rls_policies.sql:183:ALTER TABLE public.restaurants ENABLE ROW LEVEL SECURITY;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20250825103853_setup_rls_policies.sql-184-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20250825103853_setup_rls_policies.sql-185-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20250825103853_setup_rls_policies.sql-186-ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+supabase\migrations\20250825103853_setup_rls_policies.sql:187:ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20250825103853_setup_rls_policies.sql-188-ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20250825103853_setup_rls_policies.sql-189-ALTER TABLE public.plataforma_comissoes ENABLE ROW LEVEL SECURITY;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260606000002_add_aparencia_e_produto_tipo.sql-2-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260606000002_add_aparencia_e_produto_tipo.sql-3--- Configurações visuais do restaurante
+supabase\migrations\20260606000002_add_aparencia_e_produto_tipo.sql:4:ALTER TABLE public.restaurants
+supabase\migrations\20260606000002_add_aparencia_e_produto_tipo.sql-5-  ADD COLUMN IF NOT EXISTS aparencia JSONB DEFAULT '{}'::jsonb;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260606000002_add_aparencia_e_produto_tipo.sql-6-
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000004_delivery_notes.sql-1--- Notas de ocorrência do motoboy (entrega pendente / cancelada)
+supabase\migrations\20260607000004_delivery_notes.sql:2:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000004_delivery_notes.sql-3-  ADD COLUMN IF NOT EXISTS delivery_notes       TEXT,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000004_delivery_notes.sql-4-  ADD COLUMN IF NOT EXISTS delivery_occurrence  TEXT CHECK (delivery_occurrence IN ('pendente', 'cancelada'));
+--
+supabase\migrations\20260606000000_add_slug_restaurants.sql-1--- Fase 2: slug único por restaurante para URL pública /r/:slug
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260606000000_add_slug_restaurants.sql-2-
+supabase\migrations\20260606000000_add_slug_restaurants.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260606000000_add_slug_restaurants.sql-4-  ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260606000000_add_slug_restaurants.sql-5-
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000003_motoboys.sql-18-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000003_motoboys.sql-19--- Colunas de rastreamento no pedido
+supabase\migrations\20260607000003_motoboys.sql:20:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000003_motoboys.sql-21-  ADD COLUMN IF NOT EXISTS motoboy_id         BIGINT REFERENCES public.motoboys(id) ON DELETE SET NULL,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000003_motoboys.sql-22-  ADD COLUMN IF NOT EXISTS motoboy_lat         DOUBLE PRECISION,
+--
+supabase\migrations\20260609000001_motoboy_collecting_realtime.sql-1--- Novo status intermediário: motoboy pegou o pedido mas ainda não saiu para entrega
+supabase\migrations\20260609000001_motoboy_collecting_realtime.sql:2:ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;
+supabase\migrations\20260609000001_motoboy_collecting_realtime.sql:3:ALTER TABLE public.orders ADD CONSTRAINT orders_status_check
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260609000001_motoboy_collecting_realtime.sql-4-  CHECK (status IN (
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260609000001_motoboy_collecting_realtime.sql-5-    'pending',
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260609000002_caixas_table.sql-17-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260609000002_caixas_table.sql-18--- FK em orders para rastrear a qual caixa cada pedido pertence
+supabase\migrations\20260609000002_caixas_table.sql:19:ALTER TABLE public.orders ADD COLUMN caixa_id INT REFERENCES public.caixas(id) ON DELETE SET NULL;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260609000002_caixas_table.sql-20-
+supabase\migrations\20260609000002_caixas_table.sql-21--- RLS: apenas owner do restaurante acessa seus caixas
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260610000001_saldo_caixa.sql-1--- Saldo físico persistente no caixa entre sessões
+supabase\migrations\20260610000001_saldo_caixa.sql:2:ALTER TABLE public.restaurants ADD COLUMN IF NOT EXISTS saldo_caixa DECIMAL(12,2) NOT NULL DEFAULT 0;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260610000001_saldo_caixa.sql-3-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260610000001_saldo_caixa.sql-4--- Registro de como o saldo foi destinado no fechamento
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000006_add_preparing_status.sql-1--- Add 'preparing' status between confirmed and ready
+supabase\migrations\20260607000006_add_preparing_status.sql:2:ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;
+supabase\migrations\20260607000006_add_preparing_status.sql:3:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000006_add_preparing_status.sql-4-  ADD CONSTRAINT orders_status_check
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260607000006_add_preparing_status.sql-5-  CHECK (status IN ('pending','confirmed','preparing','ready','out_for_delivery','delivered','canceled'));
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260610000005_products_restaurant_id.sql-1--- Produtos precisam de restaurant_id direto (sem depender de category → restaurant)
+supabase\migrations\20260610000005_products_restaurant_id.sql-2--- Necessário para: cardápio público, carrosseis, listagem correta do dono
+supabase\migrations\20260610000005_products_restaurant_id.sql:3:ALTER TABLE public.products ADD COLUMN IF NOT EXISTS restaurant_id BIGINT REFERENCES public.restaurants(id) ON DELETE CASCADE;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260610000005_products_restaurant_id.sql-4-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260610000005_products_restaurant_id.sql-5--- Popula restaurant_id a partir da categoria (para produtos já existentes em categorias próprias)
+--
+supabase\migrations\20260610000007_orders_troco_para.sql:1:ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS troco_para NUMERIC(10, 2);
+--
+supabase\migrations\20260613000002_orders_comprovante_pix.sql:1:ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS comprovante_pix_url TEXT;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260613000002_orders_comprovante_pix.sql-2-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260613000002_orders_comprovante_pix.sql-3-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+--
+supabase\migrations\20260613000001_orders_cancel_reason.sql:1:ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cancel_reason TEXT;
+--
+supabase\migrations\20260612000002_orders_entrega_pagamento.sql:1:ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS entrega_pagamento JSONB;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000003_restaurants_frete_motoboy.sql-1--- Taxa de entrega por motoboy configurável por restaurante
+supabase\migrations\20260614000003_restaurants_frete_motoboy.sql:2:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000003_restaurants_frete_motoboy.sql-3-  ADD COLUMN IF NOT EXISTS frete_motoboy NUMERIC(10,2) NOT NULL DEFAULT 0;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000001_cozinha_token.sql-1--- Token de acesso para o painel da cozinha (sem precisar de conta de dono)
+supabase\migrations\20260614000001_cozinha_token.sql:2:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000001_cozinha_token.sql-3-  ADD COLUMN IF NOT EXISTS cozinha_token UUID NOT NULL DEFAULT gen_random_uuid();
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000002_customer_restaurants.sql-12-CREATE INDEX IF NOT EXISTS idx_cr_customer   ON public.customer_restaurants(customer_id);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000002_customer_restaurants.sql-13-
+supabase\migrations\20260614000002_customer_restaurants.sql:14:ALTER TABLE public.customer_restaurants ENABLE ROW LEVEL SECURITY;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000002_customer_restaurants.sql-15-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000002_customer_restaurants.sql-16--- Dono do restaurante vê seus clientes
+--
+supabase\migrations\20260614000004_orders_frete_cobrado.sql:1:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260614000004_orders_frete_cobrado.sql-2-  ADD COLUMN IF NOT EXISTS frete_cobrado NUMERIC(10,2) NOT NULL DEFAULT 0;
+--
+supabase\migrations\20260613000003_restaurants_bloqueado.sql:1:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260613000003_restaurants_bloqueado.sql-2-  ADD COLUMN IF NOT EXISTS bloqueado BOOLEAN NOT NULL DEFAULT false;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000001_establishment_types.sql-29-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000001_establishment_types.sql-30--- Vincula cada restaurante a um tipo. Default = "Restaurante", pra não quebrar cadastros existentes.
+supabase\migrations\20260713000001_establishment_types.sql:31:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000001_establishment_types.sql-32-    ADD COLUMN IF NOT EXISTS type_id BIGINT REFERENCES public.establishment_types(id);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000001_establishment_types.sql-33-
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000004_restaurants_motoboy_comissao_geo.sql-1--- Comissão do motoboy configurável por estabelecimento (fixo, percentual sobre o frete, ou por km rodado)
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000004_restaurants_motoboy_comissao_geo.sql-2--- + coordenadas geocodificadas do endereço do restaurante (necessário pro cálculo por km).
+supabase\migrations\20260713000004_restaurants_motoboy_comissao_geo.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000004_restaurants_motoboy_comissao_geo.sql-4-  ADD COLUMN IF NOT EXISTS motoboy_comissao_tipo TEXT NOT NULL DEFAULT 'fixo'
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260713000004_restaurants_motoboy_comissao_geo.sql-5-    CHECK (motoboy_comissao_tipo IN ('fixo','percentual','km')),
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000003_entrega_propria.sql-2--- própria loja) — independente de cobrar frete do cliente ou não, que já é
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000003_entrega_propria.sql-3--- configurável via restaurants.frete_motoboy.
+supabase\migrations\20260714000003_entrega_propria.sql:4:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000003_entrega_propria.sql-5-  ADD COLUMN IF NOT EXISTS usa_motoboy BOOLEAN NOT NULL DEFAULT true;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000003_entrega_propria.sql-6-
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000003_entrega_propria.sql-8--- motoboy — evita ambiguidade com motoboy_id simplesmente vazio (que também
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000003_entrega_propria.sql-9--- acontece pra pedido ainda aguardando ser pego).
+supabase\migrations\20260714000003_entrega_propria.sql:10:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000003_entrega_propria.sql-11-  ADD COLUMN IF NOT EXISTS entrega_propria BOOLEAN NOT NULL DEFAULT false;
+--
+supabase\migrations\20260714000007_orders_salao.sql-1--- Módulo Salão: orders ganha canal presencial (mesa/comanda) além do delivery
+supabase\migrations\20260714000007_orders_salao.sql:2:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000007_orders_salao.sql-3-  ADD COLUMN IF NOT EXISTS canal TEXT NOT NULL DEFAULT 'delivery' CHECK (canal IN ('delivery','presencial')),
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000007_orders_salao.sql-4-  ADD COLUMN IF NOT EXISTS mesa_id BIGINT REFERENCES public.mesas(id) ON DELETE SET NULL,
+--
+supabase\migrations\20260714000007_orders_salao.sql-13--- Novos status do fluxo presencial: aberta (comanda em uso), fechada_garcom (aguardando
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000007_orders_salao.sql-14--- pagamento no caixa), paga (fechada pelo caixa). Mantém todos os status de delivery já existentes.
+supabase\migrations\20260714000007_orders_salao.sql:15:ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;
+supabase\migrations\20260714000007_orders_salao.sql:16:ALTER TABLE public.orders ADD CONSTRAINT orders_status_check
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000007_orders_salao.sql-17-  CHECK (status IN (
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000007_orders_salao.sql-18-    'pending',
+--
+supabase\migrations\20260714000009_orders_desconto_acrescimo.sql-1--- Módulo Salão: desconto/acréscimo aplicados pelo caixa na comanda (nunca pelo garçom)
+supabase\migrations\20260714000009_orders_desconto_acrescimo.sql:2:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000009_orders_desconto_acrescimo.sql-3-  ADD COLUMN IF NOT EXISTS desconto_valor NUMERIC(10,2) NOT NULL DEFAULT 0,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000009_orders_desconto_acrescimo.sql-4-  ADD COLUMN IF NOT EXISTS acrescimo_valor NUMERIC(10,2) NOT NULL DEFAULT 0;
+--
+supabase\migrations\20260714000011_agente_impressao.sql-1--- Agente de impressão local: pareamento do restaurante com o app Python
+supabase\migrations\20260714000011_agente_impressao.sql:2:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000011_agente_impressao.sql-3-  ADD COLUMN IF NOT EXISTS agente_impressao_token UUID,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000011_agente_impressao.sql-4-  ADD COLUMN IF NOT EXISTS agente_impressao_ultimo_ping TIMESTAMPTZ;
+--
+supabase\migrations\20260714000012_salao_numero_comanda_gorjeta.sql-1--- Módulo Salão: numeração de comanda (sequencial por dia) + config de gorjeta do estabelecimento
+supabase\migrations\20260714000012_salao_numero_comanda_gorjeta.sql:2:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000012_salao_numero_comanda_gorjeta.sql-3-  ADD COLUMN IF NOT EXISTS numero_comanda INTEGER;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000012_salao_numero_comanda_gorjeta.sql-4-
+supabase\migrations\20260714000012_salao_numero_comanda_gorjeta.sql:5:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260714000012_salao_numero_comanda_gorjeta.sql-6-  ADD COLUMN IF NOT EXISTS gorjeta_percentual NUMERIC(5,2) NOT NULL DEFAULT 0;
+--
+supabase\migrations\20260715000002_salao_modo.sql-1--- Modo de venda do salão configurável pelo estabelecimento: só mesas, só comandas
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260715000002_salao_modo.sql-2--- avulsas, ou os dois (comportamento atual, mantido como default).
+supabase\migrations\20260715000002_salao_modo.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260715000002_salao_modo.sql-4-  ADD COLUMN IF NOT EXISTS salao_modo TEXT NOT NULL DEFAULT 'ambos'
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260715000002_salao_modo.sql-5-    CHECK (salao_modo IN ('mesas','comandas','ambos'));
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260716000001_recibo_impressora.sql-2--- direta), separada do roteamento por produto (cozinha/bar). Opcional — sem ela, o
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260716000001_recibo_impressora.sql-3--- recibo cai no fallback de impressão do navegador (como já acontecia antes).
+supabase\migrations\20260716000001_recibo_impressora.sql:4:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260716000001_recibo_impressora.sql-5-  ADD COLUMN IF NOT EXISTS recibo_impressora_id BIGINT REFERENCES public.impressoras(id) ON DELETE SET NULL;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260716000005_restaurants_endereco_estruturado.sql-2--- pra viabilizar filtro por Estado/Cidade/Bairro/CEP na home pública, junto com o
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260716000005_restaurants_endereco_estruturado.sql-3--- filtro por raio em KM que já usa lat/lng (geocodificado a partir do address).
+supabase\migrations\20260716000005_restaurants_endereco_estruturado.sql:4:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260716000005_restaurants_endereco_estruturado.sql-5-  ADD COLUMN IF NOT EXISTS state TEXT,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260716000005_restaurants_endereco_estruturado.sql-6-  ADD COLUMN IF NOT EXISTS city TEXT,
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260718000004_restaurants_dominio_solicitacao.sql-1--- Solicitação do dono pro admin configurar o domínio customizado no EasyPanel.
+supabase\migrations\20260718000004_restaurants_dominio_solicitacao.sql-2--- custom_domain_status: null (sem solicitação) | 'pendente' (aguardando admin).
+supabase\migrations\20260718000004_restaurants_dominio_solicitacao.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260718000004_restaurants_dominio_solicitacao.sql-4-  ADD COLUMN IF NOT EXISTS custom_domain_status TEXT,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260718000004_restaurants_dominio_solicitacao.sql-5-  ADD COLUMN IF NOT EXISTS custom_domain_solicitado_em TIMESTAMPTZ;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260720000001_orders_aberto_por_nome.sql-1--- Quando o caixa/estabelecimento abre mesa/comanda direto (sem garçom), guarda o
+supabase\migrations\20260720000001_orders_aberto_por_nome.sql-2--- primeiro nome de quem estava logado, pro card da mesa mostrar "Caixa: nome".
+supabase\migrations\20260720000001_orders_aberto_por_nome.sql:3:ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS aberto_por_nome text;
+--
+supabase\migrations\20260718000003_restaurants_custom_domain.sql-1--- Domínio customizado por estabelecimento (ex: restordemo.com), pra abrir o
+supabase\migrations\20260718000003_restaurants_custom_domain.sql-2--- cardápio direto na raiz do domínio em vez de precisar do prefixo \r:slug.
+supabase\migrations\20260718000003_restaurants_custom_domain.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260718000003_restaurants_custom_domain.sql-4-  ADD COLUMN IF NOT EXISTS custom_domain TEXT UNIQUE;
+--
+supabase\migrations\20260720000002_taxa_cartao.sql-1--- Taxa de cartão do estabelecimento: acrescentada ao valor cobrado do cliente quando a
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260720000002_taxa_cartao.sql-2--- comanda/mesa é fechada (ou paga parcialmente) com débito ou crédito.
+supabase\migrations\20260720000002_taxa_cartao.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260720000002_taxa_cartao.sql-4-  ADD COLUMN IF NOT EXISTS taxa_cartao_percentual NUMERIC(5,2) NOT NULL DEFAULT 0;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260720000002_taxa_cartao.sql-5-
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260718000005_restaurants_dominio_motivo_recusa.sql-1--- Motivo quando o admin recusa a solicitação de domínio — dono vê o porquê e pode
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260718000005_restaurants_dominio_motivo_recusa.sql-2--- corrigir e reenviar.
+supabase\migrations\20260718000005_restaurants_dominio_motivo_recusa.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260718000005_restaurants_dominio_motivo_recusa.sql-4-  ADD COLUMN IF NOT EXISTS custom_domain_motivo_recusa TEXT;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260720000003_orders_conferencia_solicitada.sql-2--- mandar pra impressão direto. Fica marcado até o caixa atender (ver
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260720000003_orders_conferencia_solicitada.sql-3--- imprimirConferencia no PDV, que limpa esse campo ao gerar a conferência real).
+supabase\migrations\20260720000003_orders_conferencia_solicitada.sql:4:ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS conferencia_solicitada_em timestamptz;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260721000004_orders_pago_em.sql-3--- coluna, "comandas fechadas hoje" filtrava por created_at e escondia pagamentos
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260721000004_orders_pago_em.sql-4--- de comandas abertas em dias anteriores.
+supabase\migrations\20260721000004_orders_pago_em.sql:5:ALTER TABLE public.orders ADD COLUMN pago_em TIMESTAMPTZ;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260727000001_modulos_delivery_salao.sql-1--- Admin decide por empresa quais módulos ficam liberados (independente do tipo de
+supabase\migrations\20260727000001_modulos_delivery_salao.sql-2--- estabelecimento): Delivery e/ou Salão (mesas/comandas/garçons/produção/bar).
+supabase\migrations\20260727000001_modulos_delivery_salao.sql:3:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260727000001_modulos_delivery_salao.sql-4-    ADD COLUMN IF NOT EXISTS modulo_delivery BOOLEAN NOT NULL DEFAULT true,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260727000001_modulos_delivery_salao.sql-5-    ADD COLUMN IF NOT EXISTS modulo_salao BOOLEAN NOT NULL DEFAULT false;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260728000001_chamada_balcao.sql-2--- controla o ciclo de chamada (bipe+pisca a cada 7s, até 5 chamados) que roda no
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260728000001_chamada_balcao.sql-3--- painel do Salão até o operador marcar como entregue.
+supabase\migrations\20260728000001_chamada_balcao.sql:4:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260728000001_chamada_balcao.sql-5-  ADD COLUMN IF NOT EXISTS is_venda_balcao BOOLEAN NOT NULL DEFAULT false,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260728000001_chamada_balcao.sql-6-  ADD COLUMN IF NOT EXISTS chamado_count INTEGER NOT NULL DEFAULT 0,
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-2--- Habilitado/desabilitado pelo próprio estabelecimento (não pelo admin da plataforma,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-3--- diferente de modulo_delivery/modulo_salao que são controlados via /admin/empresas).
+supabase\migrations\20260803000002_auto_atendimento.sql:4:ALTER TABLE public.restaurants
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-5-  ADD COLUMN IF NOT EXISTS auto_atendimento_habilitado BOOLEAN NOT NULL DEFAULT false;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-6-
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-17--- pedido de quem já está sentado ali (mesmo padrão condicional de sessão única já
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-18--- usado em garcons/motoboys, só que aqui o "logout" natural é o fechamento da comanda).
+supabase\migrations\20260803000002_auto_atendimento.sql:19:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-20-  ADD COLUMN IF NOT EXISTS cliente_session_id TEXT,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000002_auto_atendimento.sql-21-  ADD COLUMN IF NOT EXISTS cliente_session_expires_at TIMESTAMPTZ;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000004_orders_pedido_cliente_alerta.sql-2--- auto atendimento (igual já recebe quando o prato fica pronto) — timestamp muda a
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000004_orders_pedido_cliente_alerta.sql-3--- cada "Solicitar pedido" do cliente, front compara com o último valor visto por comanda.
+supabase\migrations\20260803000004_orders_pedido_cliente_alerta.sql:4:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000004_orders_pedido_cliente_alerta.sql-5-  ADD COLUMN IF NOT EXISTS ultimo_pedido_cliente_em TIMESTAMPTZ;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000006_conferencia_vista_garcom.sql-3--- imprimir de verdade (conferencia_solicitada_em só é limpo lá, fluxo já existente).
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000006_conferencia_vista_garcom.sql-4--- Campo separado pra não interferir nesse fluxo do caixa.
+supabase\migrations\20260803000006_conferencia_vista_garcom.sql:5:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000006_conferencia_vista_garcom.sql-6-  ADD COLUMN IF NOT EXISTS conferencia_vista_garcom_em TIMESTAMPTZ;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000003_orders_sem_gorjeta.sql-2--- fechamento — precisa ficar persistido pra o garçom/caixa respeitar na hora de fechar
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000003_orders_sem_gorjeta.sql-3--- (o checkbox que já existia no ComandaModal do dono era só estado local, nunca salvava).
+supabase\migrations\20260803000003_orders_sem_gorjeta.sql:4:ALTER TABLE public.orders
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\supabase\migrations\20260803000003_orders_sem_gorjeta.sql-5-  ADD COLUMN IF NOT EXISTS sem_gorjeta BOOLEAN NOT NULL DEFAULT false;

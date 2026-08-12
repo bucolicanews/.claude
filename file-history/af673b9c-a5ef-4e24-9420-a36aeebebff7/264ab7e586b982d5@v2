@@ -1,0 +1,65 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { SupabaseService } from '../supabase/supabase.service';
+import { RestauranteService } from '../restaurante/restaurante.service';
+import { SalaoPdvService } from '../salao/salao-pdv.service';
+import { SalaoService } from '../salao/salao.service';
+import type { ItemComandaBody } from '../salao/salao.service';
+
+// Colaborador não escolhe caixa numa lista — ele é atribuído a um setor (Bar, Salão...)
+// e sempre opera o caixa aberto com esse nome. Como caixas são efêmeras (fecha e abre
+// uma linha nova a cada turno), a resolução é sempre dinâmica por nome, nunca por um
+// caixa_id fixo salvo no colaborador.
+@Injectable()
+export class ColaboradorOperacoesService {
+  constructor(
+    private supabase: SupabaseService,
+    private restauranteService: RestauranteService,
+    private salaoPdvService: SalaoPdvService,
+    private salaoService: SalaoService,
+  ) {}
+
+  async produtos(restaurantId: number) {
+    return this.salaoService.produtos(restaurantId);
+  }
+
+  private async getCaixaDoSetor(restaurantId: number, setor: string) {
+    const { data } = await this.supabase.client
+      .from('caixas')
+      .select('id')
+      .eq('restaurant_id', restaurantId)
+      .eq('nome', setor)
+      .eq('status', 'aberto')
+      .maybeSingle();
+    return data;
+  }
+
+  async me(restaurantId: number, nome: string, setor: string) {
+    const caixa = await this.getCaixaDoSetor(restaurantId, setor);
+    if (!caixa) return { nome, setor, aberto: false, caixa: null };
+
+    const abertos = await this.restauranteService.getCaixasAbertos(restaurantId);
+    const detalhe = abertos.find((c: any) => c.id === caixa.id) ?? null;
+    return { nome, setor, aberto: true, caixa: detalhe };
+  }
+
+  async abrirCaixa(restaurantId: number, nome: string, setor: string, valorInicial?: number) {
+    return this.restauranteService.abrirCaixa(restaurantId, {
+      nome_operador: nome,
+      nome: setor,
+      valor_inicial: valorInicial,
+      is_principal: false,
+    });
+  }
+
+  async fecharCaixa(restaurantId: number, setor: string, body: { dinheiro_contado?: number; permitir_pendencias?: boolean }) {
+    const caixa = await this.getCaixaDoSetor(restaurantId, setor);
+    if (!caixa) throw new NotFoundException('Nenhum caixa aberto nesse setor');
+    return this.restauranteService.fecharCaixa(restaurantId, { ...body, caixa_id: caixa.id });
+  }
+
+  async vendaDireta(restaurantId: number, setor: string, itens: ItemComandaBody[], formaPagamento: string, valorRecebido?: number) {
+    const caixa = await this.getCaixaDoSetor(restaurantId, setor);
+    if (!caixa) throw new NotFoundException('Abra o caixa do seu setor antes de vender');
+    return this.salaoPdvService.vendaDireta(restaurantId, itens, formaPagamento, valorRecebido, caixa.id);
+  }
+}

@@ -1,0 +1,37 @@
+---
+name: deliveryhub-auto-atendimento-mesa
+description: Cliente pede direto pela mesa via QR fixo, sem depender do garçom — MERGEADO EM MAIN, migration no Cloud, DEPLOY CONFIRMADO EASYPANEL
+metadata:
+  type: project
+  originSessionId: current
+  modified: 2026-08-04T00:32:52.299Z
+---
+
+Pedido do usuário 2026-08-03, várias rodadas de ajuste. **Modelo final (importante, mudou no meio do caminho):** cliente NUNCA abre a mesa/comanda sozinho — só o garçom/dono abre, como já era. O QR fixo da mesa (`mesas.auto_atendimento_token`, gerado uma vez, não muda por comanda) só deixa o cliente **entrar** numa comanda já aberta. Se a mesa não tem comanda aberta, tela mostra "Aguarde o garçom te atender" e tenta de novo sozinha a cada 8s. Primeira versão criava comanda no scan — foi corrigida a pedido do usuário porque não tinha como gerar/mostrar o QR sem abrir a mesa antes.
+
+**Trava "1 cliente por mesa" (item 7 do pedido original):** sessão do cliente (`orders.cliente_session_id`/`cliente_session_expires_at`) fica presa à COMANDA, não à mesa — libera quando a comanda fecha. Primeiro celular que escanear reivindica a sessão (UPDATE condicional `is('cliente_session_id', null)`, mesmo padrão de [[deliveryhub_sessao_unica_garcom_motoboy]]). Segundo celular tentando `entrar` na mesma comanda já reivindicada é recusado.
+
+**Arquivos-chave:**
+- Backend: `server_delivery/src/salao/auto-atendimento.controller.ts` + `.service.ts` (rota pública `/auto-atendimento/:mesaToken/...`: entrar, comanda, itens POST/DELETE, solicitar-pedido, gorjeta, solicitar-conferencia).
+- Frontend: `src/pages/auto-atendimento/index.jsx` (rota `/auto-atendimento/:token`), `src/services/autoAtendimentoService.js`.
+- Migrations: `restaurants.auto_atendimento_habilitado` (toggle do **próprio estabelecimento** em Config, diferente de `modulo_delivery`/`modulo_salao` que são do admin da plataforma), `mesas.auto_atendimento_token`, `orders.cliente_session_id/cliente_session_expires_at/sem_gorjeta/ultimo_pedido_cliente_em/conferencia_vista_garcom_em`, `order_items.garcom_indo_buscar`.
+
+**Features que vieram junto (pedidos do usuário durante os testes, todas no mesmo branch):**
+1. Botão imprimir/copiar QR no card da mesa no grid (`restaurante-salao/index.jsx`), funciona com mesa livre — popup próprio com `window.print()`.
+2. QR de Auto Atendimento na comanda (dono `restaurante-salao` e garçom `garcom-portal`) — **escondido por padrão**, botão toggle "Mostrar/Esconder" igual o QR de acompanhamento já tinha (bug corrigido: primeira versão ficava sempre aberto).
+3. Todo QR (acompanhar E auto atendimento) tem toggle ONLINE/LOCAL independente + botão "Copiar link" (câmera com problema) — bug corrigido: versão inicial só tinha esse toggle no QR de acompanhamento, faltava no de auto atendimento.
+4. Resumo financeiro completo na tela do cliente (subtotal/desconto/acréscimo/gorjeta com estimativa/taxa cartão/total/saldo/pagamentos parciais) — reaproveita fórmula de `acompanharPorToken` (mesa-acompanhar). Bug corrigido: primeira versão só mostrava total do carrinho pendente, sem essa parte financeira — usuário reclamou explicitamente.
+5. Gorjeta opcional: checkbox na tela do cliente (`orders.sem_gorjeta`), respeitado como valor inicial no checkbox "Não cobrar gorjeta" do `ComandaModal` do dono (via ref `semGorjetaTocada` pra não sobrescrever se o dono mexer manualmente depois).
+6. Botão de chamar garçom/solicitar conferência devolvido na tela do cliente (tinha em `mesa-acompanhar`, faltou na primeira versão do auto atendimento) — usa `conferencia_solicitada_em` (mesmo campo do fluxo antigo).
+7. Botão de remover item do carrinho antes de "Solicitar pedido" (só item ainda `pendente`).
+8. Alerta pro garçom responsável pela mesa quando cliente clica "Solicitar pedido" (`orders.ultimo_pedido_cliente_em`, comparado por timestamp — não por id — pra alertar de novo em cada solicitação). Sem garçom vinculado à comanda, ninguém é notificado, mas itens seguem normal pra cozinha/bar.
+9. "Incluir um garçom" numa comanda sem garçom: **já existia** — select "Transferir pra outro garçom" no `ComandaModal` já funciona mesmo com `garcom_id` null, não precisou de código novo.
+
+**Ligado à mesma sessão: melhorias no botão "Não entreguei" (feature anterior [[deliveryhub_garcom_nao_entreguei_item]]):**
+- Toast "Seu pedido está pronto!" no garçom-portal ganhou 2 botões: **Indo buscar** (só liga `order_items.garcom_indo_buscar`, sem mudar status — banner azul "Garçom vindo buscar" nos 4 painéis KDS) e **Já entreguei** (mesma ação do botão Entregar da comanda, direto do toast). Quando confirma entrega, banner vira verde "Já entregue pelo garçom" (fecha o ciclo — `garcom_indo_buscar` NÃO reseta em `confirmarEntregaItem` de propósito, só reseta em `naoEntregarItem`).
+- Layout dos botões Entregar/Não entreguei no item da comanda do garçom: bug corrigido — ficavam grandes cobrindo nome do produto (2 pills lado a lado espremendo o header). Fix: botões viraram uma linha nova full-width (`grid grid-cols-2`) abaixo do nome do produto, "Não entreguei" desabilitado (não escondido) quando item ainda `preparando`.
+- Badge de conferência do garçom (mesa grid + "Minhas comandas") ficava preso pra sempre porque `SalaoPdvService.mesas` (lado do caixa) não trazia `conferencia_solicitada_em` no select — **bug pré-existente, não introduzido nessa sessão**, mas descoberto e corrigido junto. Também: badge do garçom precisava sumir ao clicar "OK, entendi" no toast SEM afetar o que o caixa vê (caixa só limpa ao imprimir de verdade, fluxo antigo intocado) — resolvido com campo novo `conferencia_vista_garcom_em`, separado de `conferencia_solicitada_em`.
+
+**Status:** MERGEADO EM MAIN nos dois repos (frontend `3ddd55f`, backend `1a96f7e`), 5 migrations aplicadas no Supabase Cloud via `db push --linked`, **deploy no EasyPanel confirmado pelo usuário** 2026-08-03. Testado em várias rodadas ao vivo durante o desenvolvimento ("funcionou", "deu certo", "testado").
+
+**Sem pendências conhecidas** — feature completa e em produção.

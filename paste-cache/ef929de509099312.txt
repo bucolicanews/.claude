@@ -1,0 +1,127 @@
+    + CategoryInfo          : ObjectNotFound: (doker:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> docker stop
+docker: 'docker stop' requires at least 1 argument
+
+Usage:  docker stop [OPTIONS] CONTAINER [CONTAINER...]
+
+See 'docker stop --help' for more information
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> supabase start
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+supabase start is already running.
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_imgproxy_deliveryhub_white_label supabase_edge_runtime_deliveryhub_white_label supabase_analytics_deliveryhub_white_label supabase_vector_deliveryhub_white_label supabase_pooler_deliveryhub_white_label]
+
+╭──────────────────────────────────────╮
+│ 🔧 Development Tools                 │
+├─────────┬────────────────────────────┤
+│ Studio  │ http://127.0.0.1:54333     │
+│ Mailpit │ http://127.0.0.1:54334     │
+│ MCP     │ http://127.0.0.1:54331/mcp │
+╰─────────┴────────────────────────────╯
+
+╭─────────────────────────────────────────────────╮
+│ 🌐 APIs                                         │
+├─────────────┬───────────────────────────────────┤
+│ Project URL │ http://127.0.0.1:54331            │
+│ REST        │ http://127.0.0.1:54331/rest/v1    │
+│ GraphQL     │ http://127.0.0.1:54331/graphql/v1 │
+╰─────────────┴───────────────────────────────────╯
+
+╭───────────────────────────────────────────────────────────────╮
+│ ⛁ Database                                                    │
+├─────┬─────────────────────────────────────────────────────────┤
+│ URL │ postgresql://postgres:postgres@127.0.0.1:54332/postgres │
+╰─────┴─────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────╮
+│ 🔑 Authentication Keys                                       │
+├─────────────┬────────────────────────────────────────────────┤
+│ Publishable │ sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH │
+│ Secret      │ [REDACTED_SUPABASE_KEY]      │
+╰─────────────┴────────────────────────────────────────────────╯
+
+╭───────────────────────────────────────────────────────────────────────────────╮
+│ 📦 Storage (S3)                                                               │
+├────────────┬──────────────────────────────────────────────────────────────────┤
+│ URL        │ http://127.0.0.1:54331/storage/v1/s3                             │
+│ Access Key │ 625729a08b95bf1b7ff351a663f3a23c                                 │
+│ Secret Key │ 850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907 │
+│ Region     │ local                                                            │
+╰────────────┴──────────────────────────────────────────────────────────────────╯
+
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> supabase start
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+supabase start is already running.
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_imgproxy_deliveryhub_white_label supabase_edge_runtime_deliveryhub_white_label supabase_analytics_deliveryhub_white_label supabase_vector_deliveryhub_white_label supabase_pooler_deliveryhub_white_label]
+
+╭──────────────────────────────────────╮
+│ 🔧 Development Tools                 │
+├─────────┬────────────────────────────┤
+│ Studio  │ http://127.0.0.1:54333     │
+│ Mailpit │ http://127.0.0.1:54334     │
+│ MCP     │ http://127.0.0.1:54331/mcp │
+╰─────────┴────────────────────────────╯
+
+╭─────────────────────────────────────────────────╮
+│ 🌐 APIs                                         │
+├─────────────┬───────────────────────────────────┤
+│ Project URL │ http://127.0.0.1:54331            │
+│ REST        │ http://127.0.0.1:54331/rest/v1    │
+│ GraphQL     │ http://127.0.0.1:54331/graphql/v1 │
+╰─────────────┴───────────────────────────────────╯
+
+╭───────────────────────────────────────────────────────────────╮
+│ ⛁ Database                                                    │
+├─────┬─────────────────────────────────────────────────────────┤
+│ URL │ postgresql://postgres:postgres@127.0.0.1:54332/postgres │
+╰─────┴─────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────╮
+│ 🔑 Authentication Keys                                       │
+├─────────────┬────────────────────────────────────────────────┤
+│ Publishable │ sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH │
+│ Secret      │ [REDACTED_SUPABASE_KEY]      │
+╰─────────────┴────────────────────────────────────────────────╯
+
+╭───────────────────────────────────────────────────────────────────────────────╮
+│ 📦 Storage (S3)                                                               │
+├────────────┬──────────────────────────────────────────────────────────────────┤
+│ URL        │ http://127.0.0.1:54331/storage/v1/s3                             │
+│ Access Key │ 625729a08b95bf1b7ff351a663f3a23c                                 │
+│ Secret Key │ 850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907 │
+│ Region     │ local                                                            │
+╰────────────┴──────────────────────────────────────────────────────────────────╯
+
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> npm run dev   
+
+> deliveryhub-white-label@0.1.0 dev
+> vite
+
+
+  VITE v5.0.0  ready in 14023 ms
+
+  ➜  Local:   http://localhost:4028/
+  ➜  Network: http://192.168.1.31:4028/
+  ➜  Network: http://172.28.160.1:4028/
+  ➜  press h + enter to show help
+(node:8096) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+19:02:55 [vite] hmr update /src/pages/restaurante-salao/index.jsx, /src/styles/tailwind.css
+19:02:55 [vite] hmr update /src/pages/restaurante-salao/index.jsx, /src/styles/tailwind.css (x2)
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> supabase login
+Hello from Supabase! Press Enter to open browser and login automatically.
+│
+◇  
+│
+Here is your login link in case browser did not open https://supabase.com/dashboard/cli/login?session_id=fab2ad2c-ecb4-464f-8631-decd0ee8a010&token_name=cli_Micro@DESKTOP-K600KQT_1785190342&public_key=04dff7d62b4021e2ea4dfb659b4c42e34843529cfa537362b3f858b120a3f49b98407b5f11e08197575a3f483a4ee993a4275fb280fb2b3754145d94511d013833
+
+│
+◇  Enter your verification code: 
+│  1d3bf734
+Token cli_Micro@DESKTOP-K600KQT_1785190342 created successfully.
+
+You are now logged in. Happy coding!
+PS C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label> 

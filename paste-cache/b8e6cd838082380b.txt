@@ -1,0 +1,44 @@
+2026-08-06 12:22:07.842 | 06/Aug/2026:15:22:07 +0000: Starting PostgREST 14.5...
+2026-08-06 12:22:07.842 | 06/Aug/2026:15:22:07 +0000: Admin server listening on 0.0.0.0:3001
+2026-08-06 12:22:07.843 | 06/Aug/2026:15:22:07 +0000: API server listening on 0.0.0.0:3000
+2026-08-06 12:22:08.027 | 06/Aug/2026:15:22:07 +0000: Listening for database notifications on the "pgrst" channel
+2026-08-06 12:22:08.031 | 06/Aug/2026:15:22:07 +0000: Successfully connected to PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit
+2026-08-06 12:22:08.031 | 06/Aug/2026:15:22:07 +0000: Connection Pool initialized with a maximum size of 10 connections
+2026-08-06 12:22:08.124 | 06/Aug/2026:15:22:07 +0000: Config reloaded
+2026-08-06 12:22:10.342 | 06/Aug/2026:15:22:10 +0000: Schema cache queried in 2217.8 milliseconds
+2026-08-06 12:22:10.346 | 06/Aug/2026:15:22:10 +0000: Schema cache loaded 28 Relations, 28 Relationships, 5 Functions, 0 Domain Representations, 4 Media Type Handlers, 1196 Timezones
+2026-08-06 12:22:10.347 | 06/Aug/2026:15:22:10 +0000: Schema cache loaded in 4.2 milliseconds
+2026-08-06 12:22:15.399 | 06/Aug/2026:15:22:15 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:22:15.408 | 06/Aug/2026:15:22:15 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:22:15.412 | 06/Aug/2026:15:22:15 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:22:15.421 | 06/Aug/2026:15:22:15 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:22:15.421 | 06/Aug/2026:15:22:15 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:22:15.439 | 06/Aug/2026:15:22:15 +0000: Successfully connected to PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit
+2026-08-06 12:22:15.439 | 06/Aug/2026:15:22:15 +0000: Connection Pool initialized with a maximum size of 10 connections
+2026-08-06 12:22:15.459 | 06/Aug/2026:15:22:15 +0000: Config reloaded
+2026-08-06 12:22:15.761 | 06/Aug/2026:15:22:15 +0000: Schema cache queried in 301.5 milliseconds
+2026-08-06 12:22:15.764 | 06/Aug/2026:15:22:15 +0000: Schema cache loaded 28 Relations, 28 Relationships, 5 Functions, 0 Domain Representations, 4 Media Type Handlers, 1196 Timezones
+2026-08-06 12:22:15.764 | 06/Aug/2026:15:22:15 +0000: Schema cache loaded in 3.0 milliseconds
+2026-08-06 12:22:15.898 | 06/Aug/2026:15:22:15 +0000: Successfully connected to PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit
+2026-08-06 12:22:15.898 | 06/Aug/2026:15:22:15 +0000: Connection Pool initialized with a maximum size of 10 connections
+2026-08-06 12:22:15.913 | 06/Aug/2026:15:22:15 +0000: Config reloaded
+2026-08-06 12:22:16.337 | 06/Aug/2026:15:22:15 +0000: Schema cache queried in 418.3 milliseconds
+2026-08-06 12:22:16.338 | 06/Aug/2026:15:22:15 +0000: Schema cache loaded 28 Relations, 28 Relationships, 5 Functions, 0 Domain Representations, 4 Media Type Handlers, 1196 Timezones
+2026-08-06 12:22:16.340 | 06/Aug/2026:15:22:15 +0000: Schema cache loaded in 6.8 milliseconds
+2026-08-06 12:50:36.968 | 06/Aug/2026:15:50:36 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:50:36.968 | 06/Aug/2026:15:50:36 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:50:37.006 | 06/Aug/2026:15:50:36 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:50:37.006 | 06/Aug/2026:15:50:36 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:50:37.022 | 06/Aug/2026:15:50:36 +0000: Received a schema cache reload message on the "pgrst" channel
+2026-08-06 12:50:37.039 | 06/Aug/2026:15:50:36 +0000: Successfully connected to PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit
+2026-08-06 12:50:37.041 | 06/Aug/2026:15:50:36 +0000: Connection Pool initialized with a maximum size of 10 connections
+2026-08-06 12:50:37.108 | 06/Aug/2026:15:50:36 +0000: Config reloaded
+2026-08-06 12:50:37.900 | 06/Aug/2026:15:50:36 +0000: Schema cache queried in 790.6 milliseconds
+2026-08-06 12:50:37.902 | 06/Aug/2026:15:50:36 +0000: Schema cache loaded 28 Relations, 28 Relationships, 5 Functions, 0 Domain Representations, 4 Media Type Handlers, 1196 Timezones
+2026-08-06 12:50:37.902 | 06/Aug/2026:15:50:36 +0000: Schema cache loaded in 1.5 milliseconds
+2026-08-06 12:50:38.035 | 06/Aug/2026:15:50:38 +0000: Successfully connected to PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit
+2026-08-06 12:50:38.035 | 06/Aug/2026:15:50:38 +0000: Connection Pool initialized with a maximum size of 10 connections
+2026-08-06 12:50:38.053 | 06/Aug/2026:15:50:38 +0000: Config reloaded
+2026-08-06 12:50:38.420 | 06/Aug/2026:15:50:38 +0000: Schema cache queried in 367.4 milliseconds
+2026-08-06 12:50:38.421 | 06/Aug/2026:15:50:38 +0000: Schema cache loaded 28 Relations, 28 Relationships, 5 Functions, 0 Domain Representations, 4 Media Type Handlers, 1196 Timezones
+2026-08-06 12:50:38.421 | 06/Aug/2026:15:50:38 +0000: Schema cache loaded in 1.2 milliseconds

@@ -1,0 +1,22 @@
+---
+name: deliveryhub-bug-forma-pagamento-comanda-dashboard
+description: bug reportado 2026-07-15 — forma de pagamento informada pelo garçom não aparece no dashboard/relatório do caixa
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Bug reportado pelo usuário em 2026-07-15, duas partes relacionadas:
+
+**Parte 1 — PDV não pré-preenche a forma informada pelo garçom:** quando o garçom fecha a comanda (`fecharComanda`) informando a forma de pagamento (sem lançar pagamento parcial), esse valor fica salvo em `orders.payment_method`. Mas o modal de "Confirmar pagamento" do PDV (`ComandaModal` em `src/pages/restaurante-salao/index.jsx`) sempre inicializa `forma` como `'pix'` fixo (`useState('pix')`), ignorando o que já veio de `comanda.payment_method`. O caixa vê sempre PIX por padrão mesmo quando o garçom já informou outra forma.
+
+**Parte 2 — dashboard/relatório não decompõe corretamente a forma de pagamento de comandas com pagamento parcial:** o card "Recebido por forma de pagamento" (`calcularResumo` em `restaurante.service.ts`) usa só o campo único `orders.payment_method` pra montar o `por_pagamento`. Mas uma comanda pode ter **múltiplos pagamentos com formas diferentes** (registrados em `comanda_pagamentos` — ex: parcial em PIX pelo garçom + resto em dinheiro pelo caixa). Como `orders.payment_method` só guarda a ÚLTIMA forma setada (`pagar()` sobrescreve com a forma do fechamento final), o dashboard perde a informação das formas usadas nos pagamentos parciais anteriores — sub-representa (ou zera) o valor daquela forma no card.
+
+**Why:** para pedidos de delivery (canal `delivery`), sempre existe um pagamento único, então `orders.payment_method` é suficiente. Pra comandas do salão (canal `presencial`), o modelo é fundamentalmente diferente — pode ter N pagamentos parciais com formas distintas, e o dashboard/relatório precisa decompor usando `comanda_pagamentos` (não só o campo único da order) pra refletir a realidade.
+
+**How to apply:** ao corrigir:
+1. `ComandaModal` (`restaurante-salao/index.jsx`): inicializar `forma` a partir de `comanda.payment_method` (quando presente) em vez de sempre `'pix'`.
+2. `calcularResumo` (`restaurante.service.ts`, usado por `getCaixa`/`fecharCaixa`/`fecharComTransferencia`) e `getRelatorio`: pra pedidos `canal='presencial'`, montar `por_pagamento` somando os registros de `comanda_pagamentos` daquela comanda (múltiplas formas possíveis) em vez de usar só `orders.payment_method`. Pra `canal='delivery'`, manter o comportamento atual (payment_method único).
+
+Ver [[deliveryhub_modulo_restaurante_ideias]] pro plano maior em andamento (módulo Restaurante) — esse bug foi encontrado no meio da execução da Fase 2 (dashboard consolidado) e é uma correção adicional na mesma área.

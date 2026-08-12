@@ -1,0 +1,192 @@
+server_delivery\src\restaurante\restaurante.service.ts-928-    pedidos: any[],
+server_delivery\src\restaurante\restaurante.service.ts-929-    saidas: any[],
+server_delivery\src\restaurante\restaurante.service.ts-930-    valor_inicial: number,
+server_delivery\src\restaurante\restaurante.service.ts-931-    entradas: any[] = [],
+server_delivery\src\restaurante\restaurante.service.ts-932-    pagamentosPorComanda?: Map<number, { valor: number; forma_pagamento: string; taxa_cartao_valor?: number }[]>,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-933-  ) {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-934-    const entregues = pedidos.filter((p) => this.STATUS_VENDA_FINALIZADA.includes(p.status));
+server_delivery\src\restaurante\restaurante.service.ts-935-    const total_saidas = saidas.reduce((s: number, e: any) => s + (e.valor ?? 0), 0);
+server_delivery\src\restaurante\restaurante.service.ts-936-    const total_entradas = entradas.reduce((s: number, e: any) => s + (e.valor ?? 0), 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-937-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-938-    // orders.total (comanda do salão) guarda só subtotal-desconto+acréscimo — a taxa de
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-939-    // cartão cobrada do cliente fica em comanda_pagamentos.taxa_cartao_valor. Entra num
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-940-    // bucket "taxa_cartao" à parte (não somado dentro de Cartão Crédito/Débito) pra
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-941-    // aparecer explícito na conferência de fechamento, sem esconder dentro da forma.
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-942-    let total_vendas = 0;
+server_delivery\src\restaurante\restaurante.service.ts:943:    const por_pagamento: Record<string, number> = {};
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-944-    for (const p of entregues) {
+server_delivery\src\restaurante\restaurante.service.ts-945-      const pagamentosComanda = p.canal === 'presencial' ? pagamentosPorComanda?.get(p.id) : undefined;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-946-      if (pagamentosComanda?.length) {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-947-        for (const pag of pagamentosComanda) {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-948-          const m = pag.forma_pagamento ?? 'outro';
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-949-          const taxa = pag.taxa_cartao_valor ?? 0;
+server_delivery\src\restaurante\restaurante.service.ts:950:          por_pagamento[m] = (por_pagamento[m] ?? 0) + (pag.valor ?? 0);
+server_delivery\src\restaurante\restaurante.service.ts:951:          if (taxa > 0) por_pagamento['taxa_cartao'] = (por_pagamento['taxa_cartao'] ?? 0) + taxa;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-952-          total_vendas += (pag.valor ?? 0) + taxa;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-953-        }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-954-      } else {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-955-        const m = p.payment_method ?? 'outro';
+server_delivery\src\restaurante\restaurante.service.ts:956:        por_pagamento[m] = (por_pagamento[m] ?? 0) + (p.total ?? 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-957-        total_vendas += p.total ?? 0;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-958-      }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-959-    }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-960-
+server_delivery\src\restaurante\restaurante.service.ts:961:    const vendas_dinheiro = por_pagamento['cash'] ?? 0;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-962-    const saidas_especie = saidas
+server_delivery\src\restaurante\restaurante.service.ts-963-      .filter((s: any) => !s.meio || s.meio === 'dinheiro')
+server_delivery\src\restaurante\restaurante.service.ts-964-      .reduce((s: number, e: any) => s + (e.valor ?? 0), 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-965-    const entradas_especie = entradas
+server_delivery\src\restaurante\restaurante.service.ts-966-      .filter((e: any) => !e.meio || e.meio === 'dinheiro')
+server_delivery\src\restaurante\restaurante.service.ts-967-      .reduce((s: number, e: any) => s + (e.valor ?? 0), 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-968-    const especie_calculada = valor_inicial + vendas_dinheiro + entradas_especie - saidas_especie;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-969-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-970-    return {
+server_delivery\src\restaurante\restaurante.service.ts-971-      total_pedidos: pedidos.length,
+server_delivery\src\restaurante\restaurante.service.ts-972-      entregues: entregues.length,
+server_delivery\src\restaurante\restaurante.service.ts-973-      em_andamento: pedidos.filter((p: any) => this.STATUS_ABERTOS.includes(p.status) || this.COMANDA_STATUS_ABERTOS.includes(p.status)).length,
+server_delivery\src\restaurante\restaurante.service.ts-974-      cancelados: pedidos.filter((p: any) => p.status === 'canceled').length,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-975-      total_vendas,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-976-      total_saidas,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-977-      total_entradas,
+server_delivery\src\restaurante\restaurante.service.ts-978-      saldo: valor_inicial + total_vendas + total_entradas - total_saidas,
+server_delivery\src\restaurante\restaurante.service.ts:979:      por_pagamento,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-980-      especie_calculada,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-981-      saidas_especie,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-982-      entradas_especie,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-983-    };
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-984-  }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-985-
+server_delivery\src\restaurante\restaurante.service.ts-986-  async getCaixa(restaurantId: number) {
+server_delivery\src\restaurante\restaurante.service.ts-987-    const { data: restaurantData } = await this.supabase.client
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-988-      .from('restaurants')
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-989-      .select('aparencia, saldo_caixa')
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-990-      .eq('id', restaurantId)
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-991-      .maybeSingle();
+server_delivery\src\restaurante\restaurante.service.ts-992-    const status_restaurante: boolean = (restaurantData?.aparencia?.aberto) === true;
+server_delivery\src\restaurante\restaurante.service.ts-993-    const saldo_caixa: number = restaurantData?.saldo_caixa ?? 0;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-994-
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1133-      .or(`caixa_id.eq.${caixa.id},and(caixa_id.is.null,created_at.gte.${caixa.aberto_em})`);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1134-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1135-    const saidas = (caixa.saidas ?? []) as any[];
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1136-    const entradas = (caixa.entradas ?? []) as any[];
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1137-    const pagamentosPorComanda = await this.buscarPagamentosPorComanda(todosPedidos ?? []);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1138-    const resumo = this.calcularResumo(todosPedidos ?? [], saidas, caixa.valor_inicial, entradas, pagamentosPorComanda);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1139-    const fechado_em = new Date().toISOString();
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1140-
+server_delivery\src\restaurante\restaurante.service.ts-1141-    \ Conferência: operador informa quanto contou; sistema compara com espécie calculada
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1142-    const dinheiro_contado = body?.dinheiro_contado ?? (resumo.especie_calculada ?? 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1143-    const diferenca = dinheiro_contado - (resumo.especie_calculada ?? 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1144-    const destinacao_fechamento = {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1145-      dinheiro_contado,
+server_delivery\src\restaurante\restaurante.service.ts-1146-      especie_calculada: resumo.especie_calculada,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1147-      diferenca,
+server_delivery\src\restaurante\restaurante.service.ts:1148:      por_pagamento: resumo.por_pagamento,
+server_delivery\src\restaurante\restaurante.service.ts-1149-      conferencia_aprovada: false,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1150-    };
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1151-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1152-    await this.supabase.client.from('caixas')
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1153-      .update({
+server_delivery\src\restaurante\restaurante.service.ts-1154-        status: 'fechado', fechado_em, resumo, destinacao_fechamento,
+server_delivery\src\restaurante\restaurante.service.ts-1155-        fechado_com_pendencias: temPendencias,
+server_delivery\src\restaurante\restaurante.service.ts-1156-        pendencias_fechamento: temPendencias
+server_delivery\src\restaurante\restaurante.service.ts-1157-          ? { pedidos: pedidosAbertos ?? [], comandas: comandasAbertas ?? [], mesas: mesasAbertas ?? [] }
+server_delivery\src\restaurante\restaurante.service.ts-1158-          : null,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1159-      })
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1160-      .eq('id', caixa.id);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1161-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1162-    // Sem caixa aberto não há como aceitar pedidos/comandas — fecha o restaurante junto
+server_delivery\src\restaurante\restaurante.service.ts-1163-    await this.updateAparencia(restaurantId, { aberto: false });
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1455-        .from('caixas').select('id, saidas').eq('restaurant_id', restaurantId)
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1456-        .lte('aberto_em', ate).or(`fechado_em.is.null,fechado_em.gte.${de}`);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1457-      const deD = new Date(de); const ateD = new Date(ate);
+server_delivery\src\restaurante\restaurante.service.ts-1458-      const saidasVazio: any[] = [];
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1459-      for (const c of (caixasVazio ?? [])) {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1460-        for (const s of (c.saidas ?? [])) {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1461-          const d = new Date(s.criado_em);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1462-          if (d >= deD && d <= ateD) saidasVazio.push(s);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1463-        }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1464-      }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1465-      const totalSaidasVazio = saidasVazio.reduce((sum, s) => sum + (s.valor ?? 0), 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1466-      return {
+server_delivery\src\restaurante\restaurante.service.ts-1467-        pedidos: [],
+server_delivery\src\restaurante\restaurante.service.ts-1468-        saidas: saidasVazio,
+server_delivery\src\restaurante\restaurante.service.ts-1469-        fluxo_caixa: [],
+server_delivery\src\restaurante\restaurante.service.ts:1470:        resumo: { total_pedidos: 0, entregues: 0, cancelados: 0, em_andamento: 0, total_vendas: 0, ticket_medio: 0, por_pagamento: {}, total_saidas: totalSaidasVazio, total_comissao: 0, total_gorjeta: 0, total_troco: 0, saldo_liquido: -totalSaidasVazio },
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1471-      };
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1472-    }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1473-
+server_delivery\src\restaurante\restaurante.service.ts-1474-    const { data: allItems } = await this.supabase.client
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1475-      .from('order_items')
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1476-      .select('id, order_id, product_id, quantity, unit_price')
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1477-      .in('order_id', orderIds);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1478-
+server_delivery\src\restaurante\restaurante.service.ts-1479-    const productIds = [...new Set<number>((allItems ?? []).map((i: any) => i.product_id))];
+server_delivery\src\restaurante\restaurante.service.ts-1480-    const { data: allProds } = productIds.length > 0
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1481-      ? await this.supabase.client.from('products').select('id, name').in('id', productIds)
+server_delivery\src\restaurante\restaurante.service.ts-1482-      : { data: [] };
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1483-
+server_delivery\src\restaurante\restaurante.service.ts-1484-    const prodMap = Object.fromEntries((allProds ?? []).map((p: any) => [p.id, p.name]));
+server_delivery\src\restaurante\restaurante.service.ts-1485-    const itemsByOrder = (allItems ?? []).reduce((acc: any, item: any) => {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1486-      if (!acc[item.order_id]) acc[item.order_id] = [];
+server_delivery\src\restaurante\restaurante.service.ts-1487-      acc[item.order_id].push({ ...item, product_name: prodMap[item.product_id] ?? `#${item.product_id}` });
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1488-      return acc;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1489-    }, {});
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1490-
+server_delivery\src\restaurante\restaurante.service.ts-1491-    const pedidos = (orders ?? []).map((o: any) => ({ ...o, itens: itemsByOrder[o.id] ?? [] }));
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1492-
+server_delivery\src\restaurante\restaurante.service.ts-1493-    const entregues = pedidos.filter((p: any) => this.STATUS_VENDA_FINALIZADA.includes(p.status));
+server_delivery\src\restaurante\restaurante.service.ts-1494-    const cancelados = pedidos.filter((p: any) => p.status === 'canceled');
+server_delivery\src\restaurante\restaurante.service.ts-1495-    const em_andamento = pedidos.filter((p: any) => !['canceled', 'delivered', 'paga'].includes(p.status));
+server_delivery\src\restaurante\restaurante.service.ts-1496-    const nao_cancelados = pedidos.filter((p: any) => p.status !== 'canceled');
+server_delivery\src\restaurante\restaurante.service.ts-1497-    const total_vendas = entregues.reduce((s: number, p: any) => s + (p.total ?? 0), 0);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1498-    const pagamentosPorComandaRelatorio = await this.buscarPagamentosPorComanda(nao_cancelados);
+server_delivery\src\restaurante\restaurante.service.ts:1499:    const por_pagamento = nao_cancelados.reduce((acc: any, p: any) => {
+server_delivery\src\restaurante\restaurante.service.ts-1500-      const pagamentosComanda = p.canal === 'presencial' ? pagamentosPorComandaRelatorio.get(p.id) : undefined;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1501-      if (pagamentosComanda?.length) {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1502-        for (const pag of pagamentosComanda) {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1503-          const m = pag.forma_pagamento ?? 'unknown';
+server_delivery\src\restaurante\restaurante.service.ts-1504-          if (!acc[m]) acc[m] = { count: 0, total: 0 };
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1505-          acc[m].count++;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1506-          acc[m].total += pag.valor ?? 0;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1507-          const taxa = pag.taxa_cartao_valor ?? 0;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1508-          if (taxa > 0) {
+server_delivery\src\restaurante\restaurante.service.ts-1509-            if (!acc['taxa_cartao']) acc['taxa_cartao'] = { count: 0, total: 0 };
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1510-            acc['taxa_cartao'].count++;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1511-            acc['taxa_cartao'].total += taxa;
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1512-          }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1513-        }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1514-        return acc;
+--
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1566-      }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1567-    }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1568-    fluxo_caixa.sort((a, b) => new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime());
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1569-
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1570-    return {
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1571-      pedidos,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1572-      saidas,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1573-      fluxo_caixa,
+server_delivery\src\restaurante\restaurante.service.ts-1574-      resumo: {
+server_delivery\src\restaurante\restaurante.service.ts-1575-        total_pedidos: pedidos.length,
+server_delivery\src\restaurante\restaurante.service.ts-1576-        entregues: entregues.length,
+server_delivery\src\restaurante\restaurante.service.ts-1577-        cancelados: cancelados.length,
+server_delivery\src\restaurante\restaurante.service.ts-1578-        em_andamento: em_andamento.length,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1579-        total_vendas,
+server_delivery\src\restaurante\restaurante.service.ts-1580-        ticket_medio: entregues.length > 0 ? total_vendas / entregues.length : 0,
+server_delivery\src\restaurante\restaurante.service.ts:1581:        por_pagamento,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1582-        total_saidas,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1583-        total_comissao,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1584-        total_gorjeta,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1585-        total_troco,
+server_delivery\src\restaurante\restaurante.service.ts-1586-        saldo_liquido: total_vendas - total_saidas,
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1587-      },
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1588-    };
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1589-  }
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1590-
+server_delivery\src\restaurante\restaurante.service.ts-1591-  \ Relatório Garçom: total vendido/comissão/gorjeta são recortados pelo período (de/ate);
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1592-  // comandas abertas/pendentes são estado atual (live), não faz sentido filtrar por data
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1593-  // já que uma comanda aberta hoje pode ter sido criada ontem.
+server_delivery\src\restaurante\restaurante.service.ts-1594-  async getRelatorioGarcom(restaurantId: number, de: string, ate: string) {
+server_delivery\src\restaurante\restaurante.service.ts-1595-    const { data: garcons } = await this.supabase.client
+C:\Users\Micro\3D Objects\DEV\deliveryhub_white_label\server_delivery\src\restaurante\restaurante.service.ts-1596-      .from('garcons')

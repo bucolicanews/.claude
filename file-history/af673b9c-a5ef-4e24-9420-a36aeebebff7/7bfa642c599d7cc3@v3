@@ -1,0 +1,58 @@
+import { apiPath } from '../lib/apiUrl';
+
+const API = apiPath('/api/colaborador');
+const TOKEN_KEY = 'colaborador_access_token';
+
+export const getColaboradorToken = () => localStorage.getItem(TOKEN_KEY);
+export const setColaboradorToken = (token) => localStorage.setItem(TOKEN_KEY, token);
+export const clearColaboradorToken = () => localStorage.removeItem(TOKEN_KEY);
+
+async function colaboradorFetch(path, options = {}) {
+  const token = getColaboradorToken();
+  if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-colaborador-token': token,
+      ...options.headers,
+    },
+  });
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+
+  if (!res.ok) {
+    if (res.status === 401) clearColaboradorToken();
+    const err = isJson ? await res.json().catch(() => ({})) : {};
+    throw new Error(err?.message ?? `HTTP ${res.status}`);
+  }
+
+  return isJson ? res.json() : {};
+}
+
+export const login = async (loginKey, password) => {
+  const res = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login_key: loginKey, password }),
+  });
+  const contentType = res.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+  const data = isJson ? await res.json().catch(() => ({})) : {};
+  if (!res.ok) throw new Error(data?.message ?? `HTTP ${res.status}`);
+  return data;
+};
+
+export const getMe = () => colaboradorFetch('/me');
+export const getProdutos = () => colaboradorFetch('/produtos');
+
+export const abrirCaixa = (valor_inicial) =>
+  colaboradorFetch('/caixa/abrir', { method: 'POST', body: JSON.stringify({ valor_inicial: valor_inicial ?? 0 }) });
+
+export const fecharCaixa = (destinacao = {}) =>
+  colaboradorFetch('/caixa/fechar', { method: 'POST', body: JSON.stringify(destinacao) });
+
+export const vendaDireta = (itens, forma_pagamento, valor_recebido) =>
+  colaboradorFetch('/venda-direta', { method: 'POST', body: JSON.stringify({ itens, forma_pagamento, valor_recebido }) });

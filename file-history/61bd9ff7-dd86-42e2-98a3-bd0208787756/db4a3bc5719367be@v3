@@ -1,0 +1,90 @@
+# Módulo "Salão" (dine-in) — mesas, comandas, garçons, impressoras por setor, PDV do caixa
+
+## Contexto
+
+Hoje o app só atende delivery. O dono coletou 14 ideias (registradas em memória, `deliveryhub_modulo_restaurante_ideias.md`) pra um módulo novo, visível só pra estabelecimentos tipo "Restaurante" (`restaurants.type_id`), cobrindo atendimento presencial: mesas/comandas, garçons com login próprio e comissão, permissões restritas ao dono/caixa (desconto/cancelamento/acréscimo), impressão por setor (cozinha/bar/salgados) que só manda o item novo, telas de KDS por setor, QR code de acompanhamento pro cliente da mesa, relatórios de vendas por garçom, e um PDV pro caixa fechar o dia.
+
+Pra não confundir com o `establishment_type` "Restaurante", vou chamar esse módulo de **"Salão"** internamente (rotas `/restaurante/salao`, `/garcom/...`).
+
+Decisão-chave de arquitetura (validada explorando o código existente): comanda/mesa vira uma **extensão da tabela `orders`** já existente, não uma tabela paralela. Motivo: `orders.caixa_id` já é carimbado automaticamente pelo caixa aberto no momento da criação (`pedidos.service.ts`), e todo o módulo `restaurante-financeiro` (resumo, sangria, conferência, histórico) já opera em cima de `orders`. Reaproveitando isso, uma comanda fechada já cai de graça no fechamento de caixa e nos relatórios financeiros existentes — sem duplicar reconciliação.
+
+Não existe hoje: login de operador/garçom (caixa é só dono via `RestaurantOwnerGuard`), status por item em `order_items` (só status por pedido inteiro), campo de impressora/setor em produtos, e leitura de `type_id` em nenhuma tela pra gating.
+
+## Fase 1 — Migrations (`supabase/migrations/`)
+
+1. `establishment_type` gating: nenhuma migration nova — tabela já existe. Só preciso expor no backend.
+2. `garcons`: `id, restaurant_id FK, nome, telefone, login_key TEXT UNIQUE` (slug curto gerado, ex: nanoid), `password_hash`, `ativo BOOLEAN DEFAULT true`, `permissoes JSONB DEFAULT '{"desconto":false,"cancelar":false,"acrescimo":false}'`, `ultimo_acesso_em TIMESTAMPTZ`, `created_at`. RLS owner-only igual padrão `motoboys`/`caixas`.
+3. `mesas`: `id, restaurant_id FK, numero INT, nome TEXT, status CHECK IN ('livre','ocupada','aguardando_pagamento') DEFAULT 'livre', created_at`. `UNIQUE(restaurant_id, numero)`.
+4. `impressoras`: `id, restaurant_id FK, nome, setor TEXT, tipo_conexao CHECK IN ('local','rede'), endereco TEXT, ativo BOOLEAN DEFAULT true, created_at`.
+5. `products.impressora_id` nullable FK → `impressoras`.
+6. Extensão de `orders`: `canal TEXT CHECK IN ('delivery','presencial') DEFAULT 'delivery'`, `mesa_id` nullable FK `mesas`, `garcom_id` nullable FK `garcons`, `cliente_mesa_nome TEXT`, `cliente_mesa_telefone TEXT`, `gorjeta_valor NUMERIC(10,2)`, `tracking_token UUID DEFAULT gen_random_uuid()` (pro QR do cliente). `customer_id` vira nullable (hoje deve ser NOT NULL só faz sentido pra delivery). Ajustar o CHECK de `orders.status` pra aceitar os novos valores do fluxo presencial: `aberta` (comanda em uso), `fechada_garcom` (aguardando pagamento — trava novos itens/edição, ideia 9), `paga` (fechada pelo caixa, ideia 9/10), reaproveitando `canceled` já existente.
+7. `order_items`: `status TEXT CHECK IN ('pendente','enviado','pronto') DEFAULT 'pendente'`, `enviado_em TIMESTAMPTZ`, `impressora_id` nullable FK (snapshot da impressora do produto no momento do envio, pra não mudar histórico se o produto for reatribuído depois).
+8. `garcom_comissoes_config`: `id, restaurant_id FK, nome, tipo CHECK IN ('percentual','fixo'), valor NUMERIC, base_calculo TEXT CHECK IN ('total_vendido','total_recebido') DEFAULT 'total_vendido', ativo BOOLEAN DEFAULT true`. Múltiplas linhas por restaurante (ideia 5).
+9. `garcom_comissoes_lancamentos`: `id, garcom_id FK, order_id FK, config_id FK, valor_calculado NUMERIC, criado_em` — ledger gerado ao fechar a comanda, base dos relatórios (ideia 6).
+
+## Fase 2 — Backend: auth do garçom (espelha `motoboy.guard.ts`/`motoboy-auth.service.ts`)
+
+- `server_delivery/src/auth/garcom.guard.ts`: header `x-garcom-token`, payload `{garcomId}`, `jwt.verify` com `GARCOM_JWT_SECRET`, checa `ativo`, seta `request.garcomId/garcomNome/garcomPermissoes`, atualiza `ultimo_acesso_em` (usado pra "garçons online" na ideia 10 — considerar online quem teve acesso nos últimos ~5min).
+- `garcom-auth.service.ts`/`.controller.ts` (`@Controller('garcom/auth')`, público): `POST /login` (`{login_key, password}` → `bcrypt.compare` → JWT 12h, mais curto que motoboy pois é turno de trabalho).
+- Sem cadastro self-service: criação é só pelo dono. Endpoint `POST /restaurante/garcons` (`RestaurantOwnerGuard`) gera `login_key` (nanoid curto) + grava senha definida pelo dono (ou senha temporária) + retorna o link `/garcom/:login_key`. CRUD completo (`GET/PATCH/DELETE /restaurante/garcons`) no mesmo controller, incluindo editar `permissoes`.
+
+## Fase 3 — Backend: mesas, comandas e permissões
+
+- `server_delivery/src/salao/salao.service.ts` + `salao.controller.ts` (guard do garçom, `x-garcom-token`):
+  - `GET /garcom/mesas` — grid de mesas com status.
+  - `POST /garcom/comandas/abrir` — `{mesa_id | null, cliente_nome, cliente_telefone}` → cria `orders` com `canal='presencial', status='aberta', garcom_id, mesa_id`. Nome+telefone **obrigatórios** (ideia 7) validados no service.
+  - `POST /garcom/comandas/:id/itens` — adiciona `order_items` (status `pendente`).
+  - `POST /garcom/comandas/:id/enviar` — pega itens `pendente`, agrupa por `impressora_id` do produto, marca `enviado` + `enviado_em=now()` + snapshot `impressora_id`, retorna os grupos pro frontend imprimir só o que é novo (ideia 11). Idempotente: rodar de novo não reimprime o que já foi.
+  - `POST /garcom/comandas/:id/fechar` — `{forma_pagamento}` → seta `status='fechada_garcom'`, `mesa.status='aguardando_pagamento'`. **Não** finaliza (ideia 9) — pagamento real fica pro caixa.
+  - Enforcement de permissão: rotas de desconto/cancelamento/acréscimo **não existem** neste controller (ficam só no controller do dono, Fase 4) — garante ideia 8 (garçom não pode) sem precisar checar flag em runtime pra essas ações; a config `permissoes` de desconto/cancelar/acréscimo fica reservada pra uma futura liberação pontual (fora do escopo desta rodada, mas coluna já existe pronta).
+
+## Fase 4 — Backend: PDV do caixa (painel do estabelecimento)
+
+- Estende `restaurante.controller.ts`/`restaurante.service.ts` (reaproveita `RestaurantOwnerGuard` já existente, sem novo tipo de auth — ideia 10 é explícita: essas ações são do estabelecimento, não do garçom):
+  - `GET /restaurante/salao/garcons-online` — `garcons` com `ultimo_acesso_em` recente.
+  - `GET /restaurante/salao/mesas` — grid completo (status + comanda aberta vinculada).
+  - `GET /restaurante/salao/comandas/:id` — detalhe (itens, status de envio, garçom, cliente).
+  - `PATCH /restaurante/salao/comandas/:id/desconto` / `/acrescimo` — ajusta valor, exige `RestaurantOwnerGuard`.
+  - `POST /restaurante/salao/comandas/:id/cancelar` — só se `status IN ('aberta','fechada_garcom')`.
+  - `POST /restaurante/salao/comandas/:id/pagar` — recebe forma de pagamento (confirma/corrige a informada pelo garçom), seta `status='paga'`, `mesa.status='livre'`, dispara: (a) cálculo de comissão via `garcom_comissoes_config` → grava `garcom_comissoes_lancamentos`, (b) reaproveita o mesmo lookup de caixa aberto que `pedidos.service.ts` já faz pra carimbar `orders.caixa_id` (se ainda não tiver sido carimbado na abertura), garantindo que a comanda entra no fechamento de caixa exatamente como um pedido delivery — gera o "recibo" reaproveitando `printComanda.js` (ver Fase 6).
+
+## Fase 5 — Backend: impressão por setor + KDS
+
+- `products`: CRUD já existente ganha campo `impressora_id` (select on/off no form de produto).
+- `impressoras`: novo controller simples (`RestaurantOwnerGuard`) CRUD.
+- KDS por setor: **uma rota genérica reaproveitável** (não uma tela hardcoded por setor, ideia 12) — `GET /restaurante/kds?impressora_id=X` retorna `order_items` com aquele `impressora_id`, status `enviado` (ainda não `pronto`), agrupado por comanda/mesa. `PATCH /restaurante/kds/itens/:id/pronto` marca item pronto.
+
+## Fase 6 — Frontend
+
+- `src/pages/garcom-portal/index.jsx` (novo, espelha `motoboy-portal`): rota `/garcom/:login_key`, prompt só de senha (login_key já vem na URL), grid de mesas → abrir mesa/comanda (form nome+telefone obrigatório) → tela de venda (adicionar produtos, botão "Enviar pra cozinha/bar" chama `enviar`, imprime via extensão de `printComanda.js`) → botão "Fechar comanda" (escolhe forma de pagamento, não finaliza).
+- `src/pages/restaurante-garcons/index.jsx` (novo): CRUD de garçons + permissões + copiar link.
+- `src/pages/restaurante-impressoras/index.jsx` (novo): CRUD de impressoras; campo impressora no form de produto (`restaurante-produtos`/`restaurante-catalogo`).
+- `src/pages/restaurante-salao/index.jsx` (novo, é o PDV/painel do caixa — ideia 10 e 14 na mesma tela): garçons online, grid mesas, lista comandas → clique abre modal de detalhe com ações cancelar/desconto/acréscimo/pagar. Reaproveita padrão de `FecharCaixaModal.jsx`/`CaixaAtualPanel.jsx` pro fechamento do dia (já existe, só passa a incluir comandas presenciais nos totais porque elas viram `orders` com `caixa_id`).
+- `src/pages/restaurante-kds-setor/index.jsx` (novo, genérico, `?impressora_id=`): clona o padrão de polling 30s + Supabase Realtime de `restaurante-cozinha/index.jsx`, filtrando por `impressora_id` e status por item em vez de por pedido.
+- `src/pages/mesa-acompanhar/index.jsx` (novo, público, rota `/mesa/acompanhar/:token`): espelha `order-tracking-status` mas sem exigir sessão Supabase — busca por `tracking_token`, mesmo padrão realtime+poll 30s de fallback.
+- Gating por tipo: `restaurante.service.ts` (`getConfig`/`getMinhaEmpresa`) passa a retornar `tipo_restaurante: boolean` (calculado no backend comparando `type_id` com o id de "Restaurante" em `establishment_types`) — evita o frontend precisar resolver id. Cada uma das ~12 páginas `restaurante-*` que já tem o array `LINKS` local (`restaurante-dashboard`, `-cozinha`, `-produtos`, `-pedidos`, `-entregas`, `-motoboys`, `-clientes`, `-financeiro`, `-caixa`, `-aparencia`, `-config`, `-catalogo`) ganha uma entrada condicional `{ label: 'Salão', path: '/restaurante/salao' }` só quando `empresa?.tipo_restaurante` — mesmo padrão manual usado quando os links "Entregas"/"Loja" foram adicionados (sem componente de nav compartilhado, edição arquivo por arquivo é o padrão já estabelecido no projeto).
+- `src/Routes.jsx`: novas rotas `/garcom/:loginKey`, `/restaurante/garcons`, `/restaurante/impressoras`, `/restaurante/salao`, `/restaurante/kds`, `/mesa/acompanhar/:token`. `restaurante-caixa/index.jsx` (hoje só um redirect stub pra `/restaurante/financeiro`) pode virar redirect pra `/restaurante/salao` ou ser removido em favor da nova rota — decidir na execução.
+- `src/utils/printComanda.js`: nova função `printTicketSetor(itensNovos, mesaOuComanda, setorNome)` reaproveitando o `printIframe` já existente, pra ticket de cozinha/bar por setor.
+
+## Riscos / decisões assumidas (avisar, não travar)
+
+- "Garçom online" = heurística por `ultimo_acesso_em` recente (~5 min), não é presença real via WebSocket — suficiente pro painel do caixa (ideia 10).
+- Permissões granulares de garçom (desconto/cancelar/acréscimo) ficam com a coluna `permissoes` pronta no banco, mas nesta rodada as ações continuam 100% bloqueadas pro garçom (rotas nem existem no controller dele) — habilitar por config fica pra uma iteração futura se o dono pedir.
+- Base de cálculo de comissão (ideia 5) fica com dois valores simples (`total_vendido`/`total_recebido`); se o dono quiser bases mais elaboradas (ex: só produtos de bebida), isso é uma extensão futura.
+- Gorjeta: um campo único por comanda (`orders.gorjeta_valor`), informado no fechamento — não item a item.
+- `customer_id` de `orders` vira nullable (hoje obrigatório) — checar se algum código assume NOT NULL antes de migrar.
+
+## Ordem de execução sugerida (branches separados, mesmo fluxo já usado no projeto: branch → implementar → `tsc --noEmit` + checagem Vite → commit → push → merge)
+
+1. Fase 1 (migrations) + Fase 2 (auth garçom) — fundação.
+2. Fase 3 (mesas/comandas/itens) — fluxo de venda do garçom completo, testável isolado.
+3. Fase 5 (impressoras/KDS) — depende de Fase 3 pra ter itens reais.
+4. Fase 4 (PDV/caixa) — depende de Fase 3 (precisa de comandas existindo).
+5. Fase 6 restante (relatórios ideia 6, QR cliente ideia 13) — por cima de tudo, é leitura agregada do que já existe.
+
+## Verificação
+
+- `supabase db push` aplica as migrations sem erro; conferir `orders`/`order_items` antigos (delivery) continuam com `canal='delivery'` e não quebram (CHECK novo aceita valores antigos).
+- Backend: `tsc --noEmit` limpo em `server_delivery` a cada fase.
+- Fluxo manual local: criar garçom pelo dono → login em `/garcom/:key` → abrir mesa com nome/telefone → adicionar itens → enviar (confere que só os novos aparecem impressos/na KDS) → fechar comanda (mesa trava) → como dono, abrir `/restaurante/salao`, ver comanda "aguardando pagamento", aplicar desconto, marcar paga → conferir que a comanda aparece em `restaurante-financeiro` dentro do caixa aberto, com comissão do garçom lançada e visível no relatório (ideia 6).
+- QR: abrir `/mesa/acompanhar/:token` sem login, confirmar status atualiza via realtime quando o setor marca item "pronto".

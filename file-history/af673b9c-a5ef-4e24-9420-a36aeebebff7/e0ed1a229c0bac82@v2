@@ -1,0 +1,80 @@
+# Caixa: fechamento com pendências (fiado) + múltiplos caixas simultâneos
+
+## Contexto
+
+Hoje (`deliveryhub_white_label`) existe **1 caixa por restaurante**, garantido só por lógica de aplicação (`restaurante.service.ts:1046-1051`), sem constraint no banco. Fechar o caixa **bloqueia** (409) se houver pedido delivery, comanda de salão ou mesa aberta (`restaurante.service.ts:1081-1109`) — o único caminho hoje é "Transferir" (`fecharComTransferencia`, linha 1157): fecha o caixa atual e abre outro levando os pendentes junto.
+
+Duas necessidades reais do negócio não são cobertas por isso:
+1. **Fiado real**: cliente que vai voltar amanhã, ou hóspede com comanda que só fecha no check-out — o caixa do dia precisa fechar (conferência de dinheiro no fim do turno), mas a comanda/mesa continua aberta por dias, sem forçar abrir "mais um caixa" pra isso.
+2. **Múltiplos pontos de venda simultâneos**: caixa Principal + caixa Bar + caixa Salão abertos ao mesmo tempo, cada um com sua própria conferência de dinheiro/turno.
+
+Decisões já validadas com o usuário:
+- Comanda/mesa que fica pendente após o caixa fechar: quando for paga depois, o pagamento cai **no caixa que estiver aberto naquele momento** (realocação automática, sem reabrir o caixa antigo).
+- Com múltiplos caixas: **o operador escolhe o caixa ao abrir seu turno/sessão**; tudo que ele lançar depois usa esse `caixa_id` automaticamente.
+
+## Descobertas relevantes (exploração)
+
+- Todo lançamento (`pedidos.service.ts:242-261`, `salao.service.ts:225-255`, `salao-pdv.service.ts:89-115,263-275`, `motoboy.service.ts` entradas/saídas de entrega) busca o caixa com o mesmo padrão: `.from('caixas').eq('restaurant_id', X).eq('status','aberto').maybeSingle()`. Não há hoje nenhum parâmetro de "qual caixa" — é 100% implícito.
+- `salao-pdv.service.ts:707-715` já tem um fallback parcial: se a comanda foi criada com `caixa_id = null`, busca o caixa aberto **no momento do pagamento** — é a base pra generalizar a realocação de fiado.
+- Autenticação de garçom (`garcom.guard.ts`, `garcom-auth.service.ts`) é **stateless** (JWT só com `{ garcomId }`), sem tabela de sessão — não há hoje onde guardar "qual caixa esse garçom escolheu".
+- Rotas de caixa (`restaurante.controller.ts:201-244`) são todas protegidas por `RestaurantOwnerGuard` (só o dono logado no dashboard abre/fecha caixa) — garçom e motoboy nunca chamam essas rotas, só leem o `caixa_id` implicitamente via backend.
+- `mesas` (migration `20260714000005_mesas.sql`) não tem `caixa_id` — status de mesa é restaurant-wide, não por caixa.
+- `caixas` não tem coluna de nome/local (só `nome_operador`, que é o nome da pessoa, não do ponto de venda).
+- `orders.caixa_id` é nullable com fallback por janela de tempo (`caixa_id.eq.X OR (caixa_id.is.null AND created_at >= aberto_em)`) usado em `getCaixa`, `fecharCaixa`, `fecharComTransferencia`, `getCaixaDetalhe` — funciona só porque hoje há no máximo 1 caixa aberto; fica ambíguo com múltiplos caixas simultâneos.
+- `toggleStatus` (linha ~724) exige "algum caixa aberto" pra abrir o restaurante pra pedidos.
+- `getRelatorio` (linhas ~1422-1530) agrega saídas de caixas por sobreposição de período — não assume exclusividade, deve continuar funcionando com múltiplos caixas.
+
+## Parte 1 — Fechar caixa com pendências (fiado)
+
+### Banco
+Migration nova: em `caixas`, adicionar `fechado_com_pendencias BOOLEAN NOT NULL DEFAULT false` e `pendencias_fechamento JSONB` (snapshot dos pedidos/comandas/mesas que ficaram abertos no momento do fechamento, pra exibir no histórico).
+
+### Backend (`restaurante.service.ts`)
+- `fecharCaixa`: manter o check atual (linhas 1081-1109), mas só bloquear (409) se o body **não** vier com `permitir_pendencias: true`. Quando vier, pular o bloqueio, seguir o fechamento normal (resumo/conferência iguais a hoje), e gravar `fechado_com_pendencias = true` + `pendencias_fechamento` com o snapshot de pedidos/comandas/mesas que ficaram em aberto. **Não mexer** nos registros abertos — eles continuam com o `caixa_id` do caixa que acabou de fechar.
+- Novo helper privado `garantirCaixaAbertoParaLancamento(restaurantId, caixaIdAtual)`: se o caixa referenciado por `caixaIdAtual` não está mais `status='aberto'`, busca o caixa principal aberto do restaurante (ver Parte 2) e retorna o id dele; senão retorna o próprio `caixaIdAtual`. Generaliza o fallback que já existe em `salao-pdv.service.ts:707-715`.
+- Usar esse helper nos pontos de **pagamento/fechamento** de algo pendente:
+  - `salao-pdv.service.ts` — ao fechar/pagar uma comanda (função que hoje faz `let caixaId = comanda.caixa_id; if (!caixaId) {...}`, linha ~707): trocar a condição de "só se null" pra "se null OU caixa não está mais aberto", chamando o helper, e **atualizar `orders.caixa_id`** da comanda pro caixa novo antes de gravar o pagamento.
+  - `pedidos.service.ts`: mesmo tratamento no fluxo de finalizar/pagar pedido de delivery pendente.
+- Ajustar `mesasAbertas`/`comandasAbertas` no `fecharCaixa` pra continuarem existindo após o fechamento (não fecha mesa/comanda sozinho) — comportamento já é esse hoje, só remover o bloqueio.
+
+### Frontend
+- `FecharCaixaModal.jsx` (`PedidosAbertosView`): adicionar um terceiro botão ao lado de "Transferir" e "Cancelar": **"Fechar mesmo assim (deixar pendente)"** → chama nova prop `onFecharComPendencia()` → `fecharCaixa({ permitir_pendencias: true, dinheiro_contado })`. Texto explicativo: "Essas comandas/mesas continuam em aberto e serão cobradas no caixa que estiver ativo quando o cliente pagar."
+- `CaixaAtualPanel.jsx`: passar a nova prop adiante pro modal.
+- `HistoricoCaixasPanel.jsx`: exibir badge "Fechado com pendências" quando `fechado_com_pendencias = true`, com detalhe do snapshot ao expandir (já usa `getCaixaDetalhe`).
+
+## Parte 2 — Múltiplos caixas simultâneos
+
+### Banco (nova migration)
+- `caixas`: adicionar `nome TEXT NOT NULL DEFAULT 'Principal'` (rótulo do ponto de venda: Principal/Bar/Salão/etc, livre) e `is_principal BOOLEAN NOT NULL DEFAULT false`.
+  - Índice único parcial: `CREATE UNIQUE INDEX idx_caixas_um_principal_aberto ON caixas (restaurant_id) WHERE is_principal AND status = 'aberto'` — garante só 1 caixa principal aberto por vez (é o caixa usado por delivery/motoboy/lançamentos sem operador).
+  - Índice único parcial: `CREATE UNIQUE INDEX idx_caixas_nome_aberto ON caixas (restaurant_id, nome) WHERE status = 'aberto'` — evita 2 caixas abertos com o mesmo nome (ex: dois "Bar" ao mesmo tempo).
+- `mesas`: adicionar `caixa_id BIGINT REFERENCES caixas(id) ON DELETE SET NULL` — mesa passa a pertencer ao caixa ativo no momento em que é ocupada.
+
+### Backend
+- `abrirCaixa(restaurantId, { nome_operador, valor_inicial?, nome, is_principal? })`:
+  - Trocar o check de "já existe caixa aberto" (linha 1050) por checar duplicidade **por nome** entre os abertos (deixa o índice único devolver o erro tratado como `ConflictException`).
+  - Se `is_principal` vier `true` (ou se for o primeiro caixa aberto do restaurante — default automático), garantir que não há outro principal aberto (senão `ConflictException`, pedir pra fechar o antigo primeiro).
+  - Default de compatibilidade: se não vier `nome`, usar `'Principal'` + `is_principal = true` (mantém comportamento atual pra quem não usa a feature nova).
+- `getCaixa(restaurantId)` vira `getCaixasAbertos(restaurantId)`: retorna **array** de caixas abertos (cada um com seu resumo, calculado do mesmo jeito que hoje, mas filtrando pedidos/comandas por `caixa_id = caixa.id` — sem o fallback de janela temporal, que deixa de fazer sentido com múltiplos caixas concorrentes).
+- `fecharCaixa` e `registrarSaida`/`registrarEntrada`: passam a exigir `caixaId` explícito (novo path param `caixa/:id/fechar`, `caixa/:id/saida`, `caixa/:id/entrada`) em vez de resolver implicitamente "o" caixa aberto do restaurante.
+- `toggleStatus` (abrir restaurante pra pedidos): exigir especificamente que **o caixa principal** esteja aberto (não qualquer caixa) — é o que recebe delivery.
+- Serviços de lançamento (`pedidos.service.ts`, `salao.service.ts`, `salao-pdv.service.ts`) passam a aceitar `caixa_id` **explícito** vindo do request (do operador logado); se não vier (ex: pedido de delivery feito pelo cliente, sem operador), cai no caixa `is_principal` aberto — mesma lógica do `motoboy.service.ts` (entradas/saídas de entrega sempre no principal).
+- `salao.service.ts` (abertura de mesa/comanda): ao setar `mesas.status = 'ocupada'`, gravar também `mesas.caixa_id = caixa_id` recebido.
+- `fecharCaixa`: `mesasAbertas` passa a filtrar `.eq('caixa_id', caixa.id)` em vez de restaurant-wide (senão uma mesa do Bar bloquearia o fechamento do caixa do Salão).
+
+### Frontend
+- **Seleção de caixa por sessão** (mecanismo simples, sem mexer no JWT do garçom): ao entrar no `garcom-portal` ou no `restaurante-salao`, se houver mais de 1 caixa aberto, mostrar um seletor "Qual caixa você está operando?" (Principal/Bar/Salão), gravar a escolha em `localStorage` (por dispositivo/navegador), e mandar esse `caixa_id` em toda chamada de criar comanda/pedido/venda feita daquela tela. Se só existe 1 caixa aberto, pular o seletor (usa direto, mantém fluxo atual pra quem não usa multi-caixa).
+- `restaurante-dashboard/index.jsx` (tela de abrir caixa, linhas ~267-279, ~431-465): acrescentar campo `nome` (texto ou chips "Principal/Bar/Salão/Outro") e, se já existir caixa principal aberto, esconder o checkbox `is_principal` (só disponível pro primeiro caixa do dia).
+- `CaixaAtualPanel.jsx`: trocar prop única `caixa` por `caixas` (array); renderizar 1 card por caixa aberto, cada um com seu próprio "Fechar" (abre `FecharCaixaModal` com aquele `caixaId`).
+- `HistoricoCaixasPanel.jsx`: exibir a coluna `nome` (local) em cada registro do histórico.
+
+## Ordem de implementação sugerida
+1. Migrations (as duas, podem ir juntas num único arquivo de migration).
+2. Parte 1 (fiado) isolada — menor risco, não depende de multi-caixa.
+3. Parte 2 (multi-caixa) — backend primeiro (rotas + serviços), depois frontend.
+4. Ajustar `FecharCaixaModal`/`CaixaAtualPanel`/`HistoricoCaixasPanel` por último, já cobrindo as duas partes.
+
+## Verificação
+- `npx supabase db reset` local pra aplicar as migrations novas.
+- Fluxo manual: abrir caixa Principal, abrir caixa Bar simultâneo (checar que os dois aparecem em `getCaixasAbertos`); criar comanda selecionando caixa Bar; fechar caixa Bar com a comanda ainda aberta usando "Fechar mesmo assim" → confere que comanda continua ativa e caixa Bar aparece como `fechado_com_pendencias`; pagar a comanda depois (com um novo caixa Bar ou o Principal aberto) → confere que o valor entra no resumo do caixa que estava aberto na hora do pagamento, não no caixa antigo.
+- Rodar testes existentes do `server_delivery` (se houver suite pra `restaurante.service`/`salao-pdv.service`) e `npm run dev` local pra validar as telas de dashboard e salão manualmente no navegador.

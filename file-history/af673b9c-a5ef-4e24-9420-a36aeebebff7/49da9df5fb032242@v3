@@ -1,0 +1,33 @@
+-- Colaboradores: staff com login próprio (link + senha) atribuído a um setor
+-- (Bar, Salão, Principal...) — ao logar, opera o caixa aberto daquele setor sem
+-- precisar escolher. Tabela separada de garcons (colaborador é escopo caixa/setor,
+-- garçom é escopo salão/comanda). setor é texto livre que casa com caixas.nome —
+-- não é FK pra uma linha de caixa específica porque caixas são efêmeras (fecha e
+-- abre uma linha nova a cada turno).
+CREATE TABLE public.colaboradores (
+  id               SERIAL PRIMARY KEY,
+  restaurant_id    INT NOT NULL REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  nome             TEXT NOT NULL,
+  telefone         TEXT,
+  setor            TEXT NOT NULL,
+  login_key        TEXT NOT NULL UNIQUE,
+  password_hash    TEXT NOT NULL,
+  ativo            BOOLEAN NOT NULL DEFAULT true,
+  ultimo_acesso_em TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_colaboradores_restaurant ON public.colaboradores (restaurant_id);
+
+ALTER TABLE public.colaboradores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY colaboradores_owner ON public.colaboradores
+  FOR ALL USING (
+    restaurant_id IN (SELECT id FROM public.restaurants WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY service_role_all_colaboradores ON public.colaboradores
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);

@@ -1,0 +1,26 @@
+
+
+PORT=3002
+
+# Cache (catálogo público /r/*) — local: container Docker (deliveryhub-redis) na porta 6379.
+# Produção (EasyPanel) usa outra REDIS_URL, com hostname interno + senha — não mexer aqui.
+# VPS (referência): redis://default:Jota1%40jota79@jota_empresas_redis:6379
+REDIS_URL=redis://127.0.0.1:6379
+# REDIS_URL=redis://default:Jota1%40jota79@jota_empresas_redis:6379
+
+
+
+SUPABASE_URL=http://127.0.0.1:54331
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+
+# Motoboy (login próprio, JWT — não usa Supabase Auth)
+MOTOBOY_JWT_SECRET=91c13ad7098c49ab24fad516df47b2d8b714c891238328ec85890551e1431778
+NOMINATIM_USER_AGENT=DeliveryHub/1.0 (bacudigital@gmail.com)
+
+# Garçom / módulo Salão (login próprio, JWT — não usa Supabase Auth)
+GARCOM_JWT_SECRET=ba3fdb0af91a81b160be08857b3849cb8b09d15339d73af0592e83a813a971bd
+
+# PagBank
+PAGBANK_TOKEN=
+PAGBANK_SANDBOX=true
+PAGBANK_WEBHOOK_URL=http://localhost:3002/pagamentos/webhook

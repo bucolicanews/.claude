@@ -1,0 +1,20 @@
+---
+name: deliveryhub-check-nao-cobrar-gorjeta
+description: "check \"Não cobrar gorjeta\" na comanda de mesa/garçom (Salão) — zera gorjeta cobrada, sem mudar mais nada"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 3635220f-10a4-4820-82df-b97301ba9607
+  modified: 2026-07-28T03:18:07.412Z
+---
+
+Adicionado checkbox "Não cobrar gorjeta" em `ComandaModal` (`src/pages/restaurante-salao/index.jsx`, comanda de mesa/garçom). Estado `semGorjeta` desativa o input de gorjeta e força `gorjetaEfetiva = 0` em todo cálculo/envio (parcial e fechamento). Backend não precisou mudar — `gorjeta_valor` já era um parâmetro livre vindo do frontend.
+
+**Status:** commitado e pushado em `feat/checkbox-sem-gorjeta-sem-taxa-cartao` (commit `554ccfc`, 2026-07-25) — essa branch original nunca foi mergeada. Reaplicado manualmente em `feat/repasse-garcom-gorjeta-comissao`, que **foi mergeada em main** em 2026-07-28 (ver [[deliveryhub_repasse_garcom_dinheiro_pix]]) — então o checkbox já está em main agora, via essa segunda branch.
+
+**Why:** dono queria zerar gorjeta com um clique em vez de apagar o valor manualmente.
+
+**How to apply:**
+- Tentativa inicial incluía também um check "Não cobrar taxa de cartão" (mesa/garçom + balcão), com mudança de backend (`sem_taxa_cartao` em `salao-pdv.service.ts`/`restaurante-salao.controller.ts`, endpoints `/pagar` e `/pagamento`). **Foi revertida a pedido do usuário** — o valor exibido (R$0,70 no teste) era taxa de um pagamento parcial em cartão **já registrado antes** de marcar o check (histórico, não deveria mesmo zerar), mas isso confundiu o usuário testando: pareceu bug. Usuário pediu pra tirar o check e a lógica toda, manter só gorjeta. Backend voltou 100% idêntico ao `main` (`git diff` vazio no submodule).
+- Se pedirem de novo "não cobrar taxa de cartão": lembrar de deixar claro na UI/mensagem que o check só afeta cobranças **novas**, não taxa já lançada em pagamento parcial anterior — essa é a causa raiz da confusão anterior, não um bug de lógica.
+- Venda balcão (`VendaBalcaoModal`) nunca teve campo de gorjeta — não se aplica lá.

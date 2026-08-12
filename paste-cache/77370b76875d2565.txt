@@ -1,0 +1,64 @@
+oad the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+restauranteService.js:230  GET http://192.168.1.31:3002/r/by-domain/localhost 404 (Not Found)
+(anonymous) @ restauranteService.js:230
+(anonymous) @ index.jsx:15
+commitHookEffectListMount @ chunk-I3FFXTTZ.js?v=1ea0efd7:16936
+commitPassiveMountOnFiber @ chunk-I3FFXTTZ.js?v=1ea0efd7:18184
+commitPassiveMountEffects_complete @ chunk-I3FFXTTZ.js?v=1ea0efd7:18157
+commitPassiveMountEffects_begin @ chunk-I3FFXTTZ.js?v=1ea0efd7:18147
+commitPassiveMountEffects @ chunk-I3FFXTTZ.js?v=1ea0efd7:18137
+flushPassiveEffectsImpl @ chunk-I3FFXTTZ.js?v=1ea0efd7:19518
+flushPassiveEffects @ chunk-I3FFXTTZ.js?v=1ea0efd7:19475
+(anonymous) @ chunk-I3FFXTTZ.js?v=1ea0efd7:19356
+workLoop @ chunk-I3FFXTTZ.js?v=1ea0efd7:197
+flushWork @ chunk-I3FFXTTZ.js?v=1ea0efd7:176
+performWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=1ea0efd7:384
+postMessage
+schedulePerformWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=1ea0efd7:407
+performWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=1ea0efd7:387
+postMessage
+schedulePerformWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=1ea0efd7:407
+requestHostCallback @ chunk-I3FFXTTZ.js?v=1ea0efd7:418
+unstable_scheduleCallback @ chunk-I3FFXTTZ.js?v=1ea0efd7:330
+scheduleCallback$1 @ chunk-I3FFXTTZ.js?v=1ea0efd7:19854
+ensureRootIsScheduled @ chunk-I3FFXTTZ.js?v=1ea0efd7:18680
+scheduleUpdateOnFiber @ chunk-I3FFXTTZ.js?v=1ea0efd7:18590
+updateContainer @ chunk-I3FFXTTZ.js?v=1ea0efd7:20805
+ReactDOMHydrationRoot.render.ReactDOMRoot.render @ chunk-I3FFXTTZ.js?v=1ea0efd7:21145
+(anonymous) @ index.jsx:10
+favicon.ico:1  GET http://localhost:4028/favicon.ico net::ERR_CONNECTION_REFUSED
+client.ts:77 WebSocket connection to 'ws://localhost:4028/' failed: 
+setupWebSocket @ client.ts:77
+(anonymous) @ client.ts:67
+client.ts:77 WebSocket connection to 'ws://localhost:4028/' failed: 
+setupWebSocket @ client.ts:77
+(anonymous) @ client.ts:42
+(anonymous) @ client.ts:99
+client.ts:47 [vite] failed to connect to websocket.
+your current setup:
+  (browser) localhost:4028/ <--[HTTP]--> localhost:4028/ (server)
+  (browser) localhost:4028/ <--[WebSocket (failing)]--> localhost:4028/ (server)
+Check out your Vite / network configuration and https://vitejs.dev/config/server-options.html#server-hmr .
+(anonymous) @ client.ts:47
+(anonymous) @ client.ts:99
+favicon.ico:1  GET http://localhost:4028/favicon.ico net::ERR_CONNECTION_REFUSED
+index.jsx:228 WebSocket connection to 'ws://localhost:4028/realtime/v1/websocket?apikey=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH&vsn=2.0.0' failed: 
+transportConnect @ @supabase_supabase-js.js?v=1ea0efd7:6068
+connect @ @supabase_supabase-js.js?v=1ea0efd7:5953
+connect @ @supabase_supabase-js.js?v=1ea0efd7:7542
+connect @ @supabase_supabase-js.js?v=1ea0efd7:7784
+subscribe @ @supabase_supabase-js.js?v=1ea0efd7:6905
+(anonymous) @ index.jsx:228
+commitHookEffectListMount @ chunk-I3FFXTTZ.js?v=1ea0efd7:16936
+commitPassiveMountOnFiber @ chunk-I3FFXTTZ.js?v=1ea0efd7:18184
+commitPassiveMountEffects_complete @ chunk-I3FFXTTZ.js?v=1ea0efd7:18157
+commitPassiveMountEffects_begin @ chunk-I3FFXTTZ.js?v=1ea0efd7:18147
+commitPassiveMountEffects @ chunk-I3FFXTTZ.js?v=1ea0efd7:18137
+flushPassiveEffectsImpl @ chunk-I3FFXTTZ.js?v=1ea0efd7:19518
+flushPassiveEffects @ chunk-I3FFXTTZ.js?v=1ea0efd7:19475
+(anonymous) @ chunk-I3FFXTTZ.js?v=1ea0efd7:19356
+workLoop @ chunk-I3FFXTTZ.js?v=1ea0efd7:197
+flushWork @ chunk-I3FFXTTZ.js?v=1ea0efd7:176
+performWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=1ea0efd7:384
+favicon.ico:1  GET http://localhost:4028/favicon.ico net::ERR_CONNECTION_REFUSED
+@supabase_supabase-js.js?v=1ea0efd7:6068 WebSocket connection to 'ws://localhost:4028/realtime/v1/websocket?apikey=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH&vsn=2.0.0' failed: 

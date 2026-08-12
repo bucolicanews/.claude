@@ -1,0 +1,28 @@
+supabase/storage-api:v1.65.1 => v1.67.15
+Run supabase link to update them.
+[+] Pulling 11/11
+ ✔ edgeRuntime Skipped - Image is already present locally                                                0.0s 
+ ✔ pgmeta Skipped - Image is already present locally                                                     0.0s 
+ ✔ db Skipped - Image is already present locally                                                         0.0s 
+ ✔ api Skipped - Image is already present locally                                                        0.0s 
+ ✔ studio Skipped - Image is already present locally                                                     0.0s 
+ ✔ gateway Skipped - Image is already present locally                                                    0.0s 
+ ✔ storage Skipped - Image is already present locally                                                    0.0s 
+ ✔ imgProxy Skipped - Image is already present locally                                                   0.0s 
+ ✔ auth Skipped - Image is already present locally                                                       0.0s 
+ ✔ mailpit Skipped - Image is already present locally                                                    0.0s 
+ ✔ realtime Skipped - Image is already present locally                                                   0.0s 
+Starting database from backup...
+Starting containers...
+Waiting for health checks...
+supabase_storage_deliveryhub_white_label container logs:
+{"level":30,"time":"2026-07-26T21:55:36.036Z","pid":1,"hostname":"828797ce94df","region":"not-specified","appVersion":"1.65.1","type":"migrations","msg":"[Migrations] Running vector_store migrations"}
+supabase_studio_deliveryhub_white_label container logs:
+▲ Next.js 16.2.6
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+✓ Ready in 0ms
+Stopping containers...
+supabase_storage_deliveryhub_white_label container is not ready: unhealthy
+supabase_studio_deliveryhub_white_label container is not ready: starting  
+Try rerunning the command with --debug to troubleshoot the error.

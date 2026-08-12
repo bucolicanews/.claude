@@ -1,0 +1,25 @@
+Delivery Backend rodando na porta 3002
+[Nest] 9692  - 22/07/2026, 20:05:45   ERROR [ExceptionsHandler] Object(4) {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n\nCaused by: Error: connect ECONNREFUSED 127.0.0.1:54331 (ECONNREFUSED)\nError: connect ECONNREFUSED 127.0.0.1:54331\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)',
+  hint: '',
+  code: ''
+}
+[Nest] 9692  - 22/07/2026, 20:05:45   ERROR [ExceptionsHandler] Object(4) {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n\nCaused by: Error: connect ECONNREFUSED 127.0.0.1:54331 (ECONNREFUSED)\nError: connect ECONNREFUSED 127.0.0.1:54331\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)',
+  hint: '',
+  code: ''
+}
+[Nest] 9692  - 22/07/2026, 20:05:45   ERROR [ExceptionsHandler] Object(4) {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n\nCaused by: Error: connect ECONNREFUSED 127.0.0.1:54331 (ECONNREFUSED)\nError: connect ECONNREFUSED 127.0.0.1:54331\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)',
+  hint: '',
+  code: ''
+}
+[Nest] 9692  - 22/07/2026, 20:05:48   ERROR [ExceptionsHandler] Object(4) {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n\nCaused by: Error: connect ECONNREFUSED 127.0.0.1:54331 (ECONNREFUSED)\nError: connect ECONNREFUSED 127.0.0.1:54331\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)',
+  hint: '',
+  code: ''
+}

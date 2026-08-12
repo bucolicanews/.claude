@@ -1,0 +1,19 @@
+---
+name: deliveryhub-plano-dark-mode-retrofit
+description: Plano pra implantar dark mode completo no deliveryhub_white_label — dividir em tarefas por tela
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: c012bc3f-a116-4487-bf28-de60d1ae9025
+  modified: 2026-07-29T17:26:40.132Z
+---
+
+Combinado com o usuário em 2026-07-28: no próximo dia útil (2026-07-29), retomar o dark mode e implantar de verdade — dividir em tarefas (provavelmente por tela/página) e ir implantando aos poucos.
+
+**Estado atual (ponto de partida):** infra já em main/produção (ver [[deliveryhub_repasse_garcom_dinheiro_pix]]) — `src/contexts/ThemeContext.jsx` com `ThemeProvider`/`ThemeToggle` (ícone sol/lua fixo `top-3 right-3`, persiste em localStorage, aplica classe `dark` na `<html>`), montado uma vez em `App.jsx`. Funcional, mas nenhuma página reage a ele ainda.
+
+**Why:** decisão anterior (mesma sessão) foi propositalmente escalonada — 57 arquivos usam cor hex fixa (`bg-[#FAFAFA]`, `text-[#18181B]` etc, não os tokens CSS var do `tailwind.config.js` que já suportam `darkMode: "class"`) — retrofit de tudo de uma vez foi considerado arriscado demais pra fazer sem revisar tela por tela.
+
+**How to apply:** ao retomar, checar `MEMORY.md`/memória primeiro (padrão já estabelecido, ver [[feedback_workflow_memory_commits]]), depois: 1) listar as 57 telas/arquivos com `grep -rl "bg-\[#" src/pages src/components`; 2) dividir em tarefas por tela ou por fluxo (ex: Salão, Garçom portal, Relatórios, Admin); 3) branch nova por tarefa (ver [[feedback_branch_por_tarefa]]); 4) confirmar plano/paleta dark antes de sair editando em massa, já que é mudança visual em muita tela — bom candidato pra usar a skill `dataviz`/`artifact-design` como referência de paleta se for definir cores novas, ou só reaproveitar os tokens `--color-*` já existentes no `tailwind.config.js`.
+
+**Progresso (2026-07-29, branch `feat/dark-mode-fundacao`, ainda não mergeada):** grupos definidos (1 Fundação, 2 Shell restaurante, 3 Dashboard/Financeiro/Caixa, 4 Relatórios, 5 Operação tempo real, 6 Cadastro/admin restaurante, 7 Motoboy portal, 8 Cliente público). Paleta dark = zinc (bg-900 `#18181B`, card/border-800/700 `#27272A`/`#3F3F46`, texto-100 `#F4F4F5`), adicionada como bloco `.dark{}` em `src/styles/tailwind.css` (antes só existia `:root` light). Feito e testado pelo usuário: **grupo 1** (tokens `.dark{}` + `Badge`/`Button`/`ImageUpload`/`Skeleton`) e **grupo 2** (`MobileMenu`/`RestauranteHeader`/`RestauranteSidebar`). Próximo: grupo 3.

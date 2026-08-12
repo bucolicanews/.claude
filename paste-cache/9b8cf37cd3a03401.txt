@@ -1,0 +1,33 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/impressoras/detectadas:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/gerar-token:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+restauranteService.js:26 Uncaught (in promise) Error: Cannot POST /restaurante/agente-impressao/gerar-token
+    at apiFetch (restauranteService.js:26:19)
+    at async gerar (index.jsx:73:25)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/gerar-token:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+restauranteService.js:26 Uncaught (in promise) Error: Cannot POST /restaurante/agente-impressao/gerar-token
+    at apiFetch (restauranteService.js:26:19)
+    at async gerar (index.jsx:73:25)
+:3002/restaurante/agente-impressao/status:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:3002/restaurante/agente-impressao/gerar-token:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+restauranteService.js:26 Uncaught (in promise) Error: Cannot POST /restaurante/agente-impressao/gerar-token
+    at apiFetch (restauranteService.js:26:19)
+    at async gerar (index.jsx:73:25)
+:3002/restaurante/agente-impressao/gerar-token:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+restauranteService.js:26 Uncaught (in promise) Error: Cannot POST /restaurante/agente-impressao/gerar-token
+    at apiFetch (restauranteService.js:26:19)
+    at async gerar (index.jsx:73:25)
+restauranteService.js:12  GET http://localhost:3002/restaurante/agente-impressao/status 404 (Not Found)

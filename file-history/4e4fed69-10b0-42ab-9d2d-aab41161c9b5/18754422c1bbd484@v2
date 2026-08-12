@@ -1,0 +1,23 @@
+---
+name: deliveryhub-redis-cache-catalogo
+description: "Cache Redis (cache-aside, TTL curto) implementado nas rotas publicas /r/* do catalogo — branch feat/redis-cache-catalogo, nao mergeado"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 4e4fed69-10b0-42ab-9d2d-aab41161c9b5
+  modified: 2026-07-31T14:17:15.692Z
+---
+
+Implementado cache Redis no backend (`server_delivery`) cobrindo só `CatalogoController` (`src/restaurante/catalogo.controller.ts`, rotas públicas `/r/*`: home, filtros, produtos/combos marketplace, cardápio por slug/domínio). Padrão cache-aside, TTL 15s (cardápio/produtos/combos/home) e 60s (filtros geográficos), **sem invalidação manual** — decisão do usuário, aceita defasagem curta de estoque/preço em troca de simplicidade (menos pontos de escrita instrumentados).
+
+Arquivos novos: `src/redis/redis.service.ts` (client `ioredis`, wrapper `getJSON`/`setJSON`, best-effort — falha do Redis nunca quebra a rota, só cai pro Supabase direto) e `src/redis/redis.module.ts` (Global, mesmo padrão do `SupabaseModule`).
+
+Env var `REDIS_URL` adicionada em `.env.example` (placeholder) e `.env` local. Credencial real: hostname `jota_empresas_redis` é interno do EasyPanel (projeto `jota_empresas` na VPS) — só resolve dentro da rede Docker de lá. Confirmado por teste: porta 6379 fechada no IP público (148.230.76.22) do PC local. Ou seja, cache não funciona rodando o backend local (fallback silencioso, sem erro) — só funciona de verdade quando deployado no EasyPanel, na mesma rede do Redis.
+
+Senha do Redis tem `@` literal — precisa URL-encode (`%40`) na REDIS_URL, senão parser quebra no primeiro `@`.
+
+Escopo desta fase é só o catálogo público (maior tráfego, sem auth). Ficou de fora (decisão consciente): produtos/categorias admin por empresa, estoque, caixa, pedidos — não cachear dados sensíveis a tempo real/transação.
+
+Status: implementado + commitado na branch `feat/redis-cache-catalogo`, **NÃO testado rodando** (não dá pra testar cache de verdade local, só no EasyPanel), **NÃO mergeado em main**, **NÃO deployado**.
+
+Ver [[deliveryhub_vps_supabase_secrets]] pro padrão de como colar env no EasyPanel. Ver [[feedback_branch_por_tarefa]] e [[feedback_sempre_local_sem_permissao_web]] — merge/push pedem confirmação de novo quando chegar a hora.

@@ -1,0 +1,24 @@
+---
+name: deliveryhub-salao-melhorias-pdv
+description: "backlog de melhorias pedidas pro PDV/caixa do módulo Salão (numeração de comanda, garçom, gorjeta/comissão configurável, transferência de mesa)"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Pedido do usuário em 2026-07-14, testando o PDV (`/restaurante/salao`, `ComandaModal`) depois do módulo Salão já funcionando (comandas, garçom, impressão). Lista de melhorias, ainda **não implementadas**:
+
+1. **Numeração de comanda**: comandas devem ter um número (aleatório/visível) pra identificação — hoje só aparece "Comanda avulsa" sem nenhum identificador visível na tela.
+2. **Garçom aparecendo "—" no modal do caixa**: bug reportado — `comanda.garcons?.nome` mostra vazio mesmo quando a comanda tem garçom. Backend (`salao-pdv.service.ts`, `buscarComanda`) já seleciona `garcons(id, nome)` — suspeita principal é backend do usuário desatualizado (recorrente nesta sessão, ver [[deliveryhub_dois_clones_server_delivery]]), mas precisa confirmar antes de mexer em código.
+3. **Opção de "introduzir garçom"**: dono/caixa deve poder atribuir/trocar o garçom de uma comanda diretamente (não só o próprio garçom abrindo).
+4. **Gorjeta**: o valor digitado (ex: "10") deve ser tratado como **percentual configurável** (não valor fixo digitado à mão) e aparecer somado na conta final mostrada ao caixa. Os parâmetros de gorjeta E comissão devem vir de uma **configuração do estabelecimento** (não input livre) — hoje só existe config de comissão do garçom (`garcom_comissoes_config`), não existe config de gorjeta nenhuma ainda.
+5. **Estabelecimento incluir itens na comanda**: hoje só o garçom (via portal) adiciona itens numa comanda — o PDV do caixa (`ComandaModal`) não tem essa opção, só visualizar/desconto/acréscimo/cancelar/pagar.
+6. **Isolamento entre garçons**: garçom não pode entrar/mexer na comanda de outro garçom — **isso já parece estar implementado** (`garantirComandaDoGarcom` no backend já valida `garcom_id !== garcomId` e barra com Forbidden; `minhasComandas` já filtra só as próprias). Confirmar se é isso mesmo ou se falta algum caminho.
+7. **Transferir mesa/comanda pra outro garçom**: o estabelecimento (dono/caixa) deve poder reatribuir uma comanda em andamento pra outro garçom (ex: troca de turno) — não existe hoje.
+
+**Why:** uso real do PDV revelou essas lacunas — o fluxo básico (abrir/vender/fechar/pagar) já funciona, mas falta identificação de comanda, correção de exibição do garçom, flexibilidade operacional (dono intervir na comanda, trocar garçom responsável) e cálculo configurável de gorjeta/comissão em vez de digitação manual solta.
+
+**How to apply:** antes de implementar, esclarecer com o usuário: (a) gorjeta é sempre percentual ou pode ser valor fixo também (espelhar o padrão de `garcom_comissoes_config`: tipo percentual/fixo)? (b) numeração de comanda — sequencial por dia/restaurante ou código aleatório tipo "Mesa #1234"? (c) quem pode trocar o garçom de uma comanda — só troca de garçom responsável, ou também precisa de permissão granular como as outras ações do caixa (desconto/cancelar)? Ver [[deliveryhub_modulo_restaurante_ideias]] pro contexto original do módulo.
+
+**Status em 2026-07-14: implementado e testado (commit `03d584c` backend / `98bd7b8` frontend, já em `main` dos dois repos).** Decisões confirmadas com o usuário: gorjeta só percentual (`restaurants.gorjeta_percentual`), numeração sequencial por dia (`orders.numero_comanda`, exibida "Comanda #N"), transferir garçom só dono/caixa sem permissão granular nova. Isolamento entre garçons (item 6) já estava implementado, confirmado via smoke test (garçom antigo bloqueado, novo garçom com acesso após transferência). Testado ponta a ponta com script real contra Supabase Cloud antes do commit.

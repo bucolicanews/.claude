@@ -1,0 +1,292 @@
+
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [NestFactory] Starting Nest application...
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] AppModule dependencies initialized +21ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] ConfigHostModule dependencies initialized +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] ConfigModule dependencies initialized +61ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] SupabaseModule dependencies initialized +8ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] RedisModule dependencies initialized +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] EstoqueModule dependencies initialized +2ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] CombosModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] McpModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] AuthModule dependencies initialized +2ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] TagsModule dependencies initialized +5ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] AgenteImpressaoModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] EmpresasModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] CategoriasModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] ProdutosModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] PlataformaModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] PagamentosModule dependencies initialized +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] PerfilModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] MotoboyModule dependencies initialized +2ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] PedidosModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] SalaoModule dependencies initialized +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [InstanceLoader] RestauranteModule dependencies initialized +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] EmpresasController {/empresas}: +25ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas, GET} route +3ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id/bloquear, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id, DELETE} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id/dominio/atender, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id/dominio/recusar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id/config, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:id/config, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] CategoriasController {/}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/categorias/globais, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/establishment-types, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/establishment-types, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/establishment-types/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/establishment-types/:id, DELETE} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/categorias/globais, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/categorias/globais/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/categorias/globais/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:empresaId/categorias, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/categorias, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/categorias/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/categorias/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] ProdutosController {/}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/empresas/:empresaId/produtos, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/produtos/:id, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/produtos, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/produtos/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/produtos/:id/toggle, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/produtos/:id, DELETE} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] PedidosController {/pedidos}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pedidos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pedidos/meus, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pedidos/:id, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pedidos, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pedidos/:id/status, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pedidos/:id/cancelar, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pedidos/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] RestauranteMotoboysController {/restaurante/motoboys}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/solicitacoes/count, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/solicitacoes, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/solicitacoes/:id/aceitar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/solicitacoes/:id/recusar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/solicitacoes/:id/revisar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/:motoboyId/remover, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/:motoboyId/forcar-logout, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/motoboys/:pedidoId/atribuir, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] MotoboyPortalController {/motoboy}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/me, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/ganhos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/ganhos/historico, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/disponiveis, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/:id/pegar, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/:id/reivindicar, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/:id/confirmar-coleta, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/:id/localizacao, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/:id/entregar, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/:id/comprovante, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/pedidos/:id/ocorrencia, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] MotoboyAuthController {/motoboy/auth}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/auth/cadastro, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/auth/login, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/auth/completar-cadastro, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/auth/logout, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] MotoboyEstabelecimentosController {/motoboy/estabelecimentos}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/estabelecimentos, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/estabelecimentos/minhas, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/motoboy/estabelecimentos/:restaurantId/solicitar, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] SalaoController {/garcom}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/me, GET} route +3ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/logout, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/mesas, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/produtos, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/combos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/itens-prontos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/fila-cozinha, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/abrir, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/itens, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/itens/:itemId, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/itens/:itemId, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/itens/:itemId/observacao, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/dividir, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/itens/:itemId/entregar, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/cliente, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/pagamento, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/pagamentos/:pagamentoId, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/pagamentos/:pagamentoId, DELETE} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/enviar, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/comandas/:id/fechar, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] GarcomAuthController {/garcom/auth}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/garcom/auth/login, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] RestauranteGarconsController {/restaurante/garcons}: +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/online, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/:id, DELETE} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/:id/forcar-logout, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/comissoes, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/comissoes, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/comissoes/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/garcons/comissoes/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] RestauranteImpressorasController {/restaurante/impressoras}: +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/impressoras, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/impressoras/detectadas, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/impressoras, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/impressoras/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/impressoras/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/impressoras/:id/teste, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] RestauranteSalaoController {/restaurante/salao}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/garcons-online, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/mesas, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/mesas/:id/bloquear, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/mesas/:id/desbloquear, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/fechadas-hoje, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/abrir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/venda-balcao/abrir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/chamada, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/chamada/:id/chamar, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/chamada/:id/itens/:itemId/entregar, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/itens, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/itens/:itemId, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/pagamento, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/pagamentos/:pagamentoId, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/pagamentos/:pagamentoId, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/itens/:itemId, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/transferir-garcom, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/transferir, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/dividir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/cliente, PATCH} route +18ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/sugestao-gorjeta, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/desconto, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/acrescimo, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/cancelar, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/reabrir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/imprimir-conferencia, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/reimprimir-recibo, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/salao/comandas/:id/pagar, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] RestauranteMesasController {/restaurante/mesas-cadastro}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/mesas-cadastro, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/mesas-cadastro, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/mesas-cadastro/lote, POST} route +2ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/mesas-cadastro/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] MesaAcompanharController {/mesa-acompanhar}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/mesa-acompanhar/:token, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/mesa-acompanhar/:token/solicitar-conferencia, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] AgenteImpressaoController {/agente-impressao}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/agente-impressao/me, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/agente-impressao/impressoras, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/agente-impressao/jobs/pendentes, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/agente-impressao/jobs/:id/concluido, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/agente-impressao/jobs/:id/erro, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] RestauranteAgenteImpressaoController {/restaurante/agente-impressao}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/agente-impressao/gerar-token, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/agente-impressao/status, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] PlataformaController {/plataforma}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/plataforma/config, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/plataforma/config, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/plataforma/rede, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/plataforma/metricas, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/plataforma/comissoes, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/plataforma/comissoes/empresa/:id, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] PagamentosController {/pagamentos}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pagamentos/pix, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pagamentos/cartao, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pagamentos/pedido/:id, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/pagamentos/webhook, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] RestauranteController {/restaurante}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/minha-empresa, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/minha-empresa, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/dominio, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/dominio/solicitar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/entregas, GET} route +2ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/pedidos, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/pedidos/:id/status, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/pedidos/:id/entregar-proprio, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/pedidos/:id/cancelar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/pedidos/:id/frete-gratis, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/pedidos/:id/troco, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/produtos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/produtos, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/produtos/:id, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/produtos/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/produtos/:id/toggle, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/categorias, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/categorias, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/categorias/:id, DELETE} route +2ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/clientes, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/clientes, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/clientes/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/aparencia, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/aparencia, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/config, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/config, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/status, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/abrir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/fechar, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/:id/conferencia, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/fechar-e-transferir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/historico, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/:id, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/saida, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/saida/:index, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/caixa/entrada, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/pedidos/:id/detalhe, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/cozinha, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/renovar-token-cozinha, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/kds, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/kds/itens/:id/pronto, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/kds/itens/:id/iniciar-preparo, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/kds/itens/:id/voltar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/kds/itens/:id/cancelar, PATCH} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/kds/itens/:id/reimprimir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/storage/setup, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/storage/upload, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/relatorio, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/relatorio/fretes, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/relatorio/garcom, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/relatorio/garcom/:garcomId/repasse, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/relatorio/garcom/repasse/:repasseId, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/relatorio/produtos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/combos, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/combos/:id, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/combos, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/combos/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/combos/:id, DELETE} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] OnboardingController {/restaurante}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/restaurante/registrar, POST} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] CatalogoController {/r}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/r/acesso, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/r, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/r/filtros, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/r/produtos, GET} route +2ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/r/combos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/r/by-domain/:host, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/r/:slug, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] CozinhaPortalController {/cozinha-portal}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/cozinha-portal/me, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/cozinha-portal/pedidos, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/cozinha-portal/pedidos/:id/status, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] KdsPortalController {/kds-portal}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/kds-portal/impressoras, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/kds-portal/itens, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/pronto, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/iniciar-preparo, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/voltar, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/reimprimir, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] PerfilController {/perfil}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/perfil, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/perfil, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/perfil/foto, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] TagsPublicoController {/tags}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/tags, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/tags/carrosseis/:restaurantId, GET} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RoutesResolver] TagsAdminController {/admin/tags}: +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/admin/tags, GET} route +1ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/admin/tags, POST} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/admin/tags/:id, PATCH} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [RouterExplorer] Mapped {/admin/tags/:id, DELETE} route +0ms
+[Nest] 39  - 07/31/2026, 4:09:53 PM     LOG [NestApplication] Nest application successfully started +4ms
+Delivery Backend rodando na porta 80

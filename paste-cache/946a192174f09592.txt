@@ -1,0 +1,31 @@
+
+
+
+  VITE v5.0.0  ready in 5893 ms
+
+  ➜  Local:   http://localhost:4028/
+  ➜  Network: http://172.30.64.1:4028/
+  ➜  Network: http://172.28.160.1:4028/
+  ➜  Network: http://192.168.1.31:4028/
+  ➜  press h + enter to show help
+(node:15244) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+21:33:54 [vite] http proxy error at /auth/v1/token?grant_type=refresh_token:
+Error: socket hang up
+    at Socket.socketOnEnd (node:_http_client:599:25)
+    at Socket.emit (node:events:531:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+21:34:01 [vite] http proxy error at /auth/v1/token?grant_type=refresh_token:
+Error: socket hang up
+    at Socket.socketOnEnd (node:_http_client:599:25)
+    at Socket.emit (node:events:531:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) (x2)
+
+
+
+
+
+
+

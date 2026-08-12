@@ -1,0 +1,15 @@
+---
+name: deliveryhub-trava-botao-voltar-entrega-pendente
+description: "Bloqueio botão Voltar do garçom com entrega pendente — MERGEADO+PUSHADO MAIN, EasyPanel não confirmado"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 31cc1ec5-40ca-45dd-ab92-f454ec7203d9
+  modified: 2026-07-30T13:26:34.504Z
+---
+
+Pedido do usuário 2026-07-30: no portal garçom, botão "Voltar" (`src/pages/garcom-portal/index.jsx:730`, dentro da tela da comanda) precisa da mesma trava já implementada no "Fechar comanda" — ver [[deliveryhub_trava_fechar_comanda_entrega_pendente]]. Hoje só o fechamento bloqueia; o Voltar deixa sair da comanda mesmo com item pronto/preparando sem `entregue_garcom` confirmado.
+
+**Status: MERGEADO+PUSHADO main (commit `f6e3f47`) 2026-07-30. EasyPanel/deploy não confirmado.**
+
+**Implementado:** onClick do botão Voltar (`garcom-portal/index.jsx:730`) checa `temEntregaPendente` (já existia, mesma variável do fechar comanda); se true, `window.alert('Confirme a entrega dos itens pendentes antes de voltar.')` e bloqueia, senão chama `onVoltar()` normal. Só front, sem mudança de backend (Voltar não fecha nem muda status).

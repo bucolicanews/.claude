@@ -1,0 +1,24 @@
+---
+name: deliveryhub-garcom-fila-cozinha
+description: Aba Cozinha no portal do garçom (fila de preparo + tempo médio) — implementada, branch não mergeada
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: session-2026-07-24-fila-cozinha
+  modified: 2026-07-24T17:12:52.221Z
+---
+
+Pedido do usuário em 2026-07-24: nova aba "Cozinha" no portal do garçom (`/garcom/:loginKey`) mostrando fila de itens em preparo/aguardando (restaurante inteiro, não só comandas do garçom logado) com posição na fila, timer ao vivo por item, e tempo médio de preparo dos itens finalizados hoje — pra o garçom responder cliente presencial sobre status/tempo do pedido sem ir até a cozinha.
+
+Decisões confirmadas: granularidade por item (`order_items`, não agrupado por comanda), escopo restaurante inteiro, tempo médio = média de `pronto_em - preparando_em` dos itens prontos hoje.
+
+**Implementado (não testado end-to-end, não mergeado):**
+- Backend (submodule `deliveryhub_white_label/server_delivery`, branch `feat/garcom-fila-cozinha`, commit `f131f23`): `SalaoService.filaCozinha()` em `src/salao/salao.service.ts`, endpoint `GET /api/garcom/fila-cozinha` em `src/salao/salao.controller.ts` (dentro do `SalaoController`, herda `GarcomGuard`).
+- Frontend (`deliveryhub_white_label`, branch `feat/garcom-fila-cozinha`, commit `c622adf`): `getFilaCozinha()` em `src/services/garcomService.js`; componente `FilaCozinha` + nova aba em `src/pages/garcom-portal/index.jsx` (reusa `useNowTick` de `src/hooks/useNowTick.js` e `formatDuracao` de `src/utils/formatDuracao.js`, já existentes).
+- Validado só com `tsc --noEmit` (backend) e `vite build` (frontend), ambos limpos — sem teste funcional real (usuário roda os servers manualmente, ver [[feedback_usuario_roda_servers]]).
+
+**Pendência à parte, não tocada:** repo frontend tinha (antes desta tarefa) o ponteiro do submodule `server_delivery` já desatualizado/sujo (apontando pro merge de `fix/fechar-caixa-libera-mesa`, não commitado no repo pai) — deixei como estava, não commitei junto pra não misturar tarefas. Precisa resolver separado (ver [[deliveryhub_dois_clones_server_delivery]]).
+
+**Why:** cliente presencial pergunta status/tempo do pedido ao garçom; hoje o portal do garçom só alerta quando item fica pronto, sem visão da fila.
+
+**How to apply:** antes de mergear, pedir pro usuário testar localmente (rodar `server_delivery` submodule + frontend), depois sincronizar o clone standalone (`DEV/server_delivery`) via `git pull` antes de subir pra VPS/produção, seguindo [[deliveryhub_dois_clones_server_delivery]]. Branch em ambos repos: `feat/garcom-fila-cozinha`.

@@ -1,0 +1,24 @@
+(index):1 Access to fetch at 'https://application.rocket.new/preview/v1/track' from origin 'https://app-desenvolvimento-delivery.ubjifz.easypanel.host' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+application.rocket.new/preview/v1/track:1  Failed to load resource: net::ERR_FAILED
+(index):1 Access to fetch at 'https://application.rocket.new/preview/v1/track' from origin 'https://app-desenvolvimento-delivery.ubjifz.easypanel.host' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+application.rocket.new/preview/v1/track:1  Failed to load resource: net::ERR_FAILED
+gkeolhhcptavftwloucj.supabase.co/auth/v1/token?grant_type=refresh_token:1  Failed to load resource: the server responded with a status of 400 ()
+/customer-registration-login:1 Access to fetch at 'https://application.rocket.new/preview/v1/track' from origin 'https://app-desenvolvimento-delivery.ubjifz.easypanel.host' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1  POST https://application.rocket.new/preview/v1/track net::ERR_FAILED
+(anonymous) @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+u @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+window.history.pushState @ rocket-web.js?_cfg=https%3A%2F%2Fdeliveryhu8922back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8:1
+g @ index-DkVxDfur.js:40
+(anonymous) @ index-DkVxDfur.js:49
+onClick @ index-DkVxDfur.js:7929
+uH @ index-DkVxDfur.js:37
+gH @ index-DkVxDfur.js:37
+fH @ index-DkVxDfur.js:37
+cP @ index-DkVxDfur.js:37
+NR @ index-DkVxDfur.js:37
+(anonymous) @ index-DkVxDfur.js:37
+FF @ index-DkVxDfur.js:40
+KL @ index-DkVxDfur.js:37
+CD @ index-DkVxDfur.js:37
+sF @ index-DkVxDfur.js:37
+PH @ index-DkVxDfur.js:37

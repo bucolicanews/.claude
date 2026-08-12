@@ -1,0 +1,39 @@
+- [Projeto deliveryhub_white_label](project_deliveryhub_white_label.md) — stack real, features recentes, links pra segurança/design
+- [Vault my_memory](my_memory_vault.md) — mapa do vault Obsidian, onde achar política/ADR/design
+- [Política de segurança JHON](security_policy_jhon.md) — regras obrigatórias (Zero Trust, RLS, RBAC, credenciais)
+- [Diretrizes de engenharia JHON](engineering_guidelines_jhon.md) — SOLID, Clean Arch, limite complexidade ciclomática
+- [Design system delivery](design_system_delivery.md) — paleta/tipografia Rappi-style pro deliveryhub
+- [Fluxo: memória antes + commit sempre](feedback_workflow_memory_commits.md) — checar memória antes de projeto, commitar toda ação bem-sucedida
+- [Setup Supabase local deliveryhub](deliveryhub_supabase_local_setup.md) — portas 5433x, grants schema public, .env local
+- [Branch por tarefa](feedback_branch_por_tarefa.md) — sempre criar branch novo (nunca main direto) ao iniciar tarefa
+- [API URL produção (resolvido)](deliveryhub_pendencia_api_url_producao.md) — VITE_API_URL via src/lib/apiUrl.js, era /api fixo antes
+- [Segredos VPS Supabase](deliveryhub_vps_supabase_secrets.md) — rotação de segredos self-hosted, como colar env completo no EasyPanel
+- [Server submodule + pivot Supabase Cloud](deliveryhub_server_submodule_e_supabase_cloud.md) — server_delivery como submodule, saiu do VPS self-host pra Supabase Cloud, fix bug dev URL
+- [Plano motoboy multi-estabelecimento](deliveryhub_plano_motoboy_multi_estabelecimento.md) — motoboy N:N, comissão fixo/percentual/km, dashboard ganhos — MERGEADO EM MAIN
+- [Ideias módulo RESTAURANTE](deliveryhub_modulo_restaurante_ideias.md) — em coleta, features exclusivas de estabelecimento tipo Restaurante
+- [Dois clones server_delivery](deliveryhub_dois_clones_server_delivery.md) — standalone (VPS) vs submodule (dev), sincronizar sempre via git pull
+- [Usuário roda servers manualmente](feedback_usuario_roda_servers.md) — não subir backend/frontend proativamente, deixar o usuário controlar
+- [Melhorias PDV Salão](deliveryhub_salao_melhorias_pdv.md) — numeração comanda, gorjeta configurável, transferir garçom, dono incluir itens — implementado
+- [Restart backend após pull](feedback_backend_restart_apos_pull.md) — git pull não recarrega processo Node rodando, suspeitar disso quando campo novo sumir/zerar
+- [Filtro geográfico na home](deliveryhub_filtro_geografico_home.md) — Estado/Cidade/Bairro/CEP + raio KM automático via GPS, ViaCEP nos cadastros de endereço
+- [Config LAN local vs VPS](deliveryhub_config_local_lan_vs_vps.md) — submodule=LAN (VITE_API_URL/VITE_LAN_URL=IP da rede), standalone=VPS intocado, gotcha do localhost quebrar no celular
+- [Não inferir página errada](feedback_nao_inferir_pagina_errada.md) — checar código da página citada antes de implementar, não presumir por vocabulário parecido de tarefa anterior
+- [Aba Relatórios](deliveryhub_aba_relatorios_plano.md) — Garçom/Financeiro/Produtos + custo/estoque/lucro — MERGEADO EM MAIN
+- [Caixa fiado + múltiplos caixas](deliveryhub_caixa_fiado_multi_caixa.md) — fiado JÁ EM MAIN; multi-caixa/colaboradores ainda só em branches não mergeadas
+- [Agente impressão local](deliveryhub_agente_impressao_local.md) — app Python detecta impressoras pro backend — MERGEADO EM MAIN
+- [Multi-tipo estabelecimento](deliveryhub_multi_tipo_estabelecimento.md) — CRUD admin + seletor no cadastro já implementados
+- [Venda balcão vira PDV mercado](deliveryhub_venda_balcao_pdv.md) — catálogo+carrinho lado a lado, pagamento multi-forma — branch não mergeada
+- [Gatilho "suba para deploy"](feedback_trigger_suba_para_deploy.md) — frase = sincronizar+memória+commit+push, push de branch feature ≠ deploy real
+- [Sempre local, sem permissão não sobe web](feedback_sempre_local_sem_permissao_web.md) — nunca merge/push main ou Supabase Cloud sem pedir de novo a cada tarefa
+- [Deploy ok mas tela antiga = cache](feedback_deploy_cache_navegador.md) — testar hard refresh/aba anônima antes de suspeitar de bug no deploy
+- [Fix taxa cartão total comanda](deliveryhub_fix_taxa_cartao_total.md) — Salão: taxa não somava no Total/impressão — MERGEADO EM MAIN
+- [Fix taxa cartão resumo caixa](deliveryhub_fix_taxa_cartao_resumo_caixa.md) — Fechar Caixa/relatório sem taxa cartão — MERGEADO EM MAIN, gotcha clone standalone vs submodule
+- [Fix fechar caixa libera mesa](deliveryhub_fix_fechar_caixa_libera_mesa.md) — mesa ocupada libera ao fechar caixa, comanda vira fiado — MERGEADO EM MAIN + deployado
+- [Nunca mudar sem permissão](feedback_nao_mudar_sem_permissao.md) — confirmar plano antes de editar código, não só antes de commitar
+- [Aba Cozinha portal garçom](deliveryhub_garcom_fila_cozinha.md) — fila preparo + tempo médio, implementado branch feat/garcom-fila-cozinha, não testado/mergeado
+- [Taxa cartão portal garçom](deliveryhub_taxa_cartao_garcom_portal.md) — comanda soma taxa + prévia antes de pagar cartão — MERGEADO EM MAIN + TESTADO PRODUÇÃO
+- [Garçom confirma entrega item](deliveryhub_garcom_confirma_entrega_item.md) — botão "Entregar" já em preparando, sincroniza c/ Painel Bar — MERGEADO+TESTADO PRODUÇÃO, gotcha drift migration history Supabase Cloud
+- [Estoque zero bloqueia venda](deliveryhub_estoque_zero_bloqueia_venda.md) — filtro >0 em delivery/garçom/salão, admin/relatório continuam vendo zerados — MERGEADO EM MAIN
+- [Produção itens entregues](deliveryhub_producao_itens_entregues.md) — 3a coluna "Entregues" por setor em /restaurante/producao — MERGEADO+TESTADO PRODUÇÃO
+- [Editar slug restaurante](deliveryhub_editar_slug_restaurante.md) — link /r/:slug editável em Aparência, antes era só gerado automático — MERGEADO+TESTADO PRODUÇÃO
+- [Export JSON relatório produtos](deliveryhub_export_json_produtos.md) — botão "Baixar JSON" em /restaurante/relatorios/produtos — MERGEADO+PUSHADO MAIN, EasyPanel não confirmado

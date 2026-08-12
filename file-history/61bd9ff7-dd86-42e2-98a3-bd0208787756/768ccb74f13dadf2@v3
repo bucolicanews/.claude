@@ -1,0 +1,16 @@
+SUPABASE_URL=https://gkeolhhcptavftwloucj.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=1256eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrZW9saGhjcHRhdmZ0d2xvdWNqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzY5OTMwOSwiZXhwIjoyMDk5Mjc1MzA5fQ.tHha_ekGk2eKyHAE0XWE8lEZlot5nS9mOm4md-3rRhM
+PORT=3002
+MCP_MODE=
+
+# Motoboy (login próprio, JWT — não usa Supabase Auth)
+MOTOBOY_JWT_SECRET=
+NOMINATIM_USER_AGENT=DeliveryHub/1.0 (seu-email@dominio.com)
+
+# Garçom / módulo Salão (login próprio, JWT — não usa Supabase Auth)
+GARCOM_JWT_SECRET=
+
+# PagBank
+PAGBANK_TOKEN=
+PAGBANK_SANDBOX=true
+PAGBANK_WEBHOOK_URL=https://SEU_DOMINIO/pagamentos/webhook

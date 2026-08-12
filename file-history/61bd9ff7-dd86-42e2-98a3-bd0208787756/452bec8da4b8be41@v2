@@ -1,0 +1,14 @@
+---
+name: deliveryhub-modulo-restaurante-ideias
+description: Ideias em coleta (ainda sem plano) pro módulo RESTAURANTE — features exclusivas de estabelecimentos tipo Restaurante
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Coleta de ideias iniciada em 2026-07-14, usuário pediu explicitamente "só registra" — ainda não é plano, só captura de requisitos. Fluxo: registrar ideias → montar plano → executar (nessa ordem, não pular etapas).
+
+**Ideia 1:** criar módulo "RESTAURANTE" — funcionalidades disponíveis **somente** para estabelecimentos cujo tipo (`restaurants.type_id` → `establishment_types`) seja "Restaurante". Implica que outros tipos (Farmácia, Material de Construção — ver [[deliveryhub_multi_tipo_estabelecimento]]) **não** veem essas telas/features — sugere visão maior de módulos específicos por tipo de estabelecimento, não só o restaurante.
+
+**How to apply:** não implementar nada ainda. Continuar registrando as próximas ideias do usuário aqui (ou em memória nova linkada) até ele sinalizar que a coleta terminou e pedir o plano.

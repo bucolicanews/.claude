@@ -1,0 +1,20 @@
+# REPLACE THE VALUES BELOW WITH YOUR ACTUAL KEYS IF NOT AUTOMATICALLY SET
+
+
+VITE_ANTHROPIC_API_KEY=your-anthropic-api-key-here
+VITE_GOOGLE_ANALYTICS_ID=your-google-analytics-id-here
+VITE_ADSENSE_ID=your-adsense-id-here
+VITE_PERPLEXITY_API_KEY=your-perplexity-api-key-here
+VITE_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key-here
+
+
+VITE_SUPABASE_URL=https://gkeolhhcptavftwloucj.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_aHpKqFExy5Bpy7pFPVjq0A_3kalS-3i
+
+# Backend server_delivery. Vazio = usa proxy do Vite em dev (/api -> VPS).
+# Em produção (build/deploy), precisa apontar pro backend na VPS:
+# VITE_API_URL=https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host
+# VITE_API_URL=https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host
+VITE_API_URL=http://localhost:3002
+
+

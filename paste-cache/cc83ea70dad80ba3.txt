@@ -1,0 +1,145 @@
+Comanda #6
+María · 666
+
+Garçom: RAFAELA
+
+Em aberto
+Mostrar QR pro cliente
+
+Transferir pra outro garçom...
+Transferir
+
+Transferir mesa/comanda pra...
+Transferir
+
+1x Água de 500ml
+R$ 5,00
+−
++
+
+
+2x Coxinha de Frango
+R$ 16,00
+−
++
+
+
+1x Coxinha de Carne
+R$ 8,00
+−
++
+
+
+1x Coca 2Litro
+R$ 18,00
+−
++
+
+
+1x Coxinha de Frango
+R$ 8,00
+−
++
+
+
+1x Pex.Bife Empanado
+R$ 40,00
+−
++
+
+
+1x Pex. Filé de gó frita
+R$ 35,00
+−
++
+
+
+1x Pex. Bife Acebolado
+R$ 35,00
+−
++
+
+
+1x MIsto par P/ 2 Pesssoas
+R$ 60,00
+−
++
+
+
+1x Carveja Tijuca ( garrafa ) 600ml
+R$ 10,00
+−
++
+
+
+1x Carveja Tijuca ( garrafa ) 600ml
+R$ 10,00
+−
++
+
+
+1x Carveja Tijuca ( garrafa ) 600ml
+R$ 10,00
+−
++
+
+
+2x Água de 500ml
+R$ 10,00
+−
++
+
+
+1x Carveja Tijuca ( garrafa ) 600ml
+R$ 10,00
+−
++
+
+
+1x Carveja Tijuca ( garrafa ) 600ml
+R$ 10,00
+−
++
+
+Incluir produto
+Imprimir comanda (conferência)
+Subtotal
+R$ 285,00
+Desconto
+0
+Aplicar
+Acréscimo
+0
+Aplicar
+Total
+R$ 285,00
+Saldo devedor
+R$ 140,60
+Dinheiro (garçom)
+R$ 70,00
+
+
+Cartão crédito (garçom) + taxa R$ 5,60
+R$ 85,60
+
+
+Valor
+
+PIX
+Pagar parcial
+Forma de pagamento
+PIX
+Gorjeta (sugerida 10% — ajustável)
+28,5
+Valor da comanda
+R$ 285,00
+Gorjeta
+R$ 28,50
+Total (comanda + gorjeta)
+R$ 313,50
+Já pago
+- R$ 150,00
+Falta pagar (com gorjeta)
+R$ 169,10
+Cancelar comanda
+Confirmar pagamento

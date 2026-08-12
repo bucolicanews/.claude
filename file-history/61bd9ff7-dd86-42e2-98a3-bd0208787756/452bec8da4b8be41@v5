@@ -1,0 +1,52 @@
+---
+name: deliveryhub-modulo-restaurante-ideias
+description: Ideias em coleta (ainda sem plano) pro módulo RESTAURANTE — features exclusivas de estabelecimentos tipo Restaurante
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Coleta de ideias iniciada em 2026-07-14, usuário pediu explicitamente "só registra" — ainda não é plano, só captura de requisitos. Fluxo: registrar ideias → montar plano → executar (nessa ordem, não pular etapas).
+
+**Ideia 1:** criar módulo "RESTAURANTE" — funcionalidades disponíveis **somente** para estabelecimentos cujo tipo (`restaurants.type_id` → `establishment_types`) seja "Restaurante". Implica que outros tipos (Farmácia, Material de Construção — ver [[deliveryhub_multi_tipo_estabelecimento]]) **não** veem essas telas/features — sugere visão maior de módulos específicos por tipo de estabelecimento, não só o restaurante.
+
+**Ideia 2:** botão de acesso ao módulo aparece na barra superior (nav do painel) — só pra quem for tipo Restaurante (reforça ideia 1).
+
+**Ideia 3:** dentro do módulo Restaurante, controle de pedidos **configurável pelo estabelecimento**, com dois modos (dono escolhe um):
+- **Por mesa**: painel mostrando mesa por mesa (grid visual, status de cada mesa).
+- **Por comanda**: comanda é criada à medida que os clientes vão chegando (não necessariamente presa a uma mesa física).
+
+**Ideia 4:** tabela de cadastro de **garçons** (novo tipo de colaborador do restaurante, separado de motoboy).
+
+**Ideia 5:** comissão do garçom configurável — dois tipos de comissão, podendo cadastrar **mais de uma comissão** simultânea, cada uma com: nome, valor, e base de cálculo (ex: % sobre venda, valor fixo, etc. — base de cálculo ainda não detalhada, definir no plano).
+
+**Ideia 6:** relatórios de vendas do módulo restaurante, com filtros por:
+- Total
+- Por garçom
+- Descontos
+- Comissão por garçom
+- Gorjeta por garçom
+- Comissão + gorjeta somadas (visão combinada)
+- Período: por mês, por dia, ou intervalo customizado
+
+**Ideia 7 — cadastro e acesso do garçom:**
+- Garçom é cadastrado **pelo estabelecimento** (não self-service como motoboy — diferença importante em relação ao módulo motoboy).
+- Cada garçom tem **key própria + senha própria** pra entrar no app.
+- Garçom recebe um **link próprio** (só entra com a senha) — acessa pelo celular.
+- Fluxo de venda do garçom: abre mesa OU cria comanda → inclui produtos.
+- **Obrigatório**: ao abrir mesa/comanda, informar nome e telefone do cliente **antes** de iniciar as vendas — precisa de nova tabela pra guardar esse cadastro de cliente da mesa/comanda (pode ou não ser o mesmo `customers` já existente do módulo delivery — decidir no plano).
+
+**Ideia 8 — permissões/restrições do garçom** (configuráveis pelo estabelecimento, por garçom ou globalmente — decidir no plano):
+- Não pode dar desconto.
+- Não pode cancelar mesa/comanda.
+- Sugestões adicionais pra avaliar no plano (ainda não confirmadas com o usuário):
+  - Não pode remover item já enviado pra cozinha.
+  - Não pode alterar preço de produto.
+  - Não pode mexer no caixa (abrir/fechar).
+  - Não pode ver comissão/vendas de outros garçons.
+  - Limite máximo de desconto (se a permissão de desconto for liberada).
+  - Não pode reabrir mesa/comanda já fechada.
+  - Transferência de mesa/comanda entre garçons só com autorização do dono.
+
+**How to apply:** não implementar nada ainda. Continuar registrando as próximas ideias do usuário aqui até ele sinalizar que a coleta terminou e pedir o plano.

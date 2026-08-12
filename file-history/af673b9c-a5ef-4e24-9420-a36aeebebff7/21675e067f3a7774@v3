@@ -1,0 +1,306 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  login, getColaboradorToken, setColaboradorToken, clearColaboradorToken,
+  getMe, getProdutos, abrirCaixa, fecharCaixa, vendaDireta,
+} from '../../services/colaboradorService';
+import Icon from '../../components/AppIcon';
+
+const fmt = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v ?? 0);
+
+const ColaboradorLogin = ({ loginKey, onLogin }) => {
+  const [password, setPassword] = useState('');
+  const [erro, setErro] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErro(null);
+    setLoading(true);
+    try {
+      const { token } = await login(loginKey, password);
+      setColaboradorToken(token);
+      onLogin();
+    } catch (err) {
+      setErro(err.message ?? 'Senha inválida.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F5] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl border border-[#E4E4E7] p-6 w-full max-w-sm shadow-lg">
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 bg-[#FF441F]/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Icon name="Wallet" size={28} className="text-[#FF441F]" />
+          </div>
+          <h1 className="text-lg font-black text-[#18181B]">Portal do Colaborador</h1>
+          <p className="text-sm text-[#71717A] mt-1">Digite sua senha pra entrar</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Senha"
+            autoFocus
+            required
+            className="w-full border border-[#E4E4E7] rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-[#FF441F]"
+          />
+          {erro && <p className="text-xs text-red-600">{erro}</p>}
+          <button type="submit" disabled={loading}
+            className="w-full py-3 bg-[#FF441F] text-white font-bold rounded-xl hover:bg-[#E63A19] disabled:opacity-50 text-sm">
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const AbrirCaixaView = ({ nome, setor, onAberto }) => {
+  const [valorInicial, setValorInicial] = useState('');
+  const [erro, setErro] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const abrir = async () => {
+    setErro(null);
+    setSalvando(true);
+    try {
+      await abrirCaixa(parseFloat(valorInicial) || 0);
+      onAberto();
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F5] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl border border-[#E4E4E7] p-6 w-full max-w-sm shadow-lg text-center">
+        <Icon name="Wallet" size={28} className="text-[#FF441F] mx-auto mb-3" />
+        <h1 className="text-base font-bold text-[#18181B]">Caixa: {setor}</h1>
+        <p className="text-xs text-[#71717A] mt-1 mb-4">{nome}, abra o caixa pra começar a vender.</p>
+        <input type="number" min="0" step="0.01" value={valorInicial} onChange={(e) => setValorInicial(e.target.value)}
+          placeholder="Valor inicial (R$)"
+          className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-sm mb-3 focus:outline-none focus:border-[#FF441F]" />
+        {erro && <p className="text-xs text-red-600 mb-3">{erro}</p>}
+        <button onClick={abrir} disabled={salvando}
+          className="w-full py-3 bg-[#FF441F] text-white font-bold rounded-xl hover:bg-[#E63A19] disabled:opacity-50 text-sm">
+          {salvando ? 'Abrindo...' : 'Abrir caixa'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const ProdutoPicker = ({ produtos, onAdicionar }) => {
+  const [busca, setBusca] = useState('');
+  const filtrados = produtos.filter((p) => p.name.toLowerCase().includes(busca.toLowerCase()));
+
+  return (
+    <div>
+      <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto..."
+        className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2 text-sm mb-2 focus:outline-none focus:border-[#FF441F]" />
+      <div className="space-y-1 max-h-64 overflow-y-auto">
+        {filtrados.map((p) => (
+          <button key={p.id} onClick={() => onAdicionar(p)}
+            className="w-full flex justify-between items-center px-3 py-2 bg-[#FAFAFA] rounded-xl text-left hover:bg-[#F4F4F5]">
+            <span className="text-sm text-[#18181B]">{p.name}</span>
+            <span className="text-sm font-bold text-[#18181B]">{fmt(p.price)}</span>
+          </button>
+        ))}
+        {filtrados.length === 0 && <p className="text-xs text-[#A1A1AA] text-center py-4">Nenhum produto encontrado.</p>}
+      </div>
+    </div>
+  );
+};
+
+const FecharCaixaView = ({ resumo, onFechar, onCancelar, fechando }) => {
+  const [dinheiroContado, setDinheiroContado] = useState('');
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h2 className="text-base font-bold text-[#18181B] mb-3">Fechar caixa</h2>
+        <div className="bg-[#FAFAFA] rounded-xl p-3 mb-3 text-sm">
+          <div className="flex justify-between py-1"><span className="text-[#71717A]">Vendas</span><span className="font-semibold">{fmt(resumo?.total_vendas)}</span></div>
+          <div className="flex justify-between py-1 font-bold"><span>Saldo</span><span>{fmt(resumo?.saldo)}</span></div>
+        </div>
+        <input type="number" min="0" step="0.01" value={dinheiroContado} onChange={(e) => setDinheiroContado(e.target.value)}
+          placeholder="Quanto você conta em dinheiro?"
+          className="w-full border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-sm mb-3 focus:outline-none focus:border-[#FF441F]" />
+        <div className="flex gap-2">
+          <button onClick={onCancelar} className="flex-1 py-2.5 text-sm border border-[#E4E4E7] rounded-xl text-[#71717A]">Cancelar</button>
+          <button onClick={() => onFechar(parseFloat(dinheiroContado) || 0)} disabled={fechando}
+            className="flex-1 py-2.5 text-sm bg-red-500 text-white rounded-xl font-bold disabled:opacity-50">
+            {fechando ? 'Fechando...' : 'Fechar caixa'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ColaboradorHome = () => {
+  const [me, setMe] = useState(null);
+  const [produtos, setProdutos] = useState([]);
+  const [carrinho, setCarrinho] = useState([]);
+  const [mostrarPicker, setMostrarPicker] = useState(false);
+  const [forma, setForma] = useState('pix');
+  const [mostrarFechar, setMostrarFechar] = useState(false);
+  const [fechando, setFechando] = useState(false);
+  const [vendendo, setVendendo] = useState(false);
+  const [erro, setErro] = useState(null);
+
+  const carregar = useCallback(async () => {
+    const m = await getMe();
+    setMe(m);
+    if (m.aberto) getProdutos().then(setProdutos).catch(() => {});
+  }, []);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  if (!me) return <div className="min-h-screen bg-[#F4F4F5] flex items-center justify-center text-sm text-[#71717A]">Carregando...</div>;
+
+  if (!me.aberto) return <AbrirCaixaView nome={me.nome} setor={me.setor} onAberto={carregar} />;
+
+  const total = carrinho.reduce((acc, i) => acc + i.quantity * i.price, 0);
+
+  const adicionar = (produto) => {
+    setCarrinho((c) => {
+      const existente = c.find((i) => i.product_id === produto.id);
+      if (existente) return c.map((i) => (i === existente ? { ...i, quantity: i.quantity + 1 } : i));
+      return [...c, { product_id: produto.id, name: produto.name, price: produto.price, quantity: 1 }];
+    });
+    setMostrarPicker(false);
+  };
+
+  const finalizarVenda = async () => {
+    if (!carrinho.length) return;
+    setErro(null);
+    setVendendo(true);
+    try {
+      await vendaDireta(carrinho.map((i) => ({ product_id: i.product_id, quantity: i.quantity })), forma);
+      setCarrinho([]);
+      carregar();
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setVendendo(false);
+    }
+  };
+
+  const handleFechar = async (dinheiroContado) => {
+    setFechando(true);
+    try {
+      await fecharCaixa({ dinheiro_contado: dinheiroContado });
+      setMostrarFechar(false);
+      clearColaboradorToken();
+      window.location.reload();
+    } catch (err) {
+      if (err.data?.pedidos || err.data?.comandas || err.data?.mesas) {
+        if (window.confirm('Existem pendências em aberto. Fechar mesmo assim e deixar pendente?')) {
+          try {
+            await fecharCaixa({ dinheiro_contado: dinheiroContado, permitir_pendencias: true });
+            setMostrarFechar(false);
+            clearColaboradorToken();
+            window.location.reload();
+          } catch (e2) { alert(e2.message); }
+        }
+      } else {
+        alert(err.message);
+      }
+    } finally {
+      setFechando(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F5] pb-6">
+      <div className="bg-white border-b border-[#E4E4E7] p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-base font-bold text-[#18181B]">Caixa: {me.setor}</h1>
+            <p className="text-xs text-[#71717A]">{me.nome} · vendas: {fmt(me.caixa?.resumo?.total_vendas)}</p>
+          </div>
+          <button onClick={() => setMostrarFechar(true)}
+            className="px-3 py-2 bg-red-500 text-white text-xs font-bold rounded-xl hover:bg-red-600">
+            Fechar caixa
+          </button>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <button onClick={() => setMostrarPicker(true)}
+          className="w-full mb-3 py-2.5 bg-white border border-[#E4E4E7] hover:bg-[#F4F4F5] text-[#27272A] rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+          <Icon name="Plus" size={16} /> Adicionar produto
+        </button>
+
+        {mostrarPicker && (
+          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setMostrarPicker(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-md p-4" onClick={(e) => e.stopPropagation()}>
+              <ProdutoPicker produtos={produtos} onAdicionar={adicionar} />
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl border border-[#E4E4E7] p-4">
+          <div className="space-y-1 mb-3">
+            {carrinho.map((i) => (
+              <div key={i.product_id} className="flex justify-between text-sm">
+                <span>{i.quantity}x {i.name}</span>
+                <span className="font-bold">{fmt(i.quantity * i.price)}</span>
+              </div>
+            ))}
+            {carrinho.length === 0 && <p className="text-xs text-[#A1A1AA] text-center py-3">Carrinho vazio.</p>}
+          </div>
+          {carrinho.length > 0 && (
+            <>
+              <div className="flex justify-between text-sm font-bold border-t border-[#F4F4F5] pt-2 mb-3">
+                <span>Total</span><span>{fmt(total)}</span>
+              </div>
+              <div className="flex gap-2 mb-3">
+                {['pix', 'cash', 'credit_card', 'debit_card'].map((f) => (
+                  <button key={f} onClick={() => setForma(f)}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-lg border ${forma === f ? 'bg-[#FF441F] text-white border-[#FF441F]' : 'border-[#E4E4E7] text-[#71717A]'}`}>
+                    {{ pix: 'PIX', cash: 'Dinheiro', credit_card: 'Crédito', debit_card: 'Débito' }[f]}
+                  </button>
+                ))}
+              </div>
+              {erro && <p className="text-xs text-red-600 mb-2">{erro}</p>}
+              <button onClick={finalizarVenda} disabled={vendendo}
+                className="w-full py-2.5 bg-[#FF441F] text-white text-sm font-bold rounded-xl disabled:opacity-50">
+                {vendendo ? 'Vendendo...' : 'Finalizar venda'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {mostrarFechar && (
+        <FecharCaixaView
+          resumo={me.caixa?.resumo}
+          fechando={fechando}
+          onFechar={handleFechar}
+          onCancelar={() => setMostrarFechar(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+const ColaboradorPortal = () => {
+  const { loginKey } = useParams();
+  const [authed, setAuthed] = useState(!!getColaboradorToken());
+
+  if (!authed) {
+    return <ColaboradorLogin loginKey={loginKey} onLogin={() => setAuthed(true)} />;
+  }
+
+  return <ColaboradorHome />;
+};
+
+export default ColaboradorPortal;

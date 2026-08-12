@@ -1,0 +1,18 @@
+import { Module } from '@nestjs/common';
+import { ColaboradoresService } from './colaboradores.service';
+import { ColaboradorAuthService } from './colaborador-auth.service';
+import { ColaboradorAuthController } from './colaborador-auth.controller';
+import { RestauranteColaboradoresController } from './restaurante-colaboradores.controller';
+import { ColaboradorOperacoesService } from './colaborador-operacoes.service';
+import { ColaboradorController } from './colaborador.controller';
+import { AuthModule } from '../auth/auth.module';
+import { SupabaseModule } from '../supabase/supabase.module';
+import { SalaoModule } from '../salao/salao.module';
+import { RestauranteModule } from '../restaurante/restaurante.module';
+
+@Module({
+  imports: [AuthModule, SupabaseModule, SalaoModule, RestauranteModule],
+  controllers: [ColaboradorAuthController, RestauranteColaboradoresController, ColaboradorController],
+  providers: [ColaboradoresService, ColaboradorAuthService, ColaboradorOperacoesService],
+})
+export class ColaboradoresModule {}

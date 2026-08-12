@@ -1,0 +1,19 @@
+---
+name: deliveryhub-branches-pendentes-2026-07-14
+description: "branches ainda não mergeadas em main (deliveryhub_white_label + server_delivery) em 2026-07-14, aguardando teste do usuário"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Snapshot de 2026-07-14 — branches abertas nos dois repos, aguardando o usuário testar antes do merge pra `main`. **Verificar estado atual antes de assumir que ainda estão abertas** (`git branch -a` / `git log main --oneline`).
+
+- `fix/upload-imagem-produto` (frontend) — upload de imagem no form de produto + foto do produto na comanda (garçom e PDV). Já mergeada? checar.
+- `feature/garcom-busca-categoria-observacao` (frontend) — picker de produto por busca/categoria + observação por item no portal do garçom.
+- `feature/garcom-categoria-observacao` (backend `server_delivery`) — par da branch acima (expõe `category_name` e `observacao`).
+- `feature/agente-impressao-local` (frontend **e** backend) — agente de impressão Python local, ver [[deliveryhub_agente_impressao_local]]. Testado nesta sessão via smoke test + teste real com impressoras da máquina do dev; usuário ainda vai testar do lado dele antes do merge.
+
+**Why:** múltiplas features grandes em paralelo nesta sessão (módulo Salão inteiro + ajustes + agente de impressão) geraram várias branches simultâneas nos dois repos — fácil perder o controle de qual já foi testada/mergeada.
+
+**How to apply:** antes de começar trabalho novo relacionado ao módulo Salão/garçom/impressoras, checar `git branch -a` nos dois repos (frontend e o clone standalone de `server_delivery` em `C:\Users\Micro\3D Objects\DEV\server_delivery` — ver [[deliveryhub_dois_clones_server_delivery]]) pra saber o que já está em main vs. ainda em teste.

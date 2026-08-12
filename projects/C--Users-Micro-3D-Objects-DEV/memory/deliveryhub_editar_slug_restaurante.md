@@ -1,0 +1,26 @@
+---
+name: deliveryhub-editar-slug-restaurante
+description: Dono edita o link /r/:slug da própria página em Aparência ("Editar link") — MERGEADO EM MAIN + TESTADO PRODUÇÃO
+metadata:
+  type: project
+  originSessionId: current
+  modified: 2026-07-25T16:40:18.321Z
+---
+
+Usuário perguntou onde editar o `slug` da URL pública (`/r/restaurante-demo`) — resposta era "em lugar nenhum ainda": campo `restaurants.slug` era gerado automaticamente no onboarding (a partir do nome) e só aparecia **exibido** (não editável) em Config → Aparência e no admin da plataforma. Sem endpoint de update.
+
+Implementado a pedido, mesma sessão:
+
+**Backend** (`restaurante.service.ts` `updateEmpresa`, endpoint já existente `PATCH /restaurante/minha-empresa`): aceita `slug` agora. Valida formato (`^[a-z0-9]+(-[a-z0-9]+)*$`, 3-60 chars) e trata erro de unicidade Postgres (`code 23505`, a coluna `slug` já tem `UNIQUE` desde a migration original) devolvendo 409 "já em uso por outro estabelecimento". Mesmo padrão de validação que `atualizarDominio` já usava pro domínio personalizado.
+
+**Gotcha verificado antes de implementar:** existe um trigger Postgres (`trg_restaurant_slug`, migration `20260606000000_add_slug_restaurants.sql`) que auto-gera slug — mas só dispara em `BEFORE UPDATE OF name` E só quando `slug IS NULL/''`. Como o update é direto na coluna `slug` (não em `name`), o trigger não interfere; e mesmo que o nome mude depois, não sobrescreve um slug já definido manualmente (condição do trigger checa slug vazio primeiro).
+
+**Frontend** (`restaurante-aparencia/index.jsx`, seção "Link da sua página"): botão "Editar link" troca a exibição read-only por um input com prefixo `/r/`, validação de formato no placeholder/hint, e feedback de erro/sucesso. Segue o mesmo padrão visual/de estado que a seção de Domínio personalizado logo abaixo já usava.
+
+Sem migration nova (coluna e constraint já existiam).
+
+Commits mergeados em `main` (2026-07-25), testado local antes do push:
+- backend (`server_delivery`, submodule + standalone sincronizados): branch `feat/editar-slug-restaurante`, commit `b618487`.
+- frontend (`deliveryhub_white_label`): branch `feat/editar-slug-restaurante`, commit `48bb4a4`.
+
+Testado e confirmado pelo usuário em produção 2026-07-25.

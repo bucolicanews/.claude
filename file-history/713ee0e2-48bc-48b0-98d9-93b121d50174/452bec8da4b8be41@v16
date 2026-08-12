@@ -1,0 +1,177 @@
+---
+name: deliveryhub-modulo-restaurante-ideias
+description: Ideias em coleta (ainda sem plano) pro módulo RESTAURANTE — features exclusivas de estabelecimentos tipo Restaurante
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 61bd9ff7-dd86-42e2-98a3-bd0208787756
+---
+
+Coleta de ideias iniciada em 2026-07-14, usuário pediu explicitamente "só registra" — ainda não é plano, só captura de requisitos. Fluxo: registrar ideias → montar plano → executar (nessa ordem, não pular etapas).
+
+**Ideia 1:** criar módulo "RESTAURANTE" — funcionalidades disponíveis **somente** para estabelecimentos cujo tipo (`restaurants.type_id` → `establishment_types`) seja "Restaurante". Implica que outros tipos (Farmácia, Material de Construção — ver [[deliveryhub_multi_tipo_estabelecimento]]) **não** veem essas telas/features — sugere visão maior de módulos específicos por tipo de estabelecimento, não só o restaurante.
+
+**Ideia 2:** botão de acesso ao módulo aparece na barra superior (nav do painel) — só pra quem for tipo Restaurante (reforça ideia 1).
+
+**Ideia 3 (refinada 2026-07-15):** dentro do módulo Restaurante, controle de pedidos **configurável pelo estabelecimento**, com três modos (dono escolhe um, não dois fixos):
+- **Somente mesas**: só permite abrir comanda vinculada a mesa cadastrada.
+- **Somente comandas**: só permite comanda avulsa (sem mesa), não usa mesas.
+- **Os dois**: comportamento atual (mesa OU avulsa, sem restrição) — vira só mais uma opção, não o único modo.
+Hoje os dois coexistem sem esse toggle de configuração — precisa de um campo de config no restaurante (ex. `salao_modo`: 'mesas' | 'comandas' | 'ambos') e o `AbrirComandaModal`/`abrirComanda` (backend) respeitando essa regra.
+
+**Ideia 4:** tabela de cadastro de **garçons** (novo tipo de colaborador do restaurante, separado de motoboy).
+
+**Ideia 5:** comissão do garçom configurável — dois tipos de comissão, podendo cadastrar **mais de uma comissão** simultânea, cada uma com: nome, valor, e base de cálculo (ex: % sobre venda, valor fixo, etc. — base de cálculo ainda não detalhada, definir no plano).
+
+**Ideia 5 (refinada 2026-07-15) — ganho do garçom, duas fontes separadas:**
+1. **Gorjeta**: já configurada via `gorjeta_percentual` do restaurante — o garçom que atendeu a comanda **ganha sempre 100%** dela (não é repartida). Precisa de um **checkbox "incluir gorjeta" por comanda** (tanto na tela do garçom quanto na do estabelecimento), marcado por padrão quando `gorjeta_percentual > 0` — desmarcar remove a gorjeta da conta final **daquela comanda específica** (cliente recusou gorjeta naquela mesa). Se a config geral for 0%, não há gorjeta em lugar nenhum (já é o comportamento atual).
+2. **Comissão da casa** (`garcom_comissoes_config`, ver ideia 5 original): precisa de um **terceiro tipo** além de percentual/fixo: **CLT** — garçom é funcionário registrado, pago no fechamento do mês, **sem comissão variável por venda**. Quando o tipo for CLT, não lança `garcom_comissoes_lancamentos` por comanda (ou lança com valor 0 e uma nota "CLT — sem comissão variável").
+
+**Ideia 6 (refinada 2026-07-15) — relatório precisa decompor por garçom:**
+- Conferência diária, mensal e por intervalo customizado, mostrando por garçom: **total vendido**, **total de gorjeta recebida**, e **total ganho da casa** (comissão calculada) — ou nota indicando "CLT" quando não há comissão variável.
+
+**Ideia 6:** relatórios de vendas do módulo restaurante, com filtros por:
+- Total
+- Por garçom
+- Descontos
+- Comissão por garçom
+- Gorjeta por garçom
+- Comissão + gorjeta somadas (visão combinada)
+- Período: por mês, por dia, ou intervalo customizado
+
+**Ideia 7 — cadastro e acesso do garçom:**
+- Garçom é cadastrado **pelo estabelecimento** (não self-service como motoboy — diferença importante em relação ao módulo motoboy).
+- Cada garçom tem **key própria + senha própria** pra entrar no app.
+- Garçom recebe um **link próprio** (só entra com a senha) — acessa pelo celular.
+- Fluxo de venda do garçom: abre mesa OU cria comanda → inclui produtos.
+- **Obrigatório**: ao abrir mesa/comanda, informar nome e telefone do cliente **antes** de iniciar as vendas — precisa de nova tabela pra guardar esse cadastro de cliente da mesa/comanda (pode ou não ser o mesmo `customers` já existente do módulo delivery — decidir no plano).
+
+**Ideia 8 — permissões/restrições do garçom** (configuráveis pelo estabelecimento, por garçom ou globalmente — decidir no plano):
+- Não pode dar desconto.
+- Não pode cancelar mesa/comanda.
+- Sugestões adicionais pra avaliar no plano (ainda não confirmadas com o usuário):
+  - Não pode remover item já enviado pra cozinha.
+  - Não pode alterar preço de produto.
+  - Não pode mexer no caixa (abrir/fechar).
+  - Não pode ver comissão/vendas de outros garçons.
+  - Limite máximo de desconto (se a permissão de desconto for liberada).
+  - Não pode reabrir mesa/comanda já fechada.
+  - Transferência de mesa/comanda entre garçons só com autorização do dono.
+
+**Ideia 9 — fluxo de fechamento de mesa/comanda:**
+1. Garçom fecha a comanda → mesa fica **bloqueada pra pagamento** (não aceita mais pedidos/alterações).
+2. Garçom **informa a forma de pagamento**, mas não finaliza — só o **caixa do estabelecimento** fecha de fato.
+3. Caixa fecha e **gera o recibo do cliente** nesse momento.
+
+Ou seja: garçom = frente de venda e coleta da forma de pagamento; caixa = conferência e emissão de recibo (separação de responsabilidade, provável controle antifraude/conferência de valores).
+
+**Ideia 10 — painel do caixa (lado estabelecimento):**
+- Fluxo começa com **abertura do caixa**.
+- Visão de **garçons online** no momento.
+- Painel de **mesas e comandas** (grid/lista).
+- Clicar numa mesa/comanda abre **detalhes** dela.
+- Dentro do detalhe, ações liberadas **só pro caixa/estabelecimento** (não pro garçom): **cancelar**, **dar desconto**, **acréscimo**.
+
+Reforça ideia 9: garçom só vende e informa forma de pagamento; cancelamento/desconto/acréscimo é exclusivo do caixa, no painel de abertura de caixa.
+
+**Ideia 11 — controle por impressora (cozinha/bar/salgados etc.):**
+- Cadastro de **impressoras** (instalada local ou em rede), cada uma com um nome/setor (ex: cozinha, bar, salgados).
+- Ao cadastrar **produto**, informar qual impressora ele deve imprimir quando vendido.
+- Envio pro KDS/impressão é **incremental**: item só é impresso **uma vez**, no momento em que o pedido (ou parte dele) é enviado.
+- Se depois for adicionado outro item à mesma comanda, **só o item novo** é enviado/impresso — os que já foram enviados **não** são reenviados.
+
+Implica: preciso rastrear por item da comanda um status tipo "enviado/impresso" (timestamp ou flag), pra não duplicar impressão em pedidos com múltiplos envios (comanda aberta recebendo itens ao longo do tempo).
+
+**Ideia 12 — telas por setor (KDS):**
+- Tela da **cozinha** já existe (módulo delivery atual).
+- Nova tela do **bar**: mostra pedidos enviados pelos garçons, com status tipo "recebido o pedido" → "bebida enviada".
+- Toda vez que um item é enviado (pro setor/impressora correspondente, ver ideia 11), ele **também imprime** o pedido nesse momento.
+- Sugere: tela por setor = mesma lógica da cozinha, só filtrando pelo `impressora`/setor do produto (ideia 11) — provável tela genérica reaproveitável (cozinha/bar/salgados) em vez de uma tela hardcoded por setor.
+
+**Ideia 13 — dashboard de acompanhamento (delivery e restaurante, mesma sistemática):**
+- Dashboard do delivery (já existe, cliente acompanha status do pedido) e dashboard do restaurante seguem a **mesma lógica** de acompanhamento de preparo.
+- No restaurante: garçom acompanha o preparo (status da comanda/itens) do mesmo jeito.
+- Gera um **QR code** pra cliente acessar e acompanhar o preparo também (equivalente ao tracking do delivery, mas pra mesa/comanda física).
+
+Reforça ideia 12: status por item (recebido/enviado/pronto) alimenta tanto tela do garçom quanto o QR code do cliente — mesma fonte de dado, telas diferentes.
+
+**Ideia 14 — PDV do caixa/operador:**
+- Criar um **PDV** pro caixa/operador, pra finalização das vendas.
+- Controle total das vendas do dia.
+
+Reforça ideias 9/10: PDV é a ferramenta de trabalho do caixa (abrir caixa, ver mesas/comandas, finalizar pagamento, cancelar/desconto/acréscimo, fechar dia com controle total).
+
+**Ideia 15 — Dashboard principal não reflete vendas do salão (2026-07-15):**
+- Dashboard do restaurante (`restaurante-dashboard`) hoje só mostra números do **delivery** — vendas de comanda/mesa (módulo Salão) não aparecem lá.
+- Usuário quer que **tudo se concentre no caixa aberto**: quando uma comanda fecha, as informações (saídas, entradas, forma de pagamento, trocos) devem aparecer no Dashboard **da mesma forma que já aparece pro delivery** — um único painel financeiro, não dois mundos separados.
+- Ver [[deliveryhub_salao_troco_financeiro_plano]] pro plano técnico já em andamento (troco/gorjeta no caixa) — essa ideia pede ir além: o Dashboard principal (não só o painel de Caixa/Financeiro) precisa consolidar as duas fontes (delivery + salão).
+
+**Ideia 16 — Linha de produção do Salão com alarme pro garçom (2026-07-15):**
+- Quer o **mesmo fluxo do delivery** aplicado à comanda: pedido → preparo → "pronto" — no delivery esse último estágio é o que avisa o motoboy que tem comida pra retirar; no modo Restaurante, o equivalente deve **gerar um alarme no celular do garçom** avisando "prato X da mesa Y está pronto pra buscar".
+- Implica notificação push (ou equivalente) direcionada ao garçom responsável pela comanda, disparada quando um item entra em status "pronto" (ver ideia 11/12 sobre status por item).
+
+**Ideia 17 — Tela de Copa/Bar, detalhe de UI (reforça ideia 12) — IMPLEMENTADO 2026-07-15:**
+- Existem **duas** telas de Copa/Bar agora, propósitos diferentes:
+  1. `restaurante-kds-setor` (`/restaurante/kds?impressora_id=X&setor=Y`) — genérica por impressora, acesso via **token compartilhado** (`cozinha_token`, sem login), pra exibir num tablet fixo no balcão. Backend já existia (`getKdsSetor`/`marcarItemPronto` em `restaurante.service.ts`, rota em `kds-portal.controller.ts` com `CozinhaGuard`); adicionei botão de **"Reimpressão"** (`salaoService.reimprimirGrupo`) que faltava.
+  2. `restaurante-bar` (`/restaurante/bar`) — **novo**, dono acessa **direto logado** (sem link/token separado), mesmo padrão de acesso da tela `/restaurante/cozinha`. Filtra automaticamente impressoras cujo `setor` contém "bar" (case-insensitive) e agrega os itens delas. Mesmo tema escuro/alerta sonoro da Cozinha. Rotas backend novas: `GET/PATCH/POST restaurante/kds*` em `restaurante.controller.ts` (RestaurantOwnerGuard, reaproveita os mesmos métodos de serviço).
+- Botão "Copa/Bar" na barra superior (Dashboard/Financeiro, ao lado de "Cozinha") aponta pra `/restaurante/bar` (opção 2 — acesso direto do dono).
+
+**Ideia 18 — Dashboard com cards por forma de pagamento (2026-07-15):**
+- No Dashboard (principal, ver ideia 15), mostrar cards com o total recebido **por modalidade de pagamento** (Dinheiro, PIX, Cartão de crédito, Cartão de débito etc.), consolidando delivery + salão.
+- Reforça ideia 15: precisa da mesma consolidação das duas fontes de venda antes de conseguir montar esses cards corretamente.
+
+**Ideia 27 — Pipeline de 2 estágios pro item do salão (Aguardando → Iniciar Preparo → Em Preparo) — IMPLEMENTADO 2026-07-16:**
+- Item de comanda agora tem status `enviado` → `preparando` → `pronto` (antes era só `enviado`→`pronto`, direto). Ação "Iniciar Preparo" move TODO o grupo (comanda+impressora) de uma vez, mesmo padrão do pedido de delivery (ação por pedido, não por item individual).
+- Também corrigido: ordem de chegada nos painéis (Bar/Cozinha/Produção) — quando há mais de uma impressora do mesmo setor, precisa ordenar pelo item mais antigo de cada grupo, não pela ordem das impressoras.
+- Backend: `getKdsSetor` retorna `status` por grupo (`aguardando`/`preparando`); `iniciarPreparoGrupo` novo. Migration: `order_items.status` aceita `'preparando'`.
+
+**Ideia 26 — Cozinha também mostra comandas do salão — IMPLEMENTADO 2026-07-16 (reverte decisão anterior):**
+- Usuário voltou atrás da escolha "manter separado" (ideia 24) — quer controle total numa tela só: `/restaurante/cozinha` agora mostra tanto pedidos de delivery (como sempre) quanto itens de comanda do salão roteados pra impressora(s) de setor "Cozinha", numa seção nova "Comandas do Salão" (Pronto + Reimpressão), igual `/restaurante/bar` já fazia pro setor Bar.
+- Funciona nos dois modos da tela (dono logado OU link/token compartilhado) — precisou de rota nova `GET kds-portal/impressoras` pro modo token também listar impressoras (antes só existia pro dono via `listarImpressoras`).
+- `/restaurante/bar` e `/restaurante/producao` continuam existindo (o usuário pediu pra restaurar o Bar depois de eu ter apagado ao generalizar — hoje as três coexistem: Cozinha com seção salão embutida, Bar dedicado, Produção com todos os setores juntos).
+
+**Ideia 25 — Estabelecimento com paridade completa de operações no salão — IMPLEMENTADO 2026-07-16:**
+- Além do PDV de venda direta (ideia 19), o estabelecimento agora tem tudo que o garçom tem e mais: **abrir** mesa/comanda direto (sem garçom), **editar item** (quantidade, qualquer status), **bloquear/desbloquear mesa** (reserva/manutenção, novo status `bloqueada`) — somado ao que já existia (cancelar, desconto, acréscimo, pagar, transferir, editar/remover pagamento parcial, remover item).
+- Backend: `SalaoPdvService.abrirComanda/editarItem/bloquearMesa/desbloquearMesa`, rotas em `RestauranteSalaoController`. Migration: `mesas.status` aceita `'bloqueada'`.
+
+**Ideia 19 — PDV de venda direta no Salão — IMPLEMENTADO 2026-07-15:**
+- Botão "Venda direta (balcão)" em `/restaurante/salao`: operador escolhe produtos, paga na hora (com troco em dinheiro), recibo impresso automaticamente. Itens seguem pro fluxo normal de preparo (cozinha/bar via `enviarItensComoRestaurante`) — decisão confirmada com o usuário: passa pela fila de preparo normal, não sai "pronto" direto.
+- Backend: `SalaoPdvService.vendaDireta` (exige caixa aberto), rota `POST restaurante/salao/venda-direta`.
+
+**Ideia 20 — Config: impressora padrão pra recibo de venda — IMPLEMENTADO 2026-07-15:**
+- Select "Impressora do recibo" em Config. Se a impressora escolhida tiver agente local pareado, o recibo (pagamento final e venda direta) vai pra fila `impressao_jobs` automaticamente; senão cai no fallback do navegador (como já era).
+- `restaurants.recibo_impressora_id`, `SalaoService.formatarReciboTexto`/`imprimirReciboSeConfigurado`, chamado em `pagar()` e `vendaDireta()`.
+
+**Ideia 21 — Recibo de venda mais detalhado — IMPLEMENTADO 2026-07-15:**
+- Recibo (`printReciboCliente` no navegador e `formatarReciboTexto` na fila do agente) agora lista **cada pagamento parcial individual** (forma + origem garçom/caixa) quando a comanda teve mais de um pagamento, em vez de só mostrar a forma do fechamento final. `pagar()` retorna a lista de `comanda_pagamentos` pro front usar.
+
+**Ideia 22 — Tela "Pedidos da sessão" — IMPLEMENTADO 2026-07-15:**
+- Confirmado com usuário: lista tudo (delivery + salão) desde a abertura do caixa atual, filtro por canal. `/restaurante/sessao`, reaproveita `getCaixa()` (já combinado desde a ideia 15). Corrigido de brinde: `/restaurante/producao` estava sem `RestauranteGuard` na rota (bug meu introduzido antes).
+
+**Ideia 23 — Linha de produção unificada pro Salão (2026-07-15):**
+- Usuário reforça a ideia 16: quer visualizar o preparo dos itens do salão "igual acontece no delivery" — parece pedir uma tela **central** (não só por setor como Cozinha/Bar) que mostra a linha de produção completa das comandas do salão, tipo Kanban (pendente → em preparo → pronto), similar ao pipeline de pedidos de delivery em `/restaurante/cozinha`. Diferente das telas por setor (Bar, ideia 17) — essa seria uma visão consolidada de TODOS os itens de TODOS os setores da comanda.
+
+**Ideia 24 — BUG a investigar (2026-07-15): item de comanda não aparece nem em Cozinha nem em Bar:**
+- Usuário fez pedido na Mesa 2, configurou impressora, mas **nem** `/restaurante/cozinha` **nem** `/restaurante/bar` mostraram o pedido (testado na VPS de desenvolvimento: `app-desenvolvimento-delivery.ubjifz.easypanel.host`).
+- Hipótese A: `/restaurante/cozinha` **nunca** mostra itens de comanda do salão por design — ela só lista `orders` de **delivery** com status `confirmed`/`preparing` (`getCozinha` em `restaurante.service.ts`); comanda usa status `aberta`/`fechada_garcom`/`paga`, nunca esses dois. Não é bug, é escopo errado — precisa confirmar com usuário se ele esperava ver lá (nesse caso é a ideia 23 que resolve) ou só testou no lugar errado.
+- Hipótese B: item só entra na fila do setor (Bar/Cozinha-por-setor) depois que o **produto** tem `impressora_id` configurado E o garçom clicou "Enviar itens" (status muda pendente→enviado). Se só adicionou o item sem enviar, ou o produto não tem impressora vinculada, não aparece em lugar nenhum — conferir os dois.
+- Hipótese C: a VPS de desenvolvimento pode não ter redeployado o último merge (`/restaurante/bar` é código novíssimo, mergeado em 2026-07-15) — mesma classe de problema já visto antes nessa sessão com gorjeta/permissões.
+
+**Ideia 28 — KDS vira lista por item, não por comanda, com cronômetro em Produção — IMPLEMENTADO 2026-07-16 (corrige ideia 27):**
+- Usuário testou a ideia 27 (pipeline 2 estágios) e corrigiu: "Iniciar Preparo" NÃO pode ser por mesa/comanda, tem que ser **por item individual**, ordenado por ordem de chegada (não agrupado). Cada item deve mostrar de qual mesa e qual garçom é. Reimpressão também vira por item, não por grupo.
+- Backend: `getKdsSetor` (`restaurante.service.ts`) retorna `{ itens: [...] }` plano (breaking change de `{ grupos: [...] }`) — cada item já vem com `mesa`, `cliente`, `garcom` inline. `iniciarPreparoGrupo`→`iniciarPreparoItem(itemId)`. `reimprimirGrupo`→`reimprimirItem(itemId)` (`salao.service.ts`). Rotas viram `kds/itens/:id/iniciar-preparo` e `kds/itens/:id/reimprimir` (owner e token).
+- Migration `order_items.preparando_em`/`pronto_em` (timestamps) pra calcular tempo de espera/preparo.
+- Frontend: Bar, Cozinha (seção salão) e Produção reescritos pra lista plana por item (sem `GrupoCard`, agora `ItemCard`/`SalaoItemCard`). Produção ganhou cronômetro ao vivo (tick a cada 1s) mostrando tempo de espera (enviado→preparando) e tempo em preparo (preparando→agora), formatados mm:ss.
+- Limitação aceita: como o backend só retorna itens com status `enviado`/`preparando`, o cronômetro para de contar quando o item é marcado "Pronto" (ele some da lista) — não dá pra ver o tempo total final "pra sempre" depois de pronto, só enquanto ainda está na fila.
+- Telas afetadas: `/restaurante/bar`, `/restaurante/cozinha`, `/restaurante/producao`, e a tela genérica de token `restaurante-kds-setor` (mesma migração aplicada por consistência, embora não citada explicitamente pelo usuário).
+- Seguida por: numeração de posição na fila (1º, 2º...) por card, com destaque "Próximo da fila" no primeiro — puramente frontend (`idx+1` sobre listas já ordenadas por `enviado_em`), sem mudança de backend.
+
+**Ideia 29 — Filtro Todos/Delivery/Salão nos painéis KDS + picker de produto com categoria na comanda do estabelecimento — IMPLEMENTADO 2026-07-16:**
+- Descoberta importante: Bar e Produção roteiam por `impressora_id` do PRODUTO, não por canal — um item de pedido de **delivery** pode cair no mesmo painel se o produto tiver a mesma impressora configurada (não é exclusivo de comanda do salão como eu supunha na ideia 28). Por isso o filtro Todos/Delivery/Salão (já existia só na Cozinha) foi estendido pra Bar e Produção também.
+- Backend: `getKdsSetor` ganhou campo `tipo` ('delivery'|'salao') por item, resolvido por `orders.mesa_id`/`garcom_id`/`cliente_mesa_nome` (presente = salão) e nome do cliente delivery resolvido via `customer_id` (comandas do salão usam `cliente_mesa_nome` direto, delivery não tinha nome nenhum antes).
+- Frontend: badge de canal em cada item (Delivery azul / Salão roxo), botões de filtro com contador, numeração de posição recalculada sobre a lista já filtrada.
+- Pegadinha registrada: depois de editar `restaurante.service.ts`, o contador ficava 0/0/0 mesmo com itens na tela — não era bug do filtro, era o processo Node do backend (standalone, `DEV\server_delivery`) não ter sido REINICIADO depois do `git pull`. `git pull` só atualiza o disco; se rodar via `start:prod` (`node dist/main`) precisa `npm run build` de novo, se for `start:dev`/`nest start --watch` reflete sozinho. Sempre perguntar/lembrar isso quando contagem/campo novo aparecer zerado/ausente depois de um deploy de backend.
+- Separado: comanda do estabelecimento (`ComandaModal` em `restaurante-salao/index.jsx`) ganhou o mesmo picker de produto do garçom (`ProdutoPickerModal` do `garcom-portal`) — busca por nome + abas de categoria, em vez do `<select>` simples que só listava tudo plano. Backend `meusProdutos` (`restaurante.service.ts`) passou a devolver `category_name` direto no produto (igual o endpoint do garçom já fazia), evitando ter que buscar categorias à parte só pra filtrar.
+- Nota: existe um SEGUNDO `<select>` de produto ainda não convertido — no modal de "venda direta" (PDV balcão) do mesmo arquivo `restaurante-salao/index.jsx` (variável local `produtoSelecionado` duplicada em outro componente). Não foi pedido explicitamente ainda; considerar se o usuário pedir o mesmo picker lá.
+
+**How to apply:** ideias 19-23 ainda não implementadas — precisam de plano antes de executar (19 e 22 têm sobreposição a esclarecer). Ideia 24 é bug, investigar assim que possível. Continuar registrando as próximas ideias do usuário aqui até ele sinalizar que a coleta terminou e pedir o plano.

@@ -1,0 +1,23 @@
+---
+name: deliveryhub-fix-taxa-cartao-total
+description: "Fix taxa de cartão não somava no Total da comanda nem na impressão de conferência (Salão) — branch pushada, não mergeada"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: c719a40e-9a6f-440c-9820-298c7c8feb97
+  modified: 2026-07-23T21:04:15.938Z
+---
+
+Bug relatado pelo usuário na comanda #6 (Salão): "Taxa cartão" de pagamento parcial no cartão (registrado pelo garçom antes do caixa fechar) não entrava no "Total (comanda + gorjeta)" nem na impressão de conferência — só "Falta pagar" batia (vinha do saldo do backend, que já somava certo).
+
+Causa: em `src/pages/restaurante-salao/index.jsx`, `taxaCartaoValorFinal` só calculava a taxa da forma de pagamento **selecionada agora** pro fechamento, ignorando `taxa_cartao_valor` já registrado em `comanda.pagamentos` de pagamentos parciais anteriores.
+
+Fix: somado `taxaCartaoRegistrada` (soma de `p.taxa_cartao_valor` dos pagamentos já feitos) em `taxaCartaoTotalExibida`, usado no Total exibido, no rótulo "+ taxa", no "Falta pagar" e no `valores.taxaCartao` mandado pra impressão (`imprimirConferencia`).
+
+Commits na branch `fix/taxa-cartao-total-comanda` (pushada em 2026-07-23, **não mergeada em main**):
+- `25440b0` fix: taxa de cartão de pagamento parcial não somava no total
+- `55a086f` chore: ajusta config local (Supabase local, proxy backend local `localhost:3002`) e logo/favicon — mudanças do próprio usuário, não relacionadas ao bug, commitadas junto a pedido dele.
+
+**Why:** usuário testou manualmente na tela (não via automação, extensão claude-in-chrome estava desconectada) e confirmou "suba para deploy" — só cobre push de branch, main intocado.
+
+**How to apply:** próxima sessão, se perguntar sobre esse bug ou sobre estado da comanda/Salão, checar se essa branch já foi mergeada (`git log main --oneline` ou `git branch --merged main`) antes de assumir que o fix está em produção. Ver [[deliveryhub_pendencia_api_url_producao]] e [[feedback_trigger_suba_para_deploy]] pro fluxo de deploy.

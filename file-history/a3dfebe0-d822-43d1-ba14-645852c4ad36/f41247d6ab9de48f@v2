@@ -1,0 +1,274 @@
+<title>Simulação — Impressão Comanda #11</title>
+<style>
+:root{
+  --bg:#EDEBE4;
+  --ink:#1C1B18;
+  --muted:#6B6558;
+  --accent:#C1442D;
+  --paper:#FFFFFF;
+  --paper-ink:#161513;
+  --paper-shadow:rgba(28,27,24,0.18);
+  --card-line:rgba(28,27,24,0.12);
+  --chip-bg:#FFFFFF;
+  --chip-line:rgba(28,27,24,0.16);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141310;
+    --ink:#ECE8DE;
+    --muted:#A39C8C;
+    --accent:#E37A5F;
+    --paper:#F6F2E7;
+    --paper-ink:#171512;
+    --paper-shadow:rgba(0,0,0,0.55);
+    --card-line:rgba(236,232,222,0.14);
+    --chip-bg:#1D1B17;
+    --chip-line:rgba(236,232,222,0.18);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141310;
+  --ink:#ECE8DE;
+  --muted:#A39C8C;
+  --accent:#E37A5F;
+  --paper:#F6F2E7;
+  --paper-ink:#171512;
+  --paper-shadow:rgba(0,0,0,0.55);
+  --card-line:rgba(236,232,222,0.14);
+  --chip-bg:#1D1B17;
+  --chip-line:rgba(236,232,222,0.18);
+}
+:root[data-theme="light"]{
+  --bg:#EDEBE4;
+  --ink:#1C1B18;
+  --muted:#6B6558;
+  --accent:#C1442D;
+  --paper:#FFFFFF;
+  --paper-ink:#161513;
+  --paper-shadow:rgba(28,27,24,0.18);
+  --card-line:rgba(28,27,24,0.12);
+  --chip-bg:#FFFFFF;
+  --chip-line:rgba(28,27,24,0.16);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  min-height:100vh;
+  padding:48px 20px 80px;
+}
+
+.page{
+  max-width:640px;
+  margin:0 auto;
+}
+
+.eyebrow{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 10px;
+}
+
+h1{
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:-0.01em;
+  margin:0 0 6px;
+  text-wrap:balance;
+}
+
+.sub{
+  font-size:14px;
+  color:var(--muted);
+  margin:0 0 28px;
+  line-height:1.55;
+  max-width:56ch;
+}
+
+.sub code{
+  font-family:'Courier New',monospace;
+  background:var(--chip-bg);
+  border:1px solid var(--chip-line);
+  padding:1px 5px;
+  border-radius:4px;
+  font-size:12.5px;
+}
+
+.toggle{
+  display:inline-flex;
+  border:1px solid var(--chip-line);
+  border-radius:10px;
+  padding:3px;
+  background:var(--chip-bg);
+  gap:2px;
+  margin-bottom:34px;
+}
+.toggle button{
+  appearance:none;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:600;
+  padding:8px 16px;
+  border-radius:7px;
+  cursor:pointer;
+  font-family:inherit;
+  transition:background .15s ease, color .15s ease;
+}
+.toggle button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.toggle button.active{
+  background:var(--accent);
+  color:#FFF8F4;
+}
+.toggle button:not(.active):hover{ color:var(--ink); }
+
+.stage{
+  display:flex;
+  justify-content:center;
+}
+
+.receipt-wrap{
+  position:relative;
+  filter:drop-shadow(0 18px 30px var(--paper-shadow));
+  transform:rotate(-0.6deg);
+}
+
+.receipt{
+  width:320px;
+  background:var(--paper);
+  color:var(--paper-ink);
+  font-family:'Courier New',monospace;
+  font-size:14px;
+  padding:20px 18px 6px;
+  clip-path:polygon(
+    0% 0%,100% 0%,100% 97%,
+    96% 100%,92% 97%,88% 100%,84% 97%,80% 100%,76% 97%,72% 100%,68% 97%,64% 100%,
+    60% 97%,56% 100%,52% 97%,48% 100%,44% 97%,40% 100%,36% 97%,32% 100%,28% 97%,
+    24% 100%,20% 97%,16% 100%,12% 97%,8% 100%,4% 97%,0% 100%
+  );
+  padding-bottom:26px;
+}
+
+.r-center{text-align:center;display:block}
+.r-rest{font-size:16px;font-weight:bold;text-align:center;margin-bottom:4px}
+.r-hr{border:none;border-top:1px dashed #000;margin:8px 0;opacity:.55}
+.r-item{display:flex;gap:8px;padding:3px 0;font-size:14px;justify-content:space-between}
+.r-item span:last-child{font-variant-numeric:tabular-nums}
+.r-total{display:flex;justify-content:space-between;font-size:18px;font-weight:900;padding:4px 0}
+.r-total span:last-child{font-variant-numeric:tabular-nums}
+.r-foot{font-size:11px;text-align:center;margin-top:8px;opacity:.7}
+.r-added{position:relative}
+.r-added::after{
+  content:"novo";
+  position:absolute;
+  right:-4px;
+  top:1px;
+  transform:translateX(100%);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--accent);
+  opacity:0;
+}
+body[data-mode="depois"] .r-added::after{ opacity:.9; }
+
+.notes{
+  max-width:320px;
+  margin:22px auto 0;
+  font-size:12.5px;
+  color:var(--muted);
+  line-height:1.6;
+  text-align:center;
+}
+.notes b{ color:var(--ink); }
+
+@media (max-width:420px){
+  .receipt{ width:100%; max-width:300px; }
+}
+</style>
+
+<div class="page">
+  <p class="eyebrow">Simulação de impressão</p>
+  <h1>Comanda #11 — botão "Imprimir comanda (conferência)"</h1>
+  <p class="sub">
+    Reconstrução visual do ticket gerado por <code>printConferenciaComanda</code> ao clicar no botão
+    de <code>restaurante-salao/index.jsx:610</code>, com dados de exemplo pra Comanda #11. Alterne
+    entre o comportamento antigo e o corrigido.
+  </p>
+
+  <div class="toggle" role="tablist" aria-label="Antes ou depois do fix">
+    <button type="button" class="active" data-mode="antes" role="tab" aria-selected="true">Antes do fix</button>
+    <button type="button" data-mode="depois" role="tab" aria-selected="false">Depois do fix</button>
+  </div>
+
+  <div class="stage">
+    <div class="receipt-wrap">
+      <div class="receipt">
+        <div class="r-rest">DELIVERYHUB BURGUER</div>
+        <div class="r-center" style="font-size:11px;letter-spacing:1px">COMANDA — CONFERÊNCIA</div>
+        <div class="r-hr"></div>
+        <div class="r-center" style="font-size:13px;font-weight:bold">Mesa 7</div>
+        <div class="r-center" style="font-size:12px">Carlos Andrade</div>
+        <div class="r-center" style="font-size:11px" id="hora"></div>
+        <div class="r-hr"></div>
+
+        <div class="r-item"><span>2x X-Tudo</span><span>R$ 65,80</span></div>
+        <div class="r-item"><span>1x Coca-Cola 2L</span><span>R$ 12,00</span></div>
+        <div class="r-item"><span>3x Batata Frita Grande</span><span>R$ 55,50</span></div>
+        <div class="r-hr"></div>
+
+        <div class="r-item"><span>Subtotal</span><span>R$ 133,30</span></div>
+        <div class="r-item r-added" data-only="depois"><span>Gorjeta</span><span>+ R$ 13,33</span></div>
+        <div class="r-item r-added" data-only="depois"><span>Taxa cartão</span><span>+ R$ 3,20</span></div>
+        <div class="r-hr"></div>
+        <div class="r-total"><span>TOTAL</span><span class="total-val">R$ 133,30</span></div>
+        <div class="r-item r-added" data-only="depois"><span>Forma de pagamento</span><span>Cartão</span></div>
+        <div class="r-hr"></div>
+        <div class="r-foot">Confira os itens antes de fechar a conta</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="notes">
+    <b>Antes:</b> só itens + subtotal — gorjeta, acréscimo, taxa e forma de pagamento ficavam de fora mesmo já escolhidos na tela.<br/>
+    <b>Depois:</b> mesmas linhas do resumo de pagamento aparecem no ticket, e o TOTAL bate com o valor real a cobrar.
+  </p>
+</div>
+
+<script>
+(function(){
+  var hora = new Date().toLocaleString('pt-BR');
+  document.getElementById('hora').textContent = hora;
+
+  var buttons = document.querySelectorAll('.toggle button');
+  var totalVal = document.querySelector('.total-val');
+
+  function setMode(mode){
+    document.body.setAttribute('data-mode', mode);
+    buttons.forEach(function(b){
+      var active = b.getAttribute('data-mode') === mode;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-only="depois"]').forEach(function(el){
+      el.style.display = mode === 'depois' ? 'flex' : 'none';
+    });
+    totalVal.textContent = mode === 'depois' ? 'R$ 149,83' : 'R$ 133,30';
+  }
+
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); });
+  });
+
+  setMode('antes');
+})();
+</script>

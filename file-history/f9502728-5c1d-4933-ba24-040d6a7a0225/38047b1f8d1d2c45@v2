@@ -1,0 +1,34 @@
+---
+name: deliveryhub-aba-relatorios-plano
+description: Nova aba "Relatórios" na barra superior do painel restaurante — página com menu de relatórios (Garçom/Financeiro/Produtos), cada um com tela de filtro + impressão
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: pending
+---
+
+Requisito pedido pelo usuário em 2026-07-18: nova aba **Relatórios** na barra de navegação superior do painel do restaurante, levando a uma página com **menu de relatórios** — cada relatório tem tela com filtro e opção de impressão (mesmo padrão do [[deliveryhub_modulo_restaurante_ideias]] ideia 6, mas agora com escopo fechado pelo usuário).
+
+**Relatório 1 — Garçom:**
+- Total de vendas por garçom
+- Comissão por garçom
+- Gorjeta por garçom
+- Comandas abertas por garçom
+- Mesas pendentes / comandas pendentes por garçom
+
+**Relatório 2 — Financeiro:**
+- Vendas do dia
+- Comissão paga (aos garçons)
+- Gorjetas pagas ao garçom
+- Pagamentos por forma: dinheiro, PIX, cartão crédito, cartão débito
+- Troco
+- Fluxo de caixa detalhado: valores recebidos e formas pagas (discriminado)
+
+**Relatório 3 — Produtos:**
+- Lista de produtos
+- Produtos sem estoque
+- Produtos ativos e bloqueados
+
+**Why:** consolida os relatórios do módulo Restaurante (ideia 6/6-refinada, já coletada antes) num único lugar navegável, em vez de ficar só dentro do RelatorioPanel colapsável do Dashboard (que hoje só cobre delivery, sem garçom/comissão/gorjeta/produtos). Ver também [[deliveryhub_bug_forma_pagamento_comanda_dashboard]] — o relatório Financeiro (fluxo de caixa detalhado por forma) esbarra no mesmo bug de payment_method único; corrigir junto faz parte do escopo (fluxo de caixa correto depende de decompor comanda_pagamentos).
+
+**How to apply:** usuário pediu ordem: lista de tarefas → plano de implantação → registrar tudo → iniciar execução. Ver task list e plano formal no momento da execução (não duplicar aqui, esse arquivo é só o requisito bruto). Seguir [[feedback_branch_por_tarefa]] (branch nova, não mexer direto na main).

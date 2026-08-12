@@ -1,0 +1,32 @@
+---
+name: deliveryhub-fix-taxa-cartao-resumo-caixa
+description: Fix taxa de cartão não entrava no resumo de Fechar Caixa nem no relatório financeiro por período — MERGEADO EM MAIN (backend + frontend)
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: c719a40e-9a6f-440c-9820-298c7c8feb97
+  modified: 2026-07-23T22:14:33.789Z
+---
+
+Continuação de [[deliveryhub_fix_taxa_cartao_total]] (taxa de cartão sumida no Total da comanda). Usuário perguntou se a taxa já estava inclusa na tela "Fechar Caixa" (`FecharCaixaModal.jsx`, breakdown "Vendas digitais" com PIX/Cartão Crédito + "Total faturamento") — não estava.
+
+Causa em `server_delivery/src/restaurante/restaurante.service.ts`:
+- `buscarPagamentosPorComanda` (linha ~910) não selecionava `taxa_cartao_valor` de `comanda_pagamentos`.
+- `calcularResumo` (usado por Fechar Caixa e dashboard) somava só `pag.valor` por forma de pagamento pro `por_pagamento`, e usava `orders.total` (que também não inclui taxa nem gorjeta, só `subtotal - desconto + acréscimo`) pro `total_vendas`.
+- Mesmo bug no relatório financeiro por período (função separada, mesmo helper, ~linha 1481).
+
+Fix: `buscarPagamentosPorComanda` agora traz `taxa_cartao_valor`; `calcularResumo` soma `pag.valor + pag.taxa_cartao_valor` tanto no `por_pagamento[forma]` quanto no `total_vendas` (reconstruído a partir da mesma soma, não mais de `orders.total` direto pra comandas presenciais); relatório por período com o mesmo ajuste no `por_pagamento`.
+
+Commits mergeados em `main` 2026-07-23:
+- `server_delivery` (backend, padrão VPS + submodule): branch `fix/taxa-cartao-resumo-caixa`, merge `a5cd526`.
+- `deliveryhub_white_label` (frontend): `82172c3` só aponta o ponteiro do submodule pro novo commit.
+
+**Gotcha (2026-07-23):** editei sem querer o clone **standalone** (`DEV\server_delivery`) em vez do submodule (`deliveryhub_white_label\server_delivery`), invertendo o fluxo normal descrito em [[deliveryhub_dois_clones_server_delivery]] (que diz pra desenvolver no submodule e depois sincronizar a standalone). Corrigido fazendo o caminho inverso dessa vez: commit+push na standalone, depois `git pull` no submodule pra igualar o commit, e por fim commit no frontend só do ponteiro do submodule. Funcionou (mesmo remoto, resultado idêntico), mas da próxima vez checar em qual dos dois clones estou ANTES de editar `restaurante.service.ts`/`salao.service.ts`/etc.
+
+**Why:** taxa de cartão é dinheiro real cobrado do cliente — precisa aparecer certo no fechamento de caixa (enviado pro financeiro/gerente conferir) e no relatório, senão a conferência de caixa "não bate" e ninguém percebe o motivo.
+
+**How to apply:** se usuário reportar caixa não batendo ou relatório de faturamento estranho envolvendo pagamento no cartão, checar primeiro se está na versão com esse fix (`git log --oneline -1` em ambos os clones do backend deve incluir `a28f223` ou posterior).
+
+**Refinamento pedido pelo usuário (mesmo dia):** testando, ele preferiu a taxa como **linha separada** ("+ Taxa cartão") em vez de somada dentro de Cartão Crédito/Débito. Ajustado: `por_pagamento` ganhou bucket próprio `taxa_cartao` (backend `calcularResumo` e relatório por período), e adicionado label `taxa_cartao: '+ Taxa cartão'` em **todos** os mapas de tradução do frontend que iteram `por_pagamento` (`FecharCaixaModal.jsx`, `restaurante-dashboard/index.jsx`, `RelatorioPanel.jsx`, `restaurante-relatorios/Financeiro.jsx`, `restaurante-financeiro/index.jsx`) — sem o label a chave nova aparece crua na tela. Commits mergeados em main 2026-07-23: backend `a28f223`, frontend `81553f5`. Testado e confirmado pelo usuário depois de reiniciar o backend do submodule.
+
+**Gotcha de teste (2026-07-23):** usuário testou local e não viu a mudança na primeira tentativa — causa foi eu ter editado o clone **standalone** mas o servidor local dele roda a partir do **submodule** (LAN, `VITE_API_URL=192.168.1.31:3002`), que ainda não tinha o pull. Sempre que pedir pra testar local depois de editar a standalone, lembrar de sincronizar o submodule ANTES e avisar que o processo Node precisa reiniciar (ver [[feedback_backend_restart_apos_pull]]).
