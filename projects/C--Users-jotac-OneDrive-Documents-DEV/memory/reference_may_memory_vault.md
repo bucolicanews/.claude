@@ -1,0 +1,22 @@
+---
+name: reference-may-memory-vault
+description: "Local Obsidian vault repo \"Ecossistema JHON\" — cross-project knowledge base (security policy, architecture decisions, standing protocols) shared by all the user's projects, not just DeliveryHub"
+metadata: 
+  node_type: memory
+  type: reference
+  originSessionId: 4e2cc708-7996-4a68-9cfa-5d12e0a76935
+  modified: 2026-08-15T15:37:25.801Z
+---
+
+`C:\Users\jotac\OneDrive\Documents\DEV\may_memory` is a git repo (remote `github.com/bucolicanews/may_memory.git`, branch `main`) holding an Obsidian vault called "Ecossistema JHON" — the user's cross-project knowledge base: security policy, architecture decisions (ADRs), infra, incidents, and per-project docs (`07-PROJETOS/GESTAO-PROJETOS-VUE`, `07-PROJETOS/openclaw`, etc.). Entry point is `INDEX.md` (MOC — Map of Content).
+
+No git identity was configured locally when first found (2026-08-15) — same situation as [[project_deliveryhub]]'s repos; configured local (not `--global`) `jmoka <jmokatavares@gmail.com>` with explicit user authorization.
+
+Key docs in `21-SEGURANCA/` (security hub, see its `README.md`):
+- `POLITICAS.md` — master security policy (Zero Trust, RBAC, LGPD, DevSecOps, credential handling)
+- `ARCHITECTURE_SECURITY_RULES 1.md` / `... 2.md` — 40 mandatory architecture rules + relationship diagrams
+- `SECURITY SYSTEM DESIGN.md` — secure-by-default design for the React+NestJS+Supabase stack (same stack as DeliveryHub)
+- `PENTEST_CODE_REVIEW_PROTOCOL.md` — added 2026-08-15 at user's request: standing pentest/code-review procedure (BOLA/IDOR, injections, secrets, error/log leakage, insecure config) with a mandatory output format (risk table → detail → patch → Python/cURL staging test script). Fills the gap between "how to build secure" (the other docs) and "how to audit what already exists." **First real run** was against DeliveryHub the same day — 18 findings (4 Crítica/5 Alta/9 Média-Baixa), all fixed; see [[project_deliveryhub]]'s "Auditoria de segurança completa" section for the summary and reusable patterns. Confirms the protocol's output format works end-to-end in practice.
+
+**Why:** the vault is the canonical source for standards meant to apply across every project the user works on (security, architecture, LGPD) — broader in scope and higher authority than any single project's own CLAUDE.md or in-repo docs.
+**How to apply:** when asked about security policy, architecture rules, or "how we always do X across projects," check this vault first before improvising an answer from scratch. When the user wants a new standing rule/protocol applied to every project (not just the one currently open), add it here (not only to a project-specific memory like [[project_deliveryhub]]) and link it from `INDEX.md` and the relevant `NN-*/README.md` hub so it stays discoverable. Before running `PENTEST_CODE_REVIEW_PROTOCOL.md` against a project, re-read it — it may have been extended since this snapshot.
