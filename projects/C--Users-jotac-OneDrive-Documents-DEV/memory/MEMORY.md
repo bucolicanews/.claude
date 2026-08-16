@@ -3,3 +3,4 @@
 - [Browser testing preference](feedback_browser_testing.md) — let user click-test UI themselves, don't drive Chrome automation proactively
 - [may_memory vault](reference_may_memory_vault.md) — Obsidian repo, cross-project security/architecture standards, check before improvising
 - [Live artifact tracking](feedback_live_artifact_tracking.md) — republish progress-tracker artifacts to the same URL as fixes land, don't wait to be asked
+- [Mobile forms pattern](feedback_mobile_forms_pattern.md) — flex-wrap/min-w-0 for off-screen bugs; cash field above submit button w/ red border
