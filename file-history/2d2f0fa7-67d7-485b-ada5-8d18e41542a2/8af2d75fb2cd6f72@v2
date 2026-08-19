@@ -1,0 +1,26 @@
+$logFile = "C:\Users\jotac\AppData\Local\Temp\claude\C--Users-jotac\2d2f0fa7-67d7-485b-ada5-8d18e41542a2\scratchpad\fix_pos80_log.txt"
+Start-Transcript -Path $logFile -Force | Out-Null
+
+Write-Output "---Cancelando jobs travados---"
+Get-PrintJob -PrinterName "POS80 Printer" -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue
+
+Write-Output "---Reiniciando spooler---"
+Restart-Service -Name Spooler -Force
+Start-Sleep -Seconds 2
+Get-Service -Name Spooler | Select-Object Name, Status
+
+Write-Output "---Portas disponiveis (nomes completos)---"
+Get-PrinterPort | Select-Object Name | Format-List
+
+Write-Output "---Trocando porta da POS80 Printer para USB001---"
+try {
+    Set-Printer -Name "POS80 Printer" -PortName "USB001" -ErrorAction Stop
+    Write-Output "Porta alterada com sucesso."
+} catch {
+    Write-Output "ERRO ao trocar porta: $_"
+}
+
+Write-Output "---Status final---"
+Get-Printer -Name "POS80 Printer" | Select-Object Name, PortName, PrinterStatus
+
+Stop-Transcript | Out-Null

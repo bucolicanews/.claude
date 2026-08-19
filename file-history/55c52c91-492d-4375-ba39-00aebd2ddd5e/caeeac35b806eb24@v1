@@ -1,0 +1,219 @@
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { RestaurantOwnerGuard } from '../auth/restaurant-owner.guard';
+import { SalaoPdvService } from './salao-pdv.service';
+import { GarconsService } from './garcons.service';
+import type { ItemComandaBody } from './salao.service';
+
+@Controller('restaurante/salao')
+@UseGuards(RestaurantOwnerGuard)
+export class RestauranteSalaoController {
+  constructor(
+    private service: SalaoPdvService,
+    private garconsService: GarconsService,
+  ) {}
+
+  @Get('garcons-online')
+  garconsOnline(@Req() req: any) {
+    return this.garconsService.garconsOnline(req.restaurantId);
+  }
+
+  @Get('mesas')
+  mesas(@Req() req: any) {
+    return this.service.mesas(req.restaurantId);
+  }
+
+  @Patch('mesas/:id/bloquear')
+  bloquearMesa(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.bloquearMesa(id, req.restaurantId);
+  }
+
+  @Patch('mesas/:id/desbloquear')
+  desbloquearMesa(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.desbloquearMesa(id, req.restaurantId);
+  }
+
+  @Get('comandas')
+  comandas(@Req() req: any) {
+    return this.service.comandasAbertas(req.restaurantId);
+  }
+
+  @Get('comandas/fechadas-hoje')
+  comandasFechadasHoje(@Req() req: any) {
+    return this.service.comandasFechadasHoje(req.restaurantId);
+  }
+
+  @Post('comandas/abrir')
+  abrirComanda(
+    @Body() body: { mesa_id?: number; cliente_nome: string; cliente_telefone: string },
+    @Req() req: any,
+  ) {
+    return this.service.abrirComanda(req.restaurantId, req.userId, body);
+  }
+
+  @Post('venda-balcao/abrir')
+  abrirVendaBalcao(@Req() req: any) {
+    return this.service.abrirVendaBalcao(req.restaurantId, req.userId);
+  }
+
+  @Get('chamada')
+  filaChamadaBalcao(@Req() req: any) {
+    return this.service.filaChamadaBalcao(req.restaurantId);
+  }
+
+  @Post('chamada/:id/chamar')
+  marcarChamada(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.marcarChamada(id, req.restaurantId);
+  }
+
+  @Post('chamada/:id/itens/:itemId/entregar')
+  marcarItemBalcaoEntregue(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Req() req: any,
+  ) {
+    return this.service.marcarItemBalcaoEntregue(id, req.restaurantId, itemId);
+  }
+
+  @Get('comandas/:id')
+  comandaDetalhe(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.comandaDetalhe(id, req.restaurantId);
+  }
+
+  @Post('comandas/:id/itens')
+  adicionarItens(@Param('id', ParseIntPipe) id: number, @Body() body: { itens: ItemComandaBody[] }, @Req() req: any) {
+    return this.service.adicionarItens(id, req.restaurantId, body.itens);
+  }
+
+  @Patch('comandas/:id/itens/:itemId')
+  editarItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() body: { quantity?: number; observacao?: string },
+    @Req() req: any,
+  ) {
+    return this.service.editarItem(id, req.restaurantId, itemId, body);
+  }
+
+  @Post('comandas/:id/pagamento')
+  registrarPagamentoParcial(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { valor: number; forma_pagamento: string; valor_recebido?: number; troco_via_pix?: boolean },
+    @Req() req: any,
+  ) {
+    return this.service.registrarPagamentoParcial(id, req.restaurantId, body.valor, body.forma_pagamento, body.valor_recebido, body.troco_via_pix);
+  }
+
+  @Patch('comandas/:id/pagamentos/:pagamentoId')
+  editarPagamentoParcial(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('pagamentoId', ParseIntPipe) pagamentoId: number,
+    @Body() body: { valor: number; forma_pagamento: string },
+    @Req() req: any,
+  ) {
+    return this.service.editarPagamentoParcial(id, req.restaurantId, pagamentoId, body.valor, body.forma_pagamento);
+  }
+
+  @Patch('comandas/:id/pagamentos/:pagamentoId/troco-pix')
+  alterarTrocoPix(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('pagamentoId', ParseIntPipe) pagamentoId: number,
+    @Body() body: { troco_via_pix: boolean },
+    @Req() req: any,
+  ) {
+    return this.service.alterarTrocoPix(id, req.restaurantId, pagamentoId, !!body.troco_via_pix);
+  }
+
+  @Delete('comandas/:id/pagamentos/:pagamentoId')
+  removerPagamentoParcial(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('pagamentoId', ParseIntPipe) pagamentoId: number,
+    @Req() req: any,
+  ) {
+    return this.service.removerPagamentoParcial(id, req.restaurantId, pagamentoId);
+  }
+
+  @Delete('comandas/:id/itens/:itemId')
+  removerItem(@Param('id', ParseIntPipe) id: number, @Param('itemId', ParseIntPipe) itemId: number, @Req() req: any) {
+    return this.service.removerItem(id, req.restaurantId, itemId);
+  }
+
+  @Patch('comandas/:id/transferir-garcom')
+  transferirGarcom(@Param('id', ParseIntPipe) id: number, @Body() body: { garcom_id: number }, @Req() req: any) {
+    return this.service.transferirGarcom(id, req.restaurantId, body.garcom_id);
+  }
+
+  @Patch('comandas/:id/transferir')
+  transferir(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { mesa_id?: number; comanda_destino_id?: number },
+    @Req() req: any,
+  ) {
+    return this.service.transferir(id, req.restaurantId, body);
+  }
+
+  @Post('comandas/:id/dividir')
+  dividir(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { item_ids: number[]; cliente_nome: string; cliente_telefone?: string },
+    @Req() req: any,
+  ) {
+    return this.service.dividirComanda(id, req.restaurantId, body.item_ids, body.cliente_nome, body.cliente_telefone);
+  }
+
+  @Patch('comandas/:id/cliente')
+  editarCliente(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { cliente_nome: string; cliente_telefone?: string },
+    @Req() req: any,
+  ) {
+    return this.service.editarClienteMesa(id, req.restaurantId, body);
+  }
+
+  @Get('comandas/:id/sugestao-gorjeta')
+  sugestaoGorjeta(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.sugestaoGorjeta(id, req.restaurantId);
+  }
+
+  @Patch('comandas/:id/desconto')
+  desconto(@Param('id', ParseIntPipe) id: number, @Body() body: { valor: number }, @Req() req: any) {
+    return this.service.aplicarDesconto(id, req.restaurantId, body.valor);
+  }
+
+  @Patch('comandas/:id/acrescimo')
+  acrescimo(@Param('id', ParseIntPipe) id: number, @Body() body: { valor: number }, @Req() req: any) {
+    return this.service.aplicarAcrescimo(id, req.restaurantId, body.valor);
+  }
+
+  @Post('comandas/:id/cancelar')
+  cancelar(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.cancelar(id, req.restaurantId);
+  }
+
+  @Post('comandas/:id/reabrir')
+  reabrir(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.reabrir(id, req.restaurantId);
+  }
+
+  @Post('comandas/:id/imprimir-conferencia')
+  imprimirConferencia(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { desconto?: number; acrescimo?: number; gorjeta?: number; taxaCartao?: number; formaPagamento?: string },
+    @Req() req: any,
+  ) {
+    return this.service.imprimirConferencia(id, req.restaurantId, body);
+  }
+
+  @Post('comandas/:id/reimprimir-recibo')
+  reimprimirRecibo(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.service.reimprimirRecibo(id, req.restaurantId);
+  }
+
+  @Post('comandas/:id/pagar')
+  pagar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { forma_pagamento: string; gorjeta_valor?: number; valor_recebido?: number; gorjeta_direta?: boolean; troco_via_pix?: boolean },
+    @Req() req: any,
+  ) {
+    return this.service.pagar(id, req.restaurantId, body.forma_pagamento, body.gorjeta_valor, body.valor_recebido, body.gorjeta_direta, body.troco_via_pix);
+  }
+}

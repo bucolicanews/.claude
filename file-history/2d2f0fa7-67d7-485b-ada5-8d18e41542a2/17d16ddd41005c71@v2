@@ -1,0 +1,11 @@
+$logFile = "C:\Users\jotac\AppData\Local\Temp\claude\C--Users-jotac\2d2f0fa7-67d7-485b-ada5-8d18e41542a2\scratchpad\remove_ghost_log.txt"
+Start-Transcript -Path $logFile -Force | Out-Null
+
+$ghostId = "USBPRINT\UNKNOWNPRINTER\7&B551B28&0&USB001"
+Write-Output "---Removendo dispositivo fantasma---"
+pnputil /remove-device "$ghostId"
+
+Write-Output "---Dispositivos USB apos remocao---"
+Get-PnpDevice -Class USB | Where-Object {$_.FriendlyName -match "Impressora|Printer|impressão"} | Select-Object FriendlyName, Status, InstanceId | Format-List
+
+Stop-Transcript | Out-Null

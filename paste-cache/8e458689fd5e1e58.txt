@@ -1,0 +1,46 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+restauranteService.js:254  GET http://10.90.205.189:3002/r/by-domain/localhost 404 (Not Found)
+(anonymous) @ restauranteService.js:254
+(anonymous) @ index.jsx:15
+commitHookEffectListMount @ chunk-I3FFXTTZ.js?v=90bd76fd:16936
+commitPassiveMountOnFiber @ chunk-I3FFXTTZ.js?v=90bd76fd:18184
+commitPassiveMountEffects_complete @ chunk-I3FFXTTZ.js?v=90bd76fd:18157
+commitPassiveMountEffects_begin @ chunk-I3FFXTTZ.js?v=90bd76fd:18147
+commitPassiveMountEffects @ chunk-I3FFXTTZ.js?v=90bd76fd:18137
+flushPassiveEffectsImpl @ chunk-I3FFXTTZ.js?v=90bd76fd:19518
+flushPassiveEffects @ chunk-I3FFXTTZ.js?v=90bd76fd:19475
+(anonymous) @ chunk-I3FFXTTZ.js?v=90bd76fd:19356
+workLoop @ chunk-I3FFXTTZ.js?v=90bd76fd:197
+flushWork @ chunk-I3FFXTTZ.js?v=90bd76fd:176
+performWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=90bd76fd:384
+postMessage
+schedulePerformWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=90bd76fd:407
+performWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=90bd76fd:387
+postMessage
+schedulePerformWorkUntilDeadline @ chunk-I3FFXTTZ.js?v=90bd76fd:407
+requestHostCallback @ chunk-I3FFXTTZ.js?v=90bd76fd:418
+unstable_scheduleCallback @ chunk-I3FFXTTZ.js?v=90bd76fd:330
+scheduleCallback$1 @ chunk-I3FFXTTZ.js?v=90bd76fd:19854
+ensureRootIsScheduled @ chunk-I3FFXTTZ.js?v=90bd76fd:18680
+scheduleUpdateOnFiber @ chunk-I3FFXTTZ.js?v=90bd76fd:18590
+updateContainer @ chunk-I3FFXTTZ.js?v=90bd76fd:20805
+ReactDOMHydrationRoot.render.ReactDOMRoot.render @ chunk-I3FFXTTZ.js?v=90bd76fd:21145
+(anonymous) @ index.jsx:10
+restauranteService.js:12  GET http://10.90.205.189:3002/restaurante/plano 404 (Not Found)
+apiFetch @ restauranteService.js:12
+await in apiFetch
+(anonymous) @ restauranteService.js:365
+(anonymous) @ index.jsx:137
+(anonymous) @ index.jsx:149
+commitHookEffectListMount @ chunk-I3FFXTTZ.js?v=90bd76fd:16936
+commitPassiveMountOnFiber @ chunk-I3FFXTTZ.js?v=90bd76fd:18184
+commitPassiveMountEffects_complete @ chunk-I3FFXTTZ.js?v=90bd76fd:18157
+commitPassiveMountEffects_begin @ chunk-I3FFXTTZ.js?v=90bd76fd:18147
+commitPassiveMountEffects @ chunk-I3FFXTTZ.js?v=90bd76fd:18137
+flushPassiveEffectsImpl @ chunk-I3FFXTTZ.js?v=90bd76fd:19518
+flushPassiveEffects @ chunk-I3FFXTTZ.js?v=90bd76fd:19475
+commitRootImpl @ chunk-I3FFXTTZ.js?v=90bd76fd:19444
+commitRoot @ chunk-I3FFXTTZ.js?v=90bd76fd:19305
+performSyncWorkOnRoot @ chunk-I3FFXTTZ.js?v=90bd76fd:18923
+flushSyncCallbacks @ chunk-I3FFXTTZ.js?v=90bd76fd:9135
+(anonymous) @ chunk-I3FFXTTZ.js?v=90bd76fd:18655

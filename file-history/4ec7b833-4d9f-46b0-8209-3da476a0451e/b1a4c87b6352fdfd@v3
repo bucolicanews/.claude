@@ -1,0 +1,34 @@
+---
+name: project-deliveryhub
+description: "DeliveryHub white-label delivery platform — repo layout, stack, and current feature focus"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
+  modified: 2026-08-12T16:03:22.037Z
+---
+
+Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
+
+- `deliveryhub_white_label/` — frontend. React 18 + Vite + Redux Toolkit + TailwindCSS + React Router v6 + React Hook Form + Framer Motion + D3/Recharts. Scaffolded via Rocket.new. Dev server on port 4028. Backend is included as a git submodule at `server_delivery/`.
+- `serer_delivery/` — backend. NestJS + TypeScript. Dev server on port 3002. Uses Supabase (Postgres/auth/storage, run locally via `npx supabase start`) and Redis (caching, e.g. the "minha-empresa" sidebar route).
+
+Both repos are on `main`, clean, up to date with origin as of 2026-08-12.
+
+As of 2026-08-12 (most recent commits), active feature areas:
+- Restaurant location pin: draggable pin, address search, GPS high-accuracy, map/satellite toggle, manual-location backend endpoint.
+- Motoboy (courier) flow: registration, platform-side approval, limited revision requests.
+- Plans/subscriptions: restaurant signup now requires an active plan + checkout before the registration form unlocks; plan changes require payment up front.
+- Licensing system for local/individual installs, with checkin that distinguishes revocation from network failure.
+- Cash register (caixa): dedicated kitchen/bar receipt printer, Pix change-on-cash-payment, real Pix/cash balance tracking, editable observação on already-paid counter sales.
+- PagBank card payments (holder field now required).
+
+**Why:** captured from `git log` on both repos since no CLAUDE.md exists yet in either repo to document this.
+**How to apply:** use this as the map of the codebase when the user asks to work on either repo without re-deriving repo purpose from scratch each session. Still verify specifics (file paths, current line numbers) by reading the code — this snapshot will drift.
+
+## Gotcha: Supabase local key naming (2026-08-12)
+
+The Supabase CLI's `npx supabase status` (run from `deliveryhub_white_label/`, where `supabase/config.toml` lives) prints both legacy JWT-style keys (`ANON_KEY`, `SERVICE_ROLE_KEY`) and newer prefixed keys (`PUBLISHABLE_KEY` = `sb_publishable_...`, `SECRET_KEY` = `sb_secret_...`). `serer_delivery/.env`'s `SUPABASE_SERVICE_ROLE_KEY` had the `sb_publishable_...` value pasted into it by mistake, which made the seed script (`scripts/seed-primeiro-boot.ts`, using the Supabase Admin API to create users) fail with `AuthApiError: User not allowed (403 not_admin)` — the publishable/anon key has no admin rights.
+
+**Why:** the two key-naming schemes look similar and it's easy to grab the wrong one when copy-pasting from `supabase status` output.
+**How to apply:** if `seed:primeiro-boot` or any Admin API call fails with `403 not_admin`, check that `SUPABASE_SERVICE_ROLE_KEY` in `serer_delivery/.env` is the secret/service_role key (`sb_secret_...` or the `service_role`-role JWT), not the publishable/anon one. Also note: Supabase local services must be started from `deliveryhub_white_label/` (that's where `supabase/config.toml` lives), not from `serer_delivery/`.

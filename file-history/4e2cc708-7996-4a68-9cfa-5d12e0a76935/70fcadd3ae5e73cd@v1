@@ -1,0 +1,85 @@
+---
+titulo: MOC Raiz - Ecossistema JHON
+criado: 2026-05-14
+tipo: moc
+tags: [moc, indice, raiz, ecossistema-jhon]
+---
+
+# Ecossistema JHON — MOC Raiz
+
+Mapa de Conteúdo (Map of Content) central. Toda navegação começa aqui.
+
+## Identidade
+- [[18-MEMORIA/ECOSSISTEMA-JHON|Ecossistema JHON]] — identidade, autoridade, princípios
+- [[18-MEMORIA/README|README 18-MEMORIA]]
+
+## Decisões Técnicas
+- [[23-DECISOES/ADR-001-STACK-OFICIAL|ADR-001 Stack Oficial (Vue/Nuxt/NestJS)]]
+- [[23-DECISOES/ADR-002-POLITICA-CREDENCIAIS|ADR-002 Política de Credenciais]]
+- [[23-DECISOES/ADR-003-ESTRUTURA-OBSIDIAN|ADR-003 Estrutura Obsidian]]
+
+## Infraestrutura e Stack
+- [[19-INFRAESTRUTURA/STACK-OFICIAL|Stack Oficial]]
+- [[19-INFRAESTRUTURA/README|README 19-INFRAESTRUTURA]]
+
+## Segurança
+- [[21-SEGURANCA/README|Hub de Segurança]]
+- [[21-SEGURANCA/POLITICAS|Políticas de Segurança JHON]]
+- [[21-SEGURANCA/ARCHITECTURE_SECURITY_RULES 1|Regras Arquiteturais (40 regras)]]
+- [[21-SEGURANCA/ARCHITECTURE_SECURITY_RULES 2|Arquitetura de Segurança — Diagramas]]
+
+## Engenharia de Software
+- [[22-ENGENHARIA/README|Hub de Engenharia]]
+- [[22-ENGENHARIA/DIRETRIZES-ENGENHARIA-SOFTWARE|Diretrizes — Arquiteto Sênior (SOLID, Clean Arch, complexidade)]]
+
+## Projetos
+- [[07-PROJETOS/README|Hub de Projetos]]
+- [[07-PROJETOS/openclaw/README|OpenClaw — VPS orquestradora]]
+  - [[07-PROJETOS/openclaw/SETUP-INICIAL|Setup inicial]]
+  - [[07-PROJETOS/openclaw/ARQUITETURA|Arquitetura]]
+  - [[07-PROJETOS/openclaw/bases/README|Bases Obsidian]]
+- [[07-PROJETOS/GESTAO-PROJETOS-VUE/INDEX|GESTAO_PROJTOS_VUE — SaaS Kanban + Pagamentos]]
+  - [[07-PROJETOS/GESTAO-PROJETOS-VUE/ARQUITETURA|Arquitetura (Nuxt3 + Supabase + Pinia)]]
+  - [[07-PROJETOS/GESTAO-PROJETOS-VUE/PAGAMENTOS|Pagamentos (PagBank + Stripe + PIX)]]
+  - [[07-PROJETOS/GESTAO-PROJETOS-VUE/KANBAN-REALTIME|Kanban & Realtime]]
+  - [[07-PROJETOS/GESTAO-PROJETOS-VUE/ERROS-EVITAR|Erros a Evitar]]
+  - [[07-PROJETOS/GESTAO-PROJETOS-VUE/STATUS-ROADMAP|Status & Roadmap]]
+
+## Operação Diária
+- [[00-INBOX/README|Inbox]] — triagem de capturas
+- [[13-LOGS/README|Logs operacionais]]
+- [[05-WORKFLOWS/README|Workflows]]
+- [[10-AUTOMACOES/README|Automações]]
+
+## Conhecimento e Memória
+- [[17-RAG/README|RAG / Pesquisas]]
+- [[06-PROMPTS/README|Prompts versionados]]
+- [[16-CLAUDE-CODE/README|Claude Code]]
+
+## Design Systems
+- [[26-DESIGNER/README|Hub de Design Systems]]
+- [[26-DESIGNER/DESIGN SYSTEM OFICIAL(DELIVERY-RESTAURANTES)|Design System Delivery (Rappi-style)]]
+
+## JARVIS — Assistente Cognitivo
+- [[27-JARVIS/README|Hub JARVIS]]
+- [[27-JARVIS/GUIA-DEPLOY|Guia Deploy VPS (Docker, FastAPI, Neo4j, Whisper)]]
+
+## Operações e Risco
+- [[20-OBSERVABILIDADE/README|Observabilidade]]
+- [[24-INCIDENTES/README|Incidentes]]
+
+## Sessões Recentes
+- [[13-LOGS/2026-05-14-setup-estrutura|2026-05-14 — Setup estrutura mestre]]
+- [[13-LOGS/2026-05-14-migracao-openclaw|2026-05-14 — Migração OpenClaw]]
+- [[00-INBOX/2026-05-14-conversa-inicial|2026-05-14 — Conversa inicial]]
+
+## Convenções
+- Toda nota usa frontmatter YAML
+- Wiki-links `[[nota]]` para relacionamento
+- Tags hierárquicas: `#projeto/nome`, `#stack/vue`, `#decisao/adr`
+- Datas no formato `YYYY-MM-DD`
+- Credenciais SEMPRE como `[MASKED]`
+
+## Histórico
+- 2026-05-14 — criação inicial da estrutura mestre
+- 2026-05-14 — migração do projeto OpenClaw do legado para `07-PROJETOS/openclaw/`

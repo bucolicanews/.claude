@@ -1,0 +1,23 @@
+
+SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY ausentes no .env
+PS C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery> npm run seed:primeiro-boot
+>> 
+
+> delivery-base-backend@0.1.0 seed:primeiro-boot
+> ts-node scripts/seed-primeiro-boot.ts
+
+Criando usuários de teste...
+Falha no seed de primeiro boot: AuthApiError: User not allowed
+    at handleError (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\node_modules\@supabase\auth-js\src\lib\fetch.ts:141:9)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async _handleRequest (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\node_modules\@supabase\auth-js\src\lib\fetch.ts:234:5)
+    at async _request (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\node_modules\@supabase\auth-js\src\lib\fetch.ts:196:16)
+    at async GoTrueAdminApi.createUser (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts:484:14)
+    at async getOrCreateAuthUser (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\scripts\seed-primeiro-boot.ts:30:27)
+    at async main (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\scripts\seed-primeiro-boot.ts:60:19) {
+  __isAuthError: true,
+  status: 403,
+  code: 'not_admin'
+}
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 94
+PS C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery> 

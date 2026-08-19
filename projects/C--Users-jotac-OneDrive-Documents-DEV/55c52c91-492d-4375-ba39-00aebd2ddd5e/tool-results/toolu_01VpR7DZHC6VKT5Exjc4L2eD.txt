@@ -1,0 +1,185 @@
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-390-    iframe.remove();
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-391-    const w = window.open('', '_blank', 'width=440,height=680');
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-392-    if (w) { w.document.write(html); w.document.close(); }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-393-  }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-394-};
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-395-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-396-// Ticket de setor do módulo Salão (cozinha/bar/salgados...) — só os itens novos
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-397-// enviados agora, nunca reimprime os que já foram (ver order_items.status no backend).
+src\utils\printComanda.js:398:export const printTicketSetor = (itens, comanda, setorNome) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-399-  if (!itens?.length) return;
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-400-
+src\utils\printComanda.js-401-  const mesa = comanda?.mesaLabel ?? (comanda?.mesa_id ? `Mesa ${comanda.mesas?.numero ?? comanda.mesa_id}` : null);
+src\utils\printComanda.js-402-  const hora = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-403-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-404-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(setorNome)}</title>
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\utils\printComanda.js-405-<style>
+src\utils\printComanda.js-406-*{margin:0;padding:0;box-sizing:border-box}
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-1-import React, { useState, useEffect, useCallback, useRef } from 'react';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-2-import { useNavigate } from 'react-router-dom';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-3-import { listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, reimprimirItemRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, getMinhaEmpresa } from '../../services/restauranteService';
+src\pages\restaurante-bar\index.jsx:4:import { printTicketSetor } from '../../utils/printComanda';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-5-import { formatDuracao } from '../../utils/formatDuracao';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-6-import { useNotificacaoSonora } from '../../hooks/useNotificacaoSonora';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-7-import { useNowTick } from '../../hooks/useNowTick';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-8-import Icon from '../../components/AppIcon';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-9-
+src\pages\restaurante-bar\index.jsx-10-\ Card por item (não por mesa\comanda) — pedido explícito: cada prato tem sua própria
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-11-// ação de Liberado pra Motoboy/Reimpressão/Entregue, ordenados por ordem de chegada.
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-12-// `posicao` numera a fila (1º = próximo a sair) pra equipe saber quem vem primeiro.
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-223-      setErro(e.message);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-224-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-225-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-226-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-227-  const reimprimir = async (item) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-228-    try {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-229-      const res = await reimprimirItemRestaurante(item.id);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-230-      if (res.via === 'navegador') {
+src\pages\restaurante-bar\index.jsx:231:        printTicketSetor([item], { mesaLabel: item.mesa, cliente_mesa_nome: item.cliente }, 'Bar');
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-232-      }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-233-    } catch (e) {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-234-      setErro(e.message);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-235-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-236-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-237-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-238-  if (loading) return (
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-bar\index.jsx-239-    <div className="min-h-screen bg-[#111111] flex items-center justify-center">
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-1-import React, { useState, useEffect, useCallback, useRef } from 'react';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-2-import { useNavigate } from 'react-router-dom';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-3-import { listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, reimprimirItemRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, cancelarItemRestaurante, moverItemRestaurante, getMinhaEmpresa, getSalaoComandaDetalhe, editarItemComandaSalao } from '../../services/restauranteService';
+src\pages\restaurante-producao\index.jsx:4:import { printTicketSetor } from '../../utils/printComanda';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-5-import { formatDuracao } from '../../utils/formatDuracao';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-6-import { useNotificacaoSonora } from '../../hooks/useNotificacaoSonora';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-7-import { useNowTick } from '../../hooks/useNowTick';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-8-import Icon from '../../components/AppIcon';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-9-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-10-// Card por item (não por mesa/comanda) com cronômetro ao vivo — mostra há quanto tempo
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-11-// o item chegou (aguardando) e, quando em preparo, há quanto tempo está preparando,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-12-// pra dar visibilidade do tempo total gasto até ficar pronto.
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-309-      alert(e.message);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-310-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-311-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-312-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-313-  const reimprimir = async (item, setorNome) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-314-    try {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-315-      const res = await reimprimirItemRestaurante(item.id);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-316-      if (res.via === 'navegador') {
+src\pages\restaurante-producao\index.jsx:317:        printTicketSetor([item], { mesaLabel: item.mesa, cliente_mesa_nome: item.cliente }, setorNome);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-318-      }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-319-    } catch (e) {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-320-      setErro(e.message);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-321-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-322-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-323-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-324-  const salvarObservacao = async (item, observacao) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-producao\index.jsx-325-    try {
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-1-import React, { useState, useEffect, useCallback } from 'react';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-2-import { useSearchParams } from 'react-router-dom';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-3-import {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-4-  getCozinhaToken, setCozinhaToken, clearCozinhaToken, resgatarToken,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-5-  getKdsItens, marcarItemPronto, reimprimirItem, iniciarPreparoItem, voltarStatusItem,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-6-} from '../../services/cozinhaPortalService';
+src\pages\restaurante-kds-setor\index.jsx:7:import { printTicketSetor } from '../../utils/printComanda';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-8-import { useNowTick } from '../../hooks/useNowTick';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-9-import Icon from '../../components/AppIcon';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-10-import SalaoItemCard from '../../components/restaurante/SalaoItemCard';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-11-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-12-const KdsLogin = ({ onLogin }) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-13-  const [token, setToken] = useState('');
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-14-  const [erro, setErro] = useState(null);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-15-  const [loading, setLoading] = useState(false);
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-124-    await voltarStatusItem(item.id);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-125-    carregar();
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-126-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-127-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-128-  const reimprimir = async (item) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-129-    try {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-130-      const res = await reimprimirItem(item.id);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-131-      if (res.via === 'navegador') {
+src\pages\restaurante-kds-setor\index.jsx:132:        printTicketSetor([item], { mesaLabel: item.mesa, cliente_mesa_nome: item.cliente }, setorNome);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-133-      }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-134-    } catch (err) {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-135-      setErro(err.message);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-136-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-137-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-138-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-139-  const aguardandoPreparo = itens.filter((i) => i.status === 'enviado');
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-kds-setor\index.jsx-140-  const emPreparo = itens.filter((i) => i.status === 'preparando');
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-2-import { useParams } from 'react-router-dom';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-3-import {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-4-  login, logout, getGarcomToken, setGarcomToken, clearGarcomToken, getMe,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-5-  getMesas, getProdutos, getCombos, getMinhasComandas, getComanda, getItensProntos, getFilaCozinha,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-6-  abrirComanda, adicionarItens, editarItem, removerItem, enviarItens, fecharComanda,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-7-  registrarPagamento, editarPagamento, removerPagamento, editarClienteComanda,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-8-  confirmarEntregaItem, naoEntregarItem, indoBuscarItem, marcarConferenciaVista, dividirComanda, editarObservacaoItem,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-9-} from '../../services/garcomService';
+src\pages\garcom-portal\index.jsx:10:import { printTicketSetor } from '../../utils/printComanda';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-11-import { agruparItensComanda, quantidadeGrupoCombo } from '../../utils/agruparItensComanda';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-12-import { getAcompanharUrls, getAutoAtendimentoUrls } from '../../utils/mesaAcompanharUrl';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-13-import { useNotificacaoSonora } from '../../hooks/useNotificacaoSonora';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-14-import { useNowTick } from '../../hooks/useNowTick';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-15-import { formatDuracao } from '../../utils/formatDuracao';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-16-import { useModulosEmpresa } from '../../hooks/useModulosEmpresa';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-17-import Icon from '../../components/AppIcon';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-18-import TempoMedioTile from '../../components/TempoMedioTile';
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-781-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-782-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-783-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-784-  const enviar = async () => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-785-    setEnviando(true);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-786-    setErro(null);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-787-    try {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-788-      const { grupos } = await enviarItens(comandaId);
+src\pages\garcom-portal\index.jsx:789:      grupos.forEach((grupo) => printTicketSetor(grupo.itens, comanda, grupo.setor));
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-790-      await carregar();
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-791-    } catch (err) {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-792-      setErro(err.message ?? 'Não foi possível enviar os itens.');
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-793-    } finally {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-794-      setEnviando(false);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-795-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-796-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\garcom-portal\index.jsx-797-
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-7-import {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-8-  getCozinhaToken, setCozinhaToken, clearCozinhaToken, resgatarToken,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-9-  getCozinhaMe, getCozinhaPedidos, atualizarStatusCozinhaPortal,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-10-  getKdsImpressoras, getKdsItens, marcarItemPronto, reimprimirItem, iniciarPreparoItem, voltarStatusItem,
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-11-} from '../../services/cozinhaPortalService';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-12-import { supabase } from '../../lib/supabase';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-13-import Icon from '../../components/AppIcon';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-14-import SalaoItemCard from '../../components/restaurante/SalaoItemCard';
+src\pages\restaurante-cozinha\index.jsx:15:import { barcodeValue, getPrinterName, setPrinterName, printTicketSetor } from '../../utils/printComanda';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-16-import { formatDuracao } from '../../utils/formatDuracao';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-17-import { useNotificacaoSonora } from '../../hooks/useNotificacaoSonora';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-18-import { useNowTick } from '../../hooks/useNowTick';
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-19-
+src\pages\restaurante-cozinha\index.jsx-20-const fmt = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v ?? 0);
+src\pages\restaurante-cozinha\index.jsx-21-const PAYMENT_LABELS = { pix: 'PIX', credit_card: 'Cartão', debit_card: 'Débito', cash: 'Dinheiro' };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-22-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-23-const STATUS_INFO = {
+--
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-440-      alert(e.message);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-441-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-442-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-443-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-444-  const reimprimirSalao = async (item) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-445-    try {
+src\pages\restaurante-cozinha\index.jsx-446-      const res = modoToken ? await reimprimirItem(item.id) : await reimprimirItemRestaurante(item.id);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-447-      if (res.via === 'navegador') {
+src\pages\restaurante-cozinha\index.jsx:448:        printTicketSetor([item], { mesaLabel: item.mesa, cliente_mesa_nome: item.cliente }, 'Cozinha');
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-449-      }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-450-    } catch (e) {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-451-      alert(e.message);
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-452-    }
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-453-  };
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-454-
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-455-  const iniciarPreparoSalao = async (item) => {
+c:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\src\pages\restaurante-cozinha\index.jsx-456-    try {

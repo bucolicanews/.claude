@@ -1,0 +1,5 @@
+- [DeliveryHub project map](project_deliveryhub.md) — two-repo white-label delivery platform, stack, recent feature areas
+- [User profile](user_profile.md) — Brazilian Portuguese, commit message style
+- [Browser testing preference](feedback_browser_testing.md) — let user click-test UI themselves, don't drive Chrome automation proactively
+- [may_memory vault](reference_may_memory_vault.md) — Obsidian repo, cross-project security/architecture standards, check before improvising
+- [Live artifact tracking](feedback_live_artifact_tracking.md) — republish progress-tracker artifacts to the same URL as fixes land, don't wait to be asked

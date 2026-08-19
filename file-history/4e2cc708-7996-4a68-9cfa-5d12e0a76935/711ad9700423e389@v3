@@ -1,0 +1,124 @@
+---
+titulo: Protocolo de Pentest / Code Review de Segurança
+criado: 2026-08-15
+atualizado: 2026-08-15
+tipo: protocolo
+status: ativo
+criticidade: alta
+tags:
+  - seguranca
+  - pentest
+  - code-review
+  - bola
+  - idor
+  - owasp
+  - devsecops
+  - nestjs
+  - supabase
+relacionado:
+  - [[POLITICAS]]
+  - [[ARCHITECTURE_SECURITY_RULES 1]]
+  - [[ARCHITECTURE_SECURITY_RULES 2]]
+  - [[SECURITY SYSTEM DESIGN]]
+  - [[../23-DECISOES/ADR-002-POLITICA-CREDENCIAIS]]
+---
+
+# Protocolo de Pentest / Code Review de Segurança
+
+## Objetivo
+
+Protocolo operacional — **não é política, é procedimento** — para auditar código-fonte existente em busca de vulnerabilidades antes de deploy em produção. Enquanto [[POLITICAS]] e [[ARCHITECTURE_SECURITY_RULES 1]] definem *como o sistema deve ser construído*, este documento define *como revisar o que já foi construído*.
+
+**Aplicação:** obrigatório em todos os projetos do ecossistema JHON, antes de qualquer merge para `main`/deploy em produção — não é opcional nem específico de um projeto.
+
+---
+
+## Persona
+
+Ao executar este protocolo, adotar a postura de:
+
+> Especialista em cibersegurança e Engenheiro de Penetration Testing focado em aplicações SaaS multi-tenant.
+
+---
+
+## Escopo da Varredura
+
+### 1. Autenticação e Autorização (BOLA / IDOR / quebra de multi-tenant)
+
+- Endpoints sem verificação de permissão (`@UseGuards`, RBAC/ABAC — ver [[ARCHITECTURE_SECURITY_RULES 1]] §6-9).
+- Endpoints onde um usuário autenticado de um tenant acessa/altera dados de outro tenant — checar se todo `WHERE`/filtro Supabase inclui `tenant_id`/`restaurant_id` derivado da sessão, nunca do payload da requisição.
+- IDs sequenciais/previsíveis em rotas (`/pedidos/:id`) sem validar posse do recurso.
+- RLS desabilitado ou políticas incompletas (falta `SELECT`/`INSERT`/`UPDATE`/`DELETE`) em tabelas Supabase.
+
+### 2. Injeções e Validação de Entrada
+
+- SQL Injection: strings interpoladas em queries (`` `SELECT * FROM x WHERE id=${id}` ``) em vez de query builder/ORM/SDK com parâmetros preparados.
+- NoSQL Injection: operadores Mongo/Supabase (`$where`, filtros JSON) construídos a partir de input não sanitizado.
+- Command Injection: `exec`/`spawn`/`child_process` com input do usuário.
+- XSS: `dangerouslySetInnerHTML`, `innerHTML`, templates sem escape, ausência de sanitização (DOMPurify) em conteúdo HTML renderizado.
+- Endpoints/DTOs sem `class-validator`/`class-transformer`, ou campos tipados como `any`.
+
+### 3. Gestão de Segredos
+
+- Chaves de API, tokens, senhas, connection strings hardcoded no código-fonte (não em `.env`/Secret Manager).
+- `SUPABASE_SERVICE_ROLE_KEY` (ou equivalente admin) referenciada em código que roda no frontend/browser.
+- Segredos commitados em histórico git, mesmo que removidos depois (checar `git log -p`).
+- Ver [[../23-DECISOES/ADR-002-POLITICA-CREDENCIAIS]] — nenhum segredo real deve aparecer nem no relatório desta varredura; usar `[MASKED]`.
+
+### 4. Tratamento de Dados e Erros
+
+- Mensagens de erro detalhadas (stack trace, query SQL, path do servidor) retornadas ao cliente em produção.
+- Dados sensíveis (senha, token, cartão, CPF completo) em `console.log`/logger estruturado — ver [[POLITICAS]] §Logs.
+- Respostas de API vazando campos que o tenant/role não deveria ver (over-fetching — `SELECT *` sem projeção).
+
+### 5. Configurações Inseguras
+
+- CORS `origin: '*'` ou refletindo `Origin` do request em produção.
+- JWT: segredo fraco/hardcoded, sem expiração curta, sem rotação de refresh token, algoritmo `none` aceito.
+- Cookies de sessão sem `HttpOnly`/`Secure`/`SameSite=Strict`.
+- Headers de segurança ausentes (`Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Strict-Transport-Security` — ver [[SECURITY SYSTEM DESIGN]] §21).
+- Ausência de rate limiting em login/cadastro/recuperação de senha.
+- Webhooks sem validação de assinatura/timestamp/nonce (ver [[ARCHITECTURE_SECURITY_RULES 1]] §30).
+
+---
+
+## Formato Obrigatório da Resposta
+
+Toda execução deste protocolo deve produzir, nesta ordem:
+
+### 1. Resumo de Riscos (tabela)
+
+| Vulnerabilidade | Severidade (Baixa/Média/Alta/Crítica) | Arquivo/Linha |
+|---|---|---|
+| ... | ... | ... |
+
+### 2. Detalhamento das Falhas
+
+Para cada item da tabela: o que é a vulnerabilidade, como foi identificada, e **impacto concreto no SaaS** (ex: "dono do restaurante A consegue listar pedidos do restaurante B trocando o `id` na URL").
+
+### 3. Correção (Patch)
+
+Trecho de código corrigido, mínimo e cirúrgico — sem refatoração além do necessário pra fechar a falha.
+
+### 4. Script de Teste
+
+Script em Python (`requests`) ou `cURL` que valida se a falha existe, apontando para **ambiente de Staging** via variável de ambiente (`STAGING_URL`) — nunca hardcode URL/credencial de produção no script.
+
+---
+
+## Regras de Execução
+
+- **Nunca** incluir segredo real (token, senha, chave) no relatório ou nos scripts de teste — usar `[MASKED]` e placeholders (ver [[../23-DECISOES/ADR-002-POLITICA-CREDENCIAIS]]).
+- **Nunca** rodar o script de teste gerado contra produção — só Staging, e só mediante autorização explícita antes de executar (o script pode ser *gerado* livremente; *executá-lo* é uma ação que precisa confirmação, principalmente se envolver escrita/exclusão de dados).
+- Severidade **Crítica** = falha de multi-tenant (BOLA/IDOR entre empresas) ou RCE/SQLi com acesso a dados de produção — bloqueia deploy até corrigir, conforme [[POLITICAS]] §DevSecOps ("Deploys com falhas críticas de segurança devem ser bloqueados automaticamente").
+- Falso positivo suspeito → reportar como "a verificar" em vez de omitir, nunca inventar confiança que não existe.
+
+---
+
+## Histórico
+
+### 2026-08-15
+
+Criação do protocolo — solicitado para ser aplicado de forma padronizada em todos os projetos do ecossistema (DeliveryHub e futuros), preenchendo a lacuna entre as políticas de *como construir seguro* ([[POLITICAS]], [[ARCHITECTURE_SECURITY_RULES 1]]) e um procedimento repetível de *como auditar o que já existe*.
+
+**Primeira execução real, mesmo dia:** rodado contra o DeliveryHub (`serer_delivery` + `deliveryhub_white_label`) — 18 achados (4 Crítica, 5 Alta, 9 Média/Baixa), todos corrigidos na mesma sessão. Formato de saída (tabela de risco → detalhamento → patch → script de teste) funcionou bem na prática; o único ajuste feito sobre a marcha foi escopar o rastreio de "ausência sistêmica de DTOs" (achado tipo B10) com um agente dedicado antes de migrar tudo às cegas — evitou reescrever ~45 endpoints que já estavam seguros na prática (whitelist manual no service), mesmo sem DTO formal.

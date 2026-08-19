@@ -1,0 +1,710 @@
+---
+
+titulo: Políticas de Segurança JHON  
+criado: 2026-05-14  
+atualizado: 2026-06-06  
+tipo: politica  
+status: ativo  
+criticidade: alta  
+tags:
+
+- seguranca
+    
+- governanca
+    
+- credenciais
+    
+- autenticacao
+    
+- autorizacao
+    
+- auditoria
+    
+- lgpd
+    
+- devsecops
+    
+- nestjs
+    
+- supabase
+    
+
+relacionado:
+
+- [[ARCHITECTURE_SECURITY_RULES]]
+    
+- [[SECURITY SYSTEM DESIGN]]
+    
+- [[PENTEST_CODE_REVIEW_PROTOCOL]]
+    
+- [[../23-DECISOES/ADR-002-POLITICA-CREDENCIAIS]]
+    
+- [[../18-MEMORIA/ECOSSISTEMA-JHON]]
+    
+
+---
+
+# Política Mestre de Segurança JHON
+
+## Objetivo
+
+Estabelecer os princípios obrigatórios de segurança para todos os sistemas, aplicações, APIs, bancos de dados, integrações, automações, agentes de IA e infraestruturas pertencentes ao ecossistema JHON.
+
+Estas políticas possuem prioridade sobre decisões técnicas locais e devem ser seguidas por qualquer desenvolvedor, colaborador, IA, agente automatizado ou serviço que interaja com os sistemas.
+
+---
+
+# Princípios Fundamentais
+
+## Security First
+
+Toda funcionalidade deve nascer segura.
+
+É proibido:
+
+- Implementar primeiro e proteger depois.
+    
+- Criar exceções temporárias sem registro formal.
+    
+- Ignorar validações por conveniência.
+    
+- Desabilitar mecanismos de segurança para testes em produção.
+    
+
+---
+
+## Zero Trust
+
+Nenhuma informação é considerada confiável.
+
+Sempre validar:
+
+- Inputs
+    
+- Query Params
+    
+- Headers
+    
+- Cookies
+    
+- Tokens
+    
+- Uploads
+    
+- Integrações externas
+    
+- Webhooks
+    
+- Dados provenientes do frontend
+    
+
+Toda entrada deve ser considerada potencialmente maliciosa.
+
+---
+
+## Least Privilege
+
+Usuários, APIs, integrações e serviços devem possuir apenas as permissões mínimas necessárias para executar suas funções.
+
+Nenhuma conta deve possuir privilégios administrativos sem necessidade operacional comprovada.
+
+---
+
+## Defense in Depth
+
+Toda proteção deve existir em múltiplas camadas:
+
+```text
+Frontend
+↓
+CDN/WAF
+↓
+API Gateway
+↓
+NestJS
+↓
+Autorização
+↓
+Banco de Dados
+↓
+RLS
+↓
+Auditoria
+↓
+Monitoramento
+```
+
+---
+
+# Credenciais — Regra Inviolável
+
+Ver:
+
+[[../23-DECISOES/ADR-002-POLITICA-CREDENCIAIS]]
+
+---
+
+## Proibido
+
+Em qualquer arquivo do Vault:
+
+- Senhas
+    
+- Tokens
+    
+- JWTs
+    
+- API Keys
+    
+- Secrets
+    
+- Chaves privadas
+    
+- Cookies sensíveis
+    
+- Frases Seed
+    
+- Certificados privados
+    
+- Credenciais bancárias
+    
+
+---
+
+## Obrigatório
+
+Utilizar:
+
+```text
+[MASKED]
+```
+
+para qualquer informação sensível registrada.
+
+---
+
+## Gestão de Segredos
+
+Os segredos devem existir apenas em:
+
+- Vault
+    
+- Bitwarden
+    
+- 1Password
+    
+- Doppler
+    
+- Secret Manager
+    
+- Variáveis protegidas do CI/CD
+    
+
+Nunca em:
+
+- Git
+    
+- GitHub
+    
+- GitLab
+    
+- Documentação
+    
+- Logs
+    
+- Banco de dados
+    
+- Frontend
+    
+
+---
+
+# Segurança Frontend
+
+## É proibido armazenar
+
+- JWTs persistentes
+    
+- Refresh Tokens
+    
+- API Keys privadas
+    
+- Segredos
+    
+- Dados bancários
+    
+- Informações sensíveis
+    
+
+em:
+
+- localStorage
+    
+- sessionStorage
+    
+- IndexedDB
+    
+
+---
+
+## Autenticação
+
+Utilizar:
+
+- HTTP Only Cookies
+    
+- Secure Cookies
+    
+- SameSite=Strict
+    
+
+---
+
+## Proteção contra XSS
+
+Proibido:
+
+```javascript
+dangerouslySetInnerHTML
+```
+
+salvo exceções formalmente aprovadas.
+
+Todo conteúdo HTML deve ser sanitizado.
+
+---
+
+# Segurança Backend
+
+## Framework
+
+Padrão oficial:
+
+```text
+NestJS
+```
+
+---
+
+## Obrigatório
+
+- DTOs
+    
+- Class Validator
+    
+- Class Transformer
+    
+- Helmet
+    
+- Rate Limiting
+    
+- Sanitização
+    
+- Logs estruturados
+    
+
+---
+
+## Nunca
+
+Utilizar:
+
+```typescript
+any
+```
+
+em entradas de APIs públicas.
+
+---
+
+# Banco de Dados
+
+## Supabase
+
+Obrigatório:
+
+- RLS em todas as tabelas
+    
+- Políticas explícitas
+    
+- Auditoria
+    
+- Controle por tenant
+    
+
+---
+
+## Multi-Tenant
+
+Toda tabela deve possuir:
+
+```sql
+tenant_id
+```
+
+quando aplicável.
+
+---
+
+## Proibido
+
+- Dados compartilhados entre empresas
+    
+- Consultas sem filtro de tenant
+    
+- Tabelas críticas sem RLS
+    
+
+---
+
+# SQL Injection
+
+## Proibido
+
+```sql
+SELECT * FROM users WHERE id = ${id}
+```
+
+---
+
+## Obrigatório
+
+- Query Builder
+    
+- Prisma
+    
+- TypeORM
+    
+- Drizzle
+    
+- Supabase SDK
+    
+
+com parâmetros preparados.
+
+---
+
+# Autenticação
+
+## Senhas
+
+Hash obrigatório:
+
+- Argon2 (preferencial)
+    
+- bcrypt (aceitável)
+    
+
+---
+
+## Política mínima
+
+- 12 caracteres
+    
+- Maiúscula
+    
+- Minúscula
+    
+- Número
+    
+- Símbolo
+    
+
+---
+
+## Sessões
+
+Implementar:
+
+- Logout global
+    
+- Revogação
+    
+- Expiração automática
+    
+- Rotação de refresh token
+    
+
+---
+
+## MFA
+
+Obrigatório para:
+
+- Administradores
+    
+- Financeiro
+    
+- Operações críticas
+    
+
+---
+
+# Autorização
+
+Modelo padrão:
+
+```text
+RBAC + ABAC
+```
+
+---
+
+Toda rota crítica deve validar:
+
+- Usuário autenticado
+    
+- Papel
+    
+- Permissão
+    
+- Tenant
+    
+- Contexto operacional
+    
+
+---
+
+# Uploads
+
+Aceitar apenas:
+
+- JPG
+    
+- PNG
+    
+- WEBP
+    
+- PDF
+    
+
+---
+
+Validar:
+
+- MIME Type
+    
+- Assinatura binária
+    
+- Tamanho
+    
+- Malware
+    
+
+---
+
+# Logs
+
+## Registrar
+
+- Login
+    
+- Logout
+    
+- Pedidos
+    
+- Pagamentos
+    
+- Alterações cadastrais
+    
+- Mudanças de permissões
+    
+
+---
+
+## Nunca registrar
+
+- Senhas
+    
+- Tokens
+    
+- Cartões
+    
+- Chaves privadas
+    
+- Segredos
+    
+
+---
+
+# Auditoria
+
+Toda ação crítica deve gerar registro contendo:
+
+- Usuário
+    
+- Tenant
+    
+- Ação
+    
+- Recurso
+    
+- IP
+    
+- User Agent
+    
+- Data/Hora
+    
+
+---
+
+Os logs de auditoria são imutáveis.
+
+---
+
+# LGPD
+
+O sistema deve permitir:
+
+- Consentimento
+    
+- Revogação
+    
+- Exportação de dados
+    
+- Exclusão de dados
+    
+- Anonimização
+    
+
+---
+
+# Infraestrutura
+
+## Portas públicas
+
+Permitidas:
+
+```text
+80
+443
+```
+
+---
+
+## Portas internas
+
+Nunca expostas:
+
+```text
+5432
+6379
+3000
+8000
+9000
+```
+
+---
+
+## SSH
+
+Obrigatório:
+
+- Chave SSH
+    
+- Root desabilitado
+    
+- Senha desabilitada
+    
+
+---
+
+# DevSecOps
+
+Toda pipeline deve executar:
+
+```text
+Lint
+Testes
+SAST
+Dependency Scan
+Secrets Scan
+```
+
+---
+
+Deploys com falhas críticas de segurança devem ser bloqueados automaticamente.
+
+---
+
+# Monitoramento
+
+Ferramentas recomendadas:
+
+- Sentry
+    
+- Grafana
+    
+- Prometheus
+    
+- Loki
+    
+- OpenTelemetry
+    
+
+---
+
+Alertas obrigatórios:
+
+- Tentativas de invasão
+    
+- Erros 500
+    
+- Falhas de autenticação
+    
+- Uso anormal de recursos
+    
+- Falhas de banco
+    
+
+---
+
+# Inteligência Artificial
+
+Qualquer IA utilizada no ecossistema JHON deve obedecer:
+
+- Nunca expor segredos
+    
+- Nunca gerar credenciais reais
+    
+- Nunca desabilitar mecanismos de segurança
+    
+- Nunca remover validações
+    
+- Nunca desativar RLS
+    
+- Nunca criar endpoints sem autenticação
+    
+- Nunca armazenar dados sensíveis em localStorage
+    
+
+---
+
+# Conformidade
+
+Todos os projetos devem buscar conformidade com:
+
+- OWASP Top 10
+    
+- OWASP ASVS
+    
+- OWASP API Security Top 10
+    
+- LGPD
+    
+- CIS Controls
+    
+- NIST Cybersecurity Framework
+    
+
+---
+
+# Histórico
+
+## 2026-05-14
+
+Criação da política.
+
+## 2026-06-06
+
+Ampliação para modelo corporativo, multi-tenant, DevSecOps, LGPD, auditoria e governança de IA.

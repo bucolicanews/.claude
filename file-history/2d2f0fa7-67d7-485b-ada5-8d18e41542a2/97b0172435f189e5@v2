@@ -1,0 +1,21 @@
+$logFile = "C:\Users\jotac\AppData\Local\Temp\claude\C--Users-jotac\2d2f0fa7-67d7-485b-ada5-8d18e41542a2\scratchpad\test_print_log.txt"
+Start-Transcript -Path $logFile -Force | Out-Null
+
+Write-Output "---Enviando pagina de teste via WMI---"
+$printer = Get-CimInstance -ClassName Win32_Printer -Filter "Name='POS80 Printer'"
+try {
+    $result = Invoke-CimMethod -InputObject $printer -MethodName PrintTestPage
+    Write-Output "ReturnValue: $($result.ReturnValue)"
+} catch {
+    Write-Output "ERRO: $_"
+}
+
+Start-Sleep -Seconds 3
+
+Write-Output "---Fila apos teste---"
+Get-PrintJob -PrinterName "POS80 Printer" -ErrorAction SilentlyContinue | Select-Object Id, DocumentName, JobStatus, PagesPrinted, SubmittedTime
+
+Write-Output "---Eventos recentes do spooler (System log)---"
+Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-PrintService','Print'} -MaxEvents 10 -ErrorAction SilentlyContinue | Select-Object TimeCreated, Id, LevelDisplayName, Message | Format-List
+
+Stop-Transcript | Out-Null

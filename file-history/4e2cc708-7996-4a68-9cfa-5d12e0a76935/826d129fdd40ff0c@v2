@@ -1,0 +1,24 @@
+---
+titulo: Hub de Segurança
+criado: 2026-06-10
+tipo: hub
+tags: [seguranca, rbac, rls, lgpd, devsecops, multi-tenant]
+---
+
+# Segurança
+
+Hub central de políticas e arquitetura de segurança do ecossistema JHON.
+
+## Documentos
+
+- [[POLITICAS]] — Política Mestre de Segurança JHON (Zero Trust, RBAC, LGPD, DevSecOps)
+- [[ARCHITECTURE_SECURITY_RULES 1]] — 40 regras arquiteturais obrigatórias (RLS, RBAC, ABAC, MFA, WAF...)
+- [[ARCHITECTURE_SECURITY_RULES 2]] — Diagramas de relacionamento e governança arquitetural
+- [[SECURITY SYSTEM DESIGN]] — Design de sistema seguro para React+NestJS+Supabase
+- [[PENTEST_CODE_REVIEW_PROTOCOL]] — Protocolo de pentest/code review para auditar código antes de deploy (BOLA/IDOR, injeções, segredos, config insegura)
+
+## Relacionamentos
+
+- [[../23-DECISOES/ADR-002-POLITICA-CREDENCIAIS]] — Política de credenciais
+- [[../22-ENGENHARIA/README]] — Engenharia de Software
+- [[../19-INFRAESTRUTURA/README]] — Infraestrutura e Stack

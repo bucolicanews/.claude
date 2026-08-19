@@ -1,0 +1,27 @@
+---
+name: project-deliveryhub
+description: "DeliveryHub white-label delivery platform — repo layout, stack, and current feature focus"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
+  modified: 2026-08-12T16:03:22.037Z
+---
+
+Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
+
+- `deliveryhub_white_label/` — frontend. React 18 + Vite + Redux Toolkit + TailwindCSS + React Router v6 + React Hook Form + Framer Motion + D3/Recharts. Scaffolded via Rocket.new. Dev server on port 4028. Backend is included as a git submodule at `server_delivery/`.
+- `serer_delivery/` — backend. NestJS + TypeScript. Dev server on port 3002. Uses Supabase (Postgres/auth/storage, run locally via `npx supabase start`) and Redis (caching, e.g. the "minha-empresa" sidebar route).
+
+Both repos are on `main`, clean, up to date with origin as of 2026-08-12.
+
+As of 2026-08-12 (most recent commits), active feature areas:
+- Restaurant location pin: draggable pin, address search, GPS high-accuracy, map/satellite toggle, manual-location backend endpoint.
+- Motoboy (courier) flow: registration, platform-side approval, limited revision requests.
+- Plans/subscriptions: restaurant signup now requires an active plan + checkout before the registration form unlocks; plan changes require payment up front.
+- Licensing system for local/individual installs, with checkin that distinguishes revocation from network failure.
+- Cash register (caixa): dedicated kitchen/bar receipt printer, Pix change-on-cash-payment, real Pix/cash balance tracking, editable observação on already-paid counter sales.
+- PagBank card payments (holder field now required).
+
+**Why:** captured from `git log` on both repos since no CLAUDE.md exists yet in either repo to document this.
+**How to apply:** use this as the map of the codebase when the user asks to work on either repo without re-deriving repo purpose from scratch each session. Still verify specifics (file paths, current line numbers) by reading the code — this snapshot will drift.

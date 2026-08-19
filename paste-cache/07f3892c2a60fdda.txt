@@ -1,0 +1,68 @@
+restaurant-registration-setup:1 Access to fetch at 'https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/restaurante/planos-disponiveis' from origin 'https://sereiadomar.teusite.top' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+index-BBa09iye.js:7929  GET https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/restaurante/planos-disponiveis net::ERR_FAILED 502 (Bad Gateway)
+Iwe @ index-BBa09iye.js:7929
+(anônimo) @ index-BBa09iye.js:7929
+ZE @ index-BBa09iye.js:40
+dm @ index-BBa09iye.js:40
+(anônimo) @ index-BBa09iye.js:40
+D @ index-BBa09iye.js:25
+R @ index-BBa09iye.js:25
+postMessage
+ce @ index-BBa09iye.js:25
+R @ index-BBa09iye.js:25
+postMessage
+ce @ index-BBa09iye.js:25
+U @ index-BBa09iye.js:25
+e.unstable_scheduleCallback @ index-BBa09iye.js:25
+uG @ index-BBa09iye.js:40
+Ka @ index-BBa09iye.js:40
+Yn @ index-BBa09iye.js:40
+JE @ index-BBa09iye.js:40
+QE.render.sz.render @ index-BBa09iye.js:40
+(anônimo) @ index-BBa09iye.js:8431
+restaurant-registration-setup:1 Access to fetch at 'https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/licenca/status' from origin 'https://sereiadomar.teusite.top' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+index-BBa09iye.js:7929  GET https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/licenca/status net::ERR_FAILED 502 (Bad Gateway)
+f @ index-BBa09iye.js:7929
+(anônimo) @ index-BBa09iye.js:7929
+ZE @ index-BBa09iye.js:40
+dm @ index-BBa09iye.js:40
+(anônimo) @ index-BBa09iye.js:40
+D @ index-BBa09iye.js:25
+R @ index-BBa09iye.js:25
+postMessage
+ce @ index-BBa09iye.js:25
+R @ index-BBa09iye.js:25
+postMessage
+ce @ index-BBa09iye.js:25
+U @ index-BBa09iye.js:25
+e.unstable_scheduleCallback @ index-BBa09iye.js:25
+uG @ index-BBa09iye.js:40
+Ka @ index-BBa09iye.js:40
+Yn @ index-BBa09iye.js:40
+JE @ index-BBa09iye.js:40
+QE.render.sz.render @ index-BBa09iye.js:40
+(anônimo) @ index-BBa09iye.js:8431
+restaurant-registration-setup:1 Access to fetch at 'https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/establishment-types' from origin 'https://sereiadomar.teusite.top' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+index-BBa09iye.js:7929  GET https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/establishment-types net::ERR_FAILED 502 (Bad Gateway)
+Pwe @ index-BBa09iye.js:7929
+(anônimo) @ index-BBa09iye.js:7929
+ZE @ index-BBa09iye.js:40
+dm @ index-BBa09iye.js:40
+(anônimo) @ index-BBa09iye.js:40
+D @ index-BBa09iye.js:25
+R @ index-BBa09iye.js:25
+postMessage
+ce @ index-BBa09iye.js:25
+R @ index-BBa09iye.js:25
+postMessage
+ce @ index-BBa09iye.js:25
+U @ index-BBa09iye.js:25
+e.unstable_scheduleCallback @ index-BBa09iye.js:25
+uG @ index-BBa09iye.js:40
+Ka @ index-BBa09iye.js:40
+Yn @ index-BBa09iye.js:40
+JE @ index-BBa09iye.js:40
+QE.render.sz.render @ index-BBa09iye.js:40
+(anônimo) @ index-BBa09iye.js:8431
+restaurant-registration-setup:1 Access to fetch at 'https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/restaurante/registrar-inicial' from origin 'https://sereiadomar.teusite.top' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+index-BBa09iye.js:7929  POST https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host/restaurante/registrar-inicial net::ERR_FAILED

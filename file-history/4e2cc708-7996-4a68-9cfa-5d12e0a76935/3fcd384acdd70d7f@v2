@@ -1,0 +1,21 @@
+# REPLACE THE VALUES BELOW WITH YOUR ACTUAL KEYS IF NOT AUTOMATICALLY SET
+
+
+VITE_ANTHROPIC_API_KEY=your-anthropic-api-key-here
+VITE_GOOGLE_ANALYTICS_ID=your-google-analytics-id-here
+VITE_ADSENSE_ID=your-adsense-id-here
+VITE_PERPLEXITY_API_KEY=your-perplexity-api-key-here
+VITE_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key-here
+
+
+VITE_SUPABASE_URL=http://127.0.0.1:54331
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-or-publishable-key-here
+
+# Backend server_delivery. Vazio = usa proxy do Vite em dev (/api -> VPS).
+# Em produção (build/deploy), precisa apontar pro backend na VPS:
+# VITE_API_URL=https://seu-backend.exemplo.com
+VITE_API_URL=
+
+# IP de rede local do PC — usado no QR de acompanhamento do cliente (mesa-acompanhar)
+# quando rodando localmente. Deixe vazio em produção.
+VITE_LAN_URL=

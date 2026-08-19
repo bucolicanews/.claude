@@ -1,0 +1,88 @@
+$logFile = "C:\Users\jotac\AppData\Local\Temp\claude\C--Users-jotac\2d2f0fa7-67d7-485b-ada5-8d18e41542a2\scratchpad\raw_print_log.txt"
+Start-Transcript -Path $logFile -Force | Out-Null
+
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class RawPrinterHelper
+{
+    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
+    public class DOCINFOA
+    {
+        [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
+        [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
+        [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+    }
+
+    [DllImport("winspool.drv", EntryPoint="OpenPrinterA", SetLastError=true, CharSet=CharSet.Ansi)]
+    public static extern bool OpenPrinter(string szPrinter, out IntPtr hPrinter, IntPtr pd);
+
+    [DllImport("winspool.drv", EntryPoint="ClosePrinter")]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint="StartDocPrinterA", SetLastError=true, CharSet=CharSet.Ansi)]
+    public static extern bool StartDocPrinter(IntPtr hPrinter, int level, [In] DOCINFOA di);
+
+    [DllImport("winspool.drv", EntryPoint="EndDocPrinter")]
+    public static extern bool EndDocPrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint="StartPagePrinter")]
+    public static extern bool StartPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint="EndPagePrinter")]
+    public static extern bool EndPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint="WritePrinter")]
+    public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
+
+    public static bool SendBytesToPrinter(string szPrinterName, byte[] data)
+    {
+        IntPtr hPrinter;
+        DOCINFOA di = new DOCINFOA();
+        int dwWritten;
+        bool ok;
+        di.pDocName = "Teste RAW ESC/POS";
+        di.pDataType = "RAW";
+
+        ok = OpenPrinter(szPrinterName, out hPrinter, IntPtr.Zero);
+        if (!ok) { throw new Exception("OpenPrinter falhou. Win32 Error: " + Marshal.GetLastWin32Error()); }
+
+        ok = StartDocPrinter(hPrinter, 1, di);
+        if (!ok) { ClosePrinter(hPrinter); throw new Exception("StartDocPrinter falhou. Win32 Error: " + Marshal.GetLastWin32Error()); }
+
+        ok = StartPagePrinter(hPrinter);
+        if (!ok) { EndDocPrinter(hPrinter); ClosePrinter(hPrinter); throw new Exception("StartPagePrinter falhou."); }
+
+        IntPtr pUnmanagedBytes = Marshal.AllocCoTaskMem(data.Length);
+        Marshal.Copy(data, 0, pUnmanagedBytes, data.Length);
+        ok = WritePrinter(hPrinter, pUnmanagedBytes, data.Length, out dwWritten);
+        Marshal.FreeCoTaskMem(pUnmanagedBytes);
+
+        EndPagePrinter(hPrinter);
+        EndDocPrinter(hPrinter);
+        ClosePrinter(hPrinter);
+
+        if (!ok) { throw new Exception("WritePrinter falhou."); }
+        return dwWritten == data.Length;
+    }
+}
+"@
+
+# ESC/POS: inicializa, imprime texto, alimenta papel, corta (se suportado)
+$init = [byte[]](0x1B, 0x40)                     # ESC @  (reset)
+$text = [System.Text.Encoding]::ASCII.GetBytes("TESTE RAW ESC/POS - CLAUDE`n`n`n")
+$feed = [byte[]](0x1B, 0x64, 0x03)               # ESC d 3 (feed 3 lines)
+$cut  = [byte[]](0x1D, 0x56, 0x00)               # GS V 0 (full cut, se suportado)
+
+$payload = $init + $text + $feed + $cut
+
+Write-Output "---Enviando dados RAW (ESC/POS) diretamente para a impressora---"
+try {
+    $result = [RawPrinterHelper]::SendBytesToPrinter("POS80 Printer", $payload)
+    Write-Output "Sucesso: $result"
+} catch {
+    Write-Output "ERRO: $($_.Exception.Message)"
+}
+
+Stop-Transcript | Out-Null

@@ -1,0 +1,48 @@
+ npm run start
+
+> delivery-base-backend@0.1.0 start
+> nest start
+
+
+4 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+                                                  ~~~~~~~~~~~~~~~~~~~
+src/main.ts:6:20 - error TS2307: Cannot find module 'helmet' or its corresponding type declarations.
+
+6 import helmet from 'helmet';
+                     ~~~~~~~~
+src/motoboy/motoboy-auth.controller.ts:2:26 - error TS2307: Cannot find module '@nestjs/throttler' or its corresponding type declarations.
+
+2 import { Throttle } from '@nestjs/throttler';
+                           ~~~~~~~~~~~~~~~~~~~
+src/salao/garcom-auth.controller.ts:2:26 - error TS2307: Cannot find module '@nestjs/throttler' or its corresponding type declarations.
+
+2 import { Throttle } from '@nestjs/throttler';
+                           ~~~~~~~~~~~~~~~~~~~
+
+Found 4 error(s).
+
+PS C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery> npm run start
+
+> delivery-base-backend@0.1.0 start
+> nest start
+
+src/app.module.ts:4:49 - error TS2307: Cannot find module '@nestjs/throttler' or its corresponding type declarations.
+
+4 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+                                                  ~~~~~~~~~~~~~~~~~~~
+src/main.ts:6:20 - error TS2307: Cannot find module 'helmet' or its corresponding type declarations.
+
+6 import helmet from 'helmet';
+                     ~~~~~~~~
+src/motoboy/motoboy-auth.controller.ts:2:26 - error TS2307: Cannot find module '@nestjs/throttler' or its corresponding type declarations.
+
+2 import { Throttle } from '@nestjs/throttler';
+                           ~~~~~~~~~~~~~~~~~~~
+src/salao/garcom-auth.controller.ts:2:26 - error TS2307: Cannot find module '@nestjs/throttler' or its corresponding type declarations.
+
+2 import { Throttle } from '@nestjs/throttler';
+                           ~~~~~~~~~~~~~~~~~~~
+
+Found 4 error(s).
+
+PS C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery> 

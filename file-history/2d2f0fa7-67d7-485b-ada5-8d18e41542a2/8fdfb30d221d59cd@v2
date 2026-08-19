@@ -1,0 +1,12 @@
+$logFile = "C:\Users\jotac\AppData\Local\Temp\claude\C--Users-jotac\2d2f0fa7-67d7-485b-ada5-8d18e41542a2\scratchpad\rescan_usb_log.txt"
+Start-Transcript -Path $logFile -Force | Out-Null
+
+Write-Output "---Forcando nova varredura de hardware (PnP rescan)---"
+pnputil /scan-devices
+
+Start-Sleep -Seconds 3
+
+Write-Output "---Dispositivos USB apos rescan---"
+Get-PnpDevice -Class USB | Where-Object {$_.FriendlyName -match "Impressora|Printer"} | Select-Object FriendlyName, Status, InstanceId
+
+Stop-Transcript | Out-Null

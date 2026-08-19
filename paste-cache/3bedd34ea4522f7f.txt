@@ -1,0 +1,12 @@
+Atue como um especialista em cibersegurança e Engenheiro de Penetration Testing focado em aplicações SaaS.
+​Analise o código-fonte fornecido abaixo em busca de vulnerabilidades de segurança antes da implantação em produção. Realize uma varredura rigorosa focando nos seguintes pontos:
+​Autenticação e Autorização (BOLA / IDOR): Identifique endpoints onde faltam verificações de permissão ou onde um usuário autenticado possa acessar/modificar dados de outro tenant (quebra de multitenancy).
+​Injeções e Validação de Entrada: Procure por falhas de SQL Injection, NoSQL Injection, Command Injection ou Cross-Site Scripting (XSS).
+​Gestão de Segredos: Verifique se há chaves de API, tokens, senhas ou credenciais hardcoded no código.
+​Tratamento de Dados e Erros: Identifique vazamento de informações sensíveis em logs ou respostas de erro detalhadas.
+​Configurações Inseguras: Avalie middlewares de CORS, gerenciamento de sessões/JWT e cabeçalhos de segurança.
+​Estrutura da Resposta:
+​Resumo de Riscos: Tabela com [Vulnerabilidade | Severidade (Baixa/Médias/Alta/Crítica) | Arquivo/Linha].
+​Detalhamento das Falhas: Explique a vulnerabilidade encontrada e o impacto no SaaS.
+​Correção (Patch): Forneça o trecho de código corrigido para cada falha encontrada.
+​Script de Teste: Gere um script em Python (requests) ou cURL para testar e validar se a falha realmente existe no ambiente de Staging.

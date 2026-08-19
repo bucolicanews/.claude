@@ -1,0 +1,392 @@
+
+> delivery-base-backend@0.1.0 build
+> nest build
+
+---BUILD OK---
+SAIU/CRASHOU
+----LOG----
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +50ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +48ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSupabaseModule dependencies initialized[39m[38;5;3m +13ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRedisModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCommonModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEstoqueModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCombosModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMcpModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLicencaModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTagsModule dependencies initialized[39m[38;5;3m +7ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAgenteImpressaoModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsuariosModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCategoriasModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProdutosModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPlataformaModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPagamentosModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPerfilModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEmpresasModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPlanosModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMotoboyModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInstalacoesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPedidosModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSalaoModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:23 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRestauranteModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mEmpresasController {/empresas}:[39m[38;5;3m +525ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas, GET} route[39m[38;5;3m +5ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id/bloquear, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id/dominio/atender, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id/dominio/recusar, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id/config, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:id/config, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsuariosController {/admin/usuarios}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/usuarios, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/usuarios/auditoria, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/usuarios/:id/credenciais, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCategoriasController {/}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/categorias/globais, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/establishment-types, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/establishment-types, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/establishment-types/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/establishment-types/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/categorias/globais, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/categorias/globais/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/categorias/globais/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:empresaId/categorias, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/categorias, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/categorias/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/categorias/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProdutosController {/}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/empresas/:empresaId/produtos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/produtos/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/produtos, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/produtos/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/produtos/:id/toggle, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/produtos/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPedidosController {/pedidos}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pedidos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pedidos/meus, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pedidos/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pedidos, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pedidos/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pedidos/:id/cancelar, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pedidos/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRestauranteMotoboysController {/restaurante/motoboys}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/solicitacoes/count, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/solicitacoes, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/solicitacoes/:id/aceitar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/solicitacoes/:id/recusar, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/solicitacoes/:id/revisar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/:motoboyId/remover, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/:motoboyId/forcar-logout, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/motoboys/:pedidoId/atribuir, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMotoboyPortalController {/motoboy}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/solicitar-revisao, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/ganhos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/ganhos/historico, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/disponiveis, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/:id/pegar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/:id/reivindicar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/:id/confirmar-coleta, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/:id/localizacao, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/:id/entregar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/:id/comprovante, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/pedidos/:id/ocorrencia, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMotoboyAuthController {/motoboy/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/auth/cadastro, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/auth/completar-cadastro, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/auth/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMotoboyEstabelecimentosController {/motoboy/estabelecimentos}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/estabelecimentos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/estabelecimentos/minhas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/motoboy/estabelecimentos/:restaurantId/solicitar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMotoboyAdminController {/admin/motoboys}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/motoboys, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/motoboys/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/motoboys/:id/aprovar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/motoboys/:id/recusar, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSalaoController {/garcom}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/logout, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/mesas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/produtos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/combos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/itens-prontos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/fila-cozinha, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/abrir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/itens, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/itens/:itemId, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/itens/:itemId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/itens/:itemId/observacao, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/dividir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/itens/:itemId/entregar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/itens/:itemId/indo-buscar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/conferencia-vista, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/itens/:itemId/nao-entregar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/cliente, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/pagamento, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/pagamentos/:pagamentoId, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/pagamentos/:pagamentoId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/enviar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/comandas/:id/fechar, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mGarcomAuthController {/garcom/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/garcom/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRestauranteGarconsController {/restaurante/garcons}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/online, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/:id/forcar-logout, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/comissoes, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/comissoes, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/comissoes/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/garcons/comissoes/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRestauranteImpressorasController {/restaurante/impressoras}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/impressoras, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/impressoras/detectadas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/impressoras, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/impressoras/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/impressoras/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/impressoras/:id/teste, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/impressoras/:id/token, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRestauranteSalaoController {/restaurante/salao}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/garcons-online, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/mesas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/mesas/:id/bloquear, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/mesas/:id/desbloquear, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/fechadas-hoje, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/abrir, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/venda-balcao/abrir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/chamada, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/chamada/:id/chamar, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/chamada/:id/itens/:itemId/entregar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/itens, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/itens/:itemId, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/pagamento, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/pagamentos/:pagamentoId, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/pagamentos/:pagamentoId/troco-pix, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/pagamentos/:pagamentoId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/itens/:itemId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/transferir-garcom, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/transferir, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/dividir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/cliente, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/sugestao-gorjeta, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/desconto, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/acrescimo, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/cancelar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/reabrir, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/imprimir-conferencia, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/reimprimir-recibo, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/salao/comandas/:id/pagar, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRestauranteMesasController {/restaurante/mesas-cadastro}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/mesas-cadastro, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/mesas-cadastro, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/mesas-cadastro/lote, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/mesas-cadastro/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMesaAcompanharController {/mesa-acompanhar}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/mesa-acompanhar/:token, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/mesa-acompanhar/:token/solicitar-conferencia, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAutoAtendimentoController {/auto-atendimento}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auto-atendimento/:mesaToken/entrar, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auto-atendimento/:mesaToken/comanda, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auto-atendimento/:mesaToken/itens, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auto-atendimento/:mesaToken/itens/:itemId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auto-atendimento/:mesaToken/solicitar-pedido, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auto-atendimento/:mesaToken/gorjeta, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auto-atendimento/:mesaToken/solicitar-conferencia, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAgenteImpressaoController {/agente-impressao}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/agente-impressao/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/agente-impressao/impressoras, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/agente-impressao/jobs/pendentes, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/agente-impressao/jobs/:id/concluido, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/agente-impressao/jobs/:id/erro, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRestauranteAgenteImpressaoController {/restaurante/agente-impressao}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/agente-impressao/gerar-token, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/agente-impressao/status, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPlataformaController {/plataforma}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/plataforma/config, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/plataforma/config, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/plataforma/rede, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/plataforma/metricas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/plataforma/comissoes, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/plataforma/comissoes/empresa/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPagamentosController {/pagamentos}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pagamentos/pix, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pagamentos/cartao, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pagamentos/pedido/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/pagamentos/webhook, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRestauranteController {/restaurante}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/minha-empresa, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/minha-empresa, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/minha-empresa/localizacao, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/dominio, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/dominio/solicitar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/entregas, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/pedidos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/pedidos/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/pedidos/:id/entregar-proprio, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/pedidos/:id/cancelar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/pedidos/:id/frete-gratis, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/pedidos/:id/troco, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/produtos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/produtos, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/produtos/importar, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/produtos/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/produtos/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/produtos/:id/toggle, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/categorias, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/categorias, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/categorias/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/clientes, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/clientes, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/clientes/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/aparencia, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/aparencia, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/config, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/config, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/status, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/abrir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/fechar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/:id/conferencia, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/fechar-e-transferir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/historico, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/saida, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/saida/:index, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/caixa/entrada, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/pedidos/:id/detalhe, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/cozinha, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/renovar-token-cozinha, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/kds, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/kds/itens/:id/pronto, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/kds/itens/:id/iniciar-preparo, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/kds/itens/:id/voltar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/kds/itens/:id/cancelar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/kds/itens/:id/mover, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/kds/itens/:id/reimprimir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/storage/setup, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/storage/upload, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/relatorio, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/relatorio/fretes, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/relatorio/garcom, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/relatorio/garcom/:garcomId/repasse, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/relatorio/garcom/repasse/:repasseId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/relatorio/produtos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/combos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/combos/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/combos, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/combos/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/combos/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mOnboardingController {/restaurante}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/planos-disponiveis, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/verificar-disponibilidade, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/registrar-inicial, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/finalizar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCatalogoController {/r}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/r/acesso, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/r, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/r/filtros, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/r/produtos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/r/combos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/r/by-domain/:host, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/r/:slug, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCozinhaPortalController {/cozinha-portal}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cozinha-portal/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cozinha-portal/resgatar-token, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cozinha-portal/pedidos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cozinha-portal/pedidos/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mKdsPortalController {/kds-portal}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/kds-portal/impressoras, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/kds-portal/itens, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/kds-portal/itens/:id/pronto, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/kds-portal/itens/:id/iniciar-preparo, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/kds-portal/itens/:id/voltar, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/kds-portal/itens/:id/reimprimir, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPlanosAdminController {/planos}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/assinaturas, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/assinaturas/:restaurantId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/assinaturas/:restaurantId, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/assinaturas/:restaurantId/cancelar, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/assinaturas/:restaurantId/gerar-fatura, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/faturas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/faturas/:id/marcar-paga, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPlanosRestauranteController {/restaurante/plano}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/status, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/disponiveis, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/assinar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/faturas, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/faturas/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/faturas/:id/pagar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/pagbank-chave-publica, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/restaurante/plano/renovar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPlanosWebhookController {/planos}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/planos/webhook, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPerfilController {/perfil}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/perfil, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/perfil, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/perfil/foto, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTagsPublicoController {/tags}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tags, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tags/carrosseis/:restaurantId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTagsAdminController {/admin/tags}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/tags, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/tags, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/tags/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/tags/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInstalacoesAdminController {/instalacoes}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/instalacoes, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/instalacoes/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/instalacoes, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/instalacoes/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/instalacoes/:id/plano, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/instalacoes/:id/gerar-fatura, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInstalacoesCheckinController {/instalacoes}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/instalacoes/checkin, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLicencaController {/licenca}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/licenca/status, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/licenca/checkin-agora, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +8ms[39m
+[31m[Nest] 14416  - [39m16/08/2026, 8:08:24 pm [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3002[39m[38;5;3m +17ms[39m
+node:net:2167
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:2167:16)
+    at listenInCluster (node:net:2224:12)
+    at Server.listen (node:net:2344:7)
+    at ExpressAdapter.listen (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\node_modules\@nestjs\platform-express\adapters\express-adapter.js:115:32)
+    at C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\node_modules\@nestjs\core\nest-application.js:190:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\node_modules\@nestjs\core\nest-application.js:180:16)
+    at async bootstrap (C:\Users\jotac\OneDrive\Documents\DEV\serer_delivery\dist\src\main.js:35:5) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v24.19.0

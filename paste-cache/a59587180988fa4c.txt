@@ -1,0 +1,14 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+192.168.1.31:3002/licenca/status:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/r/by-domain/localhost:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/restaurante/plano/status:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/r/produtos:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/r/combos:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/categorias/globais:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/tags:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/r/filtros:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/r?lat=-1.1186&lng=-48.432&raio_km=15:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/r?lat=-1.1186&lng=-48.432&raio_km=50:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/restaurante/relatorio/fretes?periodo=hoje:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/restaurante/minha-empresa:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
+192.168.1.31:3002/restaurante/caixa:1  Failed to load resource: net::ERR_CONNECTION_TIMED_OUT
