@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
-  modified: 2026-08-16T23:25:12.953Z
+  modified: 2026-08-21T15:21:24.894Z
 ---
 
 Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
@@ -152,3 +152,66 @@ Commits do fix da regressão: `a6436b2` (`serer_delivery` e submódulo) + `eaced
 Login de garçom (`POST /garcom/auth/login`) devolvia `500 Internal Server Error` depois de passar do rate limit (5 tentativas/min, `@Throttle` em `garcom-auth.controller.ts`). Causa: `garcom-auth.service.ts`/`auth/garcom.guard.ts` usam `this.config.getOrThrow('GARCOM_JWT_SECRET')`, e essa var só existia no `.env` do submódulo (`deliveryhub_white_label/server_delivery/.env`) — faltava no checkout standalone `serer_delivery/.env` (também faltava `MOTOBOY_JWT_SECRET`/`NOMINATIM_USER_AGENT`). Exatamente o mesmo padrão já documentado acima (seção "Two independent backend checkouts"), 3º caso real. Corrigido copiando os valores pro `.env` que faltava — **mas o processo backend rodando na porta 3002 (PID node, já ativo) precisa ser reiniciado manualmente pelo usuário pra ler a var nova**, não reiniciei sozinho por já estar em uso (provável teste ativo no celular).
 
 **How to apply:** se aparecer `500` num endpoint de auth próprio (garçom/motoboy, que usam JWT manual em vez de Supabase Auth) logo após passar da validação de credenciais, suspeitar primeiro de secret ausente no `.env` do checkout que está rodando — `grep` o nome da var nos dois `.env` (`serer_delivery/.env` e `deliveryhub_white_label/server_delivery/.env`) antes de investigar mais fundo. Lembrar de pedir pro usuário reiniciar o backend depois de editar `.env`.
+
+## Frente ativa (checada 2026-08-20): Comandas do Salão
+
+Desde 16/08 o foco migrou para o módulo de comandas do salão (dine-in), bem além do que estava mapeado antes. Ambos os repos limpos, sincronizados entre si e com origin nessa data. Recente:
+
+- Código de barras ESC/POS impresso nas comandas + busca por leitor de código de barras.
+- Envio manual de itens da comanda (garçom escolhe quando mandar pra cozinha, não só automático).
+- Pontos de preparo customizáveis (ex. Churrasqueira, Drinks), configuráveis por impressora (`impressoras.ponto_preparo`/`icone`).
+- Fila de chamada do balcão: estados separados "aguardando" vs "preparando" (antes era um estado só).
+- Mesas ganhou página própria no menu lateral, com opção de limpar todas de uma vez.
+- Cancelar comanda vazia agora deleta a linha do banco em vez de só marcar como cancelada.
+- Garçom recebe aviso de item pendente ao voltar pra tela, com opção de enviar antes de sair.
+
+**Why:** capturado do `git log` dos dois repos em 2026-08-20 pra atualizar o mapa do projeto, que estava parado em 16/08.
+**How to apply:** ao trabalhar em Comandas/Mesas/Balcão, considerar esse contexto recente como ponto de partida em vez de assumir que é a mesma versão simples descrita na seção de mapeamento original acima.
+
+## Feature: estabelecimento gerencia motoboys próprios + separação de contas motoboy/estabelecimento (2026-08-20/21) — em produção
+
+Implementado numa branch (`feature/restaurante-cadastra-motoboy`), testado, e mesclado em `main` + push nos três repos (`serer_delivery`, `deliveryhub_white_label/server_delivery` submódulo, `deliveryhub_white_label`) em 2026-08-21.
+
+- **Restaurante cadastra motoboy próprio:** `POST/PATCH/DELETE /restaurante/motoboys[/:id]` + `PATCH .../:id/bloquear` (`MotoboyService.criarPeloRestaurante`/`editarPeloRestaurante`/`excluirPeloRestaurante`/`bloquearAfiliacao` em `motoboy.service.ts`). Motoboy criado assim já nasce `status_plataforma='aprovado'` e afiliação `aceito` — pula aprovação da plataforma e solicitação. Editar/excluir só funciona em quem o próprio restaurante cadastrou (`motoboys.criado_por_restaurant_id`); excluir bloqueia se já tem `motoboy_comissoes` (orienta bloquear em vez de excluir, pra não perder histórico). Bloquear (`motoboy_estabelecimentos.bloqueado`) funciona em qualquer motoboy afiliado, não só nos cadastrados pelo restaurante — é checado em `exigirAfiliacaoAceita()`, então bloqueia de verdade (não pega mais pedido desse restaurante). Migration: `20260820000001_motoboys_gerenciados_pelo_restaurante.sql`.
+- **Motoboy ≠ dono de estabelecimento, mesma conta não pode ser as duas coisas:** `MotoboyAuthService.exigirContaSemRestaurante()` barra cadastro/completar-cadastro de motoboy se a conta Supabase já é dona de restaurante; `OnboardingController.registrarInicial()` barra criar restaurante se a conta já tem motoboy vinculado (`motoboys.user_id`). Cobre só contas **vinculadas** via `user_id` (link explícito via `supabase_access_token` no cadastro do motoboy).
+- **Gotcha real que ainda escapa da regra acima:** motoboy autocadastrado **sem** vincular conta (login só por `password_hash`, sem Supabase Auth) pode coincidir de *email* com uma conta de cliente comum já existente no Supabase Auth — são identidades tecnicamente separadas (não têm `user_id` em comum), a regra de exclusividade não pega. Sintoma: login pela tela geral (`/customer-registration-login`) autentica na conta de cliente errada (mesma senha por coincidência) e mostra telas de cliente (histórico de pedidos, vitrine, banner "cadastrar restaurante") pra quem é motoboy. Mitigado (não é uma regra de cadastro, é blindagem de tela) com `GET /perfil/e-motoboy` (`PerfilService.ehMotoboy`, checa por email) chamado em `customer-account-order-history` e `menu-catalog-product-browse` — redireciona pra `/motoboy` se bater. Se aparecer o mesmo sintoma em outra tela de cliente nova, replicar esse padrão (`isMotoboy()` do AuthContext cobre só `role='motoboy'`, **não** cobre esse caso de email duplicado — sempre checar os dois).
+- **Login de motoboy só funcionava em `/motoboy`, não na tela geral:** motoboy cadastrado pelo restaurante (ou autocadastrado sem vincular conta) não existe no Supabase Auth, só na tabela `motoboys`. `/customer-registration-login` agora tenta `motoboyLogin` como fallback quando o `signIn` do Supabase falha, e redireciona pra `/motoboy` se der certo — antes disso, dava exatamente `"Invalid login credentials"` (erro literal do Supabase, sem tradução — bom sinal pra reconhecer esse bug de novo).
+
+**How to apply:** ao mexer em qualquer tela nova voltada pro cliente logado, considerar que `userProfile.role` sozinho não garante "não é motoboy" — checar `isMotoboy()` (AuthContext) **e** `ehMotoboy()` (perfilService, por email) juntos, mesmo padrão usado nas duas telas acima.
+
+### Gotcha de deploy: duas branches "iguais" em checkouts diferentes do mesmo remote geram hashes diferentes (2026-08-21)
+
+Ao commitar a mesma mudança de backend nos dois checkouts (`serer_delivery` e `deliveryhub_white_label/server_delivery`, sempre nessa ordem/duplicunderplicado durante a sessão) numa branch de feature, e depois fazer merge de cada um pra `main` + push **separadamente**, o primeiro push (`serer_delivery`) definiu o hash canônico no remote; o segundo push (submódulo) foi rejeitado (`fetch first`) porque seu merge local gerou um commit com **conteúdo idêntico mas hash diferente** (fast-forward de uma branch de feature commitada independentemente). Resolvido com `git diff origin/main main --stat` (confirmou zero diferença de conteúdo) + `git reset --hard origin/main` no submódulo — descartando o commit local redundante sem perder nada. Depois disso, o ponteiro do submódulo no frontend (que apontava pro hash antigo/descartado) precisou de um commit extra pra apontar pro hash real publicado.
+**How to apply:** ao mesclar uma branch de feature que existe nos dois checkouts do backend pra `main`, mesclar e dar push em **um** primeiro, depois no outro rodar `git fetch && git diff origin/main main --stat` antes de tentar push — se vazio, `git reset --hard origin/main` em vez de tentar empurrar um commit duplicado. Só então atualizar o ponteiro do submódulo no frontend.
+
+### Deploy = merge pra main + push (reafirmado 2026-08-21)
+
+Trabalho em branch de feature não é deploy sozinho — "sincronize e dê push pra deploy" com trabalho numa branch feature exige perguntar/confirmar merge pra `main` primeiro (usuário confirmou essa expectativa explicitamente). Depois do merge+push, ainda pode faltar aplicar migration nova no Supabase de **produção** (ver seção abaixo) — código no ar sem a migration correspondente quebra em runtime.
+
+## Supabase de produção: projeto linkado `delivery_jota` (ref `gkeolhhcptavftwloucj`)
+
+O CLI (`deliveryhub_white_label/supabase/.temp/project-ref`) já está linkado a um projeto Supabase remoto ativo, `delivery_jota` (região us-west-2, plano Postgres 17). Comandos úteis:
+- `npx supabase migration list --linked` — compara migrations locais (`supabase/migrations/`) vs aplicadas no remoto; migration com `"remote":""` ainda não foi aplicada em produção.
+- `npx supabase db push --linked` — aplica as migrations locais pendentes no banco de produção real.
+
+**Why:** ao mesclar código novo pra `main` (deploy), fácil esquecer que isso não aplica migrations automaticamente no Supabase remoto — só no banco local (`npx supabase migration up`, sem `--linked`) se rodado sem essa flag.
+**How to apply:** depois de qualquer merge pra `main` que inclua arquivo novo em `supabase/migrations/`, rodar `npx supabase migration list --linked` pra conferir se ficou algo pendente em produção, e confirmar com o usuário antes de `db push --linked` (é mutação em banco de produção real, mesmo sendo aditiva/baixo risco).
+
+## Feature: download do agente de impressão + instruções em Configurações (2026-08-21) — em produção
+
+O `.rar` do agente (`print-agent/releases/DeliveryHubAgente.exe` empacotado) foi colocado em `deliveryhub_white_label/public/print-agent.rar` (~9.3MB, servido direto em `/print-agent.rar` tanto em dev quanto build, sem precisar de rota própria — `public/` do Vite). O painel `AgenteImpressaoPanel` (definido em `src/pages/restaurante-impressoras/index.jsx`, agora exportado como named export) mostra o passo a passo: baixar → descompactar → abrir pasta `print-agent` → abrir pasta `releases` → duplo clique em `DeliveryHubAgente.exe` → gerar token de pareamento e colar no agente. Inclui dica de criar atalho na área de trabalho. Esse mesmo painel foi reaproveitado (import direto, sem duplicar código) na tela `/restaurante/config` ("Config" no menu — é o mais próximo de "Configurações do estabelecimento" hoje, não existe uma página com esse nome literal), condicionado a `moduloSalao` já que impressora é feature de Salão. Commit `5c2a175` (frontend).
+
+**How to apply:** se pedirem pra atualizar o agente (nova versão do `.exe`), só precisa trocar `public/print-agent.rar` — o link já aponta pra lá. Se pedirem o mesmo painel em outra tela, importar `AgenteImpressaoPanel` de `../restaurante-impressoras` em vez de recriar.
+
+## Feature: admin pode editar/bloquear/excluir usuário em /admin/usuarios (2026-08-21) — em produção
+
+`UsuariosController`/`UsuariosService` (`src/usuarios/`, nos dois checkouts de backend) ganharam três endpoints novos, todos logados em `admin_audit_log` e todos recusando o admin agir sobre a própria conta (`BadRequestException` se `targetUserId === adminUserId`):
+- `PATCH /admin/usuarios/:id` — edita nome, papel (`admin`/`restaurant_owner`/`customer`/`motoboy`) e telefone. Ao mudar o papel, sincroniza `user_metadata.role` no Supabase Auth também (é o que o `JwtGuard` lê do JWT sem consultar banco).
+- `PATCH /admin/usuarios/:id/bloquear` — bloqueia/desbloqueia via `ban_duration` nativo do Supabase Auth (`'876000h'`/`'none'`), que impede novo login/refresh sem apagar a conta. Sessão já ativa (access token de curta duração) continua válida até expirar/tentar renovar — mesmo trade-off já aceito em outros pontos do app (revogação de licença), decidido conscientemente pra não ter que consultar o banco em toda request autenticada. Nova coluna `user_profiles.bloqueado` (migration `20260821000002_user_profiles_bloqueado.sql`, aplicada em produção) espelha esse estado só pra listagem não precisar de chamada extra à Admin API por usuário.
+- `DELETE /admin/usuarios/:id` — exclui via `supabase.auth.admin.deleteUser`; `user_profiles` tem FK `ON DELETE CASCADE` (some junto), `restaurants.user_id` é `ON DELETE SET NULL` (loja não é apagada, só fica sem dono).
+
+Frontend (`src/pages/admin-usuarios/index.jsx`): botões Editar/Bloquear-Desbloquear/Excluir por linha (escondidos quando a linha é o próprio admin logado, via `useAuth().user.id`), badge "Bloqueado" ao lado do papel, modal `EditarModal` novo.
+
+Commits: `08b6f38` (`serer_delivery`, sincronizado no submódulo — mesmo hash, sem duplicata) + `afba2ce` (`deliveryhub_white_label`, inclui a migration).
+
+**How to apply:** se pedirem mais campos editáveis por admin em usuário, seguir o padrão de `UsuariosService.editar()` (whitelist explícita de campos, nunca `.update({...body})` — mesma regra de mass assignment da auditoria de segurança). Se aparecer confusão tipo "bloqueei o usuário mas ele ainda está logado", lembrar que é esperado até o token expirar/renovar, não é bug.

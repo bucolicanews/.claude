@@ -1,0 +1,25 @@
+require('dotenv/config');
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+async function main() {
+  const { data: mb, error } = await supabase
+    .from('motoboys')
+    .select('id, name, email, user_id, is_active, active_session_id, session_expires_at, criado_por_restaurant_id, status_plataforma')
+    .eq('email', 'tati@delivery.com')
+    .maybeSingle();
+  if (error) throw error;
+  console.log('motoboy:', JSON.stringify(mb, null, 2));
+
+  if (mb) {
+    const { data: afil, error: afilErr } = await supabase
+      .from('motoboy_estabelecimentos')
+      .select('*')
+      .eq('motoboy_id', mb.id);
+    if (afilErr) throw afilErr;
+    console.log('afiliacoes:', JSON.stringify(afil, null, 2));
+  }
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

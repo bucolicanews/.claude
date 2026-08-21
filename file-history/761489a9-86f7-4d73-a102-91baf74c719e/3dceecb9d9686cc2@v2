@@ -1,0 +1,70 @@
+import { apiPath } from '../lib/apiUrl';
+import { supabase } from '../lib/supabase';
+
+const API = apiPath('/api/motoboy/auth');
+const SESSION_KEY = 'motoboy_session_id';
+
+export const getMotoboySessionId = () => localStorage.getItem(SESSION_KEY);
+export const setMotoboySessionId = (sessionId) => localStorage.setItem(SESSION_KEY, sessionId);
+export const clearMotoboySessionId = () => localStorage.removeItem(SESSION_KEY);
+
+async function bearerToken() {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+  return token;
+}
+
+async function postJson(path, body, extraHeaders = {}) {
+  const res = await fetch(`${API}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    body: JSON.stringify(body),
+  });
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+  const data = isJson ? await res.json().catch(() => ({})) : {};
+
+  if (!res.ok) throw new Error(data?.message ?? `HTTP ${res.status}`);
+  return data;
+}
+
+// Conta já foi criada client-side via supabase.auth.signUp() — aqui só completa
+// o cadastro (docs, telefone), vinculado à conta pelo Bearer token da sessão.
+export const completarCadastroMotoboy = async (dados) => {
+  const token = await bearerToken();
+  return postJson('/completar-cadastro', dados, { Authorization: `Bearer ${token}` });
+};
+
+// Chamado logo após supabase.auth.signInWithPassword() bem-sucedido — reivindica
+// o slot de sessão única e guarda o sessionId que passa a ir em toda chamada
+// autenticada (header x-motoboy-session, junto do Authorization Bearer normal).
+export const abrirSessaoMotoboy = async () => {
+  const token = await bearerToken();
+  const { sessionId } = await postJson('/abrir-sessao', {}, { Authorization: `Bearer ${token}` });
+  setMotoboySessionId(sessionId);
+  return sessionId;
+};
+
+export const logout = async () => {
+  const sessionId = getMotoboySessionId();
+  if (!sessionId) return;
+  try {
+    const token = await bearerToken();
+    await postJson('/logout', {}, { Authorization: `Bearer ${token}`, 'x-motoboy-session': sessionId });
+  } catch {
+    // sessão já pode estar expirada/inválida — segue o logout mesmo assim
+  } finally {
+    clearMotoboySessionId();
+  }
+};
+
+// Converte um File (input de upload) pra data URL base64, formato aceito pelo backend.
+export const arquivoParaBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });

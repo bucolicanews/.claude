@@ -1,0 +1,384 @@
+import { supabase } from '../lib/supabase';
+import { apiPath } from '../lib/apiUrl';
+
+const API = apiPath('/api/restaurante');
+
+async function apiFetch(path, options = {}) {
+  const sessionResult = await supabase.auth.getSession().catch(() => ({ data: {} }));
+  const token = sessionResult?.data?.session?.access_token;
+
+  if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+
+  if (!res.ok) {
+    const err = isJson ? await res.json().catch(() => ({})) : {};
+    const error = new Error(err?.message ?? `HTTP ${res.status}`);
+    error.data = err;
+    throw error;
+  }
+
+  if (!isJson) throw new Error('Resposta inválida. Verifique se o backend está rodando.');
+
+  return res.json();
+}
+
+export const registrarRestauranteInicial = (data) =>
+  apiFetch('/registrar-inicial', { method: 'POST', body: JSON.stringify(data) });
+
+export const finalizarCadastroRestaurante = (data) =>
+  apiFetch('/finalizar', { method: 'POST', body: JSON.stringify(data) });
+
+export const verificarDisponibilidadeCadastro = (data) =>
+  apiFetch('/verificar-disponibilidade', { method: 'POST', body: JSON.stringify(data) });
+
+export const getMinhaEmpresa = () => apiFetch('/minha-empresa');
+
+export const getMeusPedidos = (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+  return apiFetch(`/pedidos${qs ? `?${qs}` : ''}`);
+};
+
+export const atualizarStatusPedido = (id, status) =>
+  apiFetch(`/pedidos/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+
+export const entregarPedidoProprio = (id) =>
+  apiFetch(`/pedidos/${id}/entregar-proprio`, { method: 'PATCH' });
+
+export const listarEntregas = () => apiFetch('/entregas');
+
+export const getMeusProdutos = () => apiFetch('/produtos');
+
+export const criarProduto = (data) =>
+  apiFetch('/produtos', { method: 'POST', body: JSON.stringify(data) });
+
+export const importarProdutos = (produtos) =>
+  apiFetch('/produtos/importar', { method: 'POST', body: JSON.stringify({ produtos }) });
+
+export const editarProduto = (id, data) =>
+  apiFetch(`/produtos/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+
+export const deletarProduto = (id) =>
+  apiFetch(`/produtos/${id}`, { method: 'DELETE' });
+
+export const toggleProduto = (id, ativo) =>
+  apiFetch(`/produtos/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ ativo }) });
+
+export const ajustarEstoqueProduto = (id, quantidade_estoque) =>
+  apiFetch(`/produtos/${id}`, { method: 'PATCH', body: JSON.stringify({ quantidade_estoque }) });
+
+// Categorias globais da plataforma (sem auth — endpoint público)
+export const getCategoriasGlobais = () =>
+  fetch(apiPath('/api/categorias/globais')).then((r) => r.json());
+
+// Tipos de estabelecimento (restaurante, farmácia, mat. construção...) — sem auth
+export const getTiposEstabelecimento = () =>
+  fetch(apiPath('/api/establishment-types')).then((r) => r.json());
+
+// Planos disponíveis pra escolher no cadastro de restaurante — sem auth (a wizard
+// mostra os planos antes do usuário logar/criar conta)
+export const getPlanosDisponiveisCadastro = () =>
+  fetch(apiPath('/api/restaurante/planos-disponiveis')).then((r) => r.json());
+
+export const getMinhasCategorias = () => apiFetch('/categorias');
+
+export const criarCategoria = (name) =>
+  apiFetch('/categorias', { method: 'POST', body: JSON.stringify({ name }) });
+
+export const deletarCategoria = (id) =>
+  apiFetch(`/categorias/${id}`, { method: 'DELETE' });
+
+export const getClientes = (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+  return apiFetch(`/clientes${qs ? `?${qs}` : ''}`);
+};
+
+export const criarCliente = (data) =>
+  apiFetch('/clientes', { method: 'POST', body: JSON.stringify(data) });
+
+export const atualizarCliente = (id, data) =>
+  apiFetch(`/clientes/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+
+export const updateEmpresa = (data) =>
+  apiFetch('/minha-empresa', { method: 'PATCH', body: JSON.stringify(data) });
+
+export const atualizarLocalizacaoManual = (lat, lng) =>
+  apiFetch('/minha-empresa/localizacao', { method: 'PATCH', body: JSON.stringify({ lat, lng }) });
+
+export const getAparencia = () => apiFetch('/aparencia');
+export const updateAparencia = (data) =>
+  apiFetch('/aparencia', { method: 'PATCH', body: JSON.stringify(data) });
+
+export const getConfig = () => apiFetch('/config');
+
+export const updateConfig = (data) =>
+  apiFetch('/config', { method: 'PATCH', body: JSON.stringify(data) });
+
+export const toggleStatusRestaurante = (aberto) =>
+  apiFetch('/status', { method: 'PATCH', body: JSON.stringify({ aberto }) });
+
+export const getCaixa = () => apiFetch('/caixa');
+
+export const abrirCaixa = ({ nome_operador, valor_inicial }) =>
+  apiFetch('/caixa/abrir', { method: 'POST', body: JSON.stringify({ nome_operador, valor_inicial: valor_inicial ?? 0 }) });
+
+export const fecharCaixa = (destinacao = {}) =>
+  apiFetch('/caixa/fechar', { method: 'POST', body: JSON.stringify(destinacao) });
+
+export const fecharETransferir = ({ nome_operador, valor_inicial }) =>
+  apiFetch('/caixa/fechar-e-transferir', { method: 'POST', body: JSON.stringify({ nome_operador, valor_inicial: valor_inicial ?? 0 }) });
+
+export const adicionarSaida = (data) =>
+  apiFetch('/caixa/saida', { method: 'POST', body: JSON.stringify(data) });
+
+export const adicionarEntrada = (data) =>
+  apiFetch('/caixa/entrada', { method: 'POST', body: JSON.stringify(data) });
+
+export const estornarSaida = (index) =>
+  apiFetch(`/caixa/saida/${index}`, { method: 'DELETE' });
+
+export const getCaixaHistorico = () => apiFetch('/caixa/historico');
+export const getCaixaDetalhe = (id) => apiFetch(`/caixa/${id}`);
+export const aprovarConferencia = (caixaId) =>
+  apiFetch(`/caixa/${caixaId}/conferencia`, { method: 'POST' });
+
+export const setTrocoPara = (pedidoId, troco_para) =>
+  apiFetch(`/pedidos/${pedidoId}/troco`, { method: 'PATCH', body: JSON.stringify({ troco_para }) });
+
+export const setFreteGratis = (pedidoId) =>
+  apiFetch(`/pedidos/${pedidoId}/frete-gratis`, { method: 'PATCH' });
+
+export const cancelarPedidoAdmin = (pedidoId, motivo) =>
+  apiFetch(`/pedidos/${pedidoId}/cancelar`, { method: 'PATCH', body: JSON.stringify({ motivo }) });
+
+export const buscarPedidoDetalhe = (id) => apiFetch(`/pedidos/${id}/detalhe`);
+export const getPedidosCozinha = () => apiFetch('/cozinha');
+export const renovarTokenCozinha = () => apiFetch('/renovar-token-cozinha', { method: 'PATCH' });
+export const getKdsItensRestaurante = (impressoraId) => apiFetch(`/kds?impressora_id=${impressoraId}`);
+export const marcarItemProntoRestaurante = (itemId) => apiFetch(`/kds/itens/${itemId}/pronto`, { method: 'PATCH' });
+export const reimprimirItemRestaurante = (itemId) =>
+  apiFetch(`/kds/itens/${itemId}/reimprimir`, { method: 'POST' });
+export const iniciarPreparoItemRestaurante = (itemId) =>
+  apiFetch(`/kds/itens/${itemId}/iniciar-preparo`, { method: 'PATCH' });
+export const voltarStatusItemRestaurante = (itemId) =>
+  apiFetch(`/kds/itens/${itemId}/voltar`, { method: 'PATCH' });
+export const cancelarItemRestaurante = (itemId) =>
+  apiFetch(`/kds/itens/${itemId}/cancelar`, { method: 'PATCH' });
+export const moverItemRestaurante = (itemId, direcao) =>
+  apiFetch(`/kds/itens/${itemId}/mover`, { method: 'PATCH', body: JSON.stringify({ direcao }) });
+export const getRelatorio = (de, ate) => apiFetch(`/relatorio?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`);
+export const getRelatorioFretes = (periodo = 'hoje') => apiFetch(`/relatorio/fretes?periodo=${encodeURIComponent(periodo)}`);
+export const getRelatorioGarcom = (de, ate) => apiFetch(`/relatorio/garcom?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`);
+export const registrarRepasseGarcom = (garcomId, data) =>
+  apiFetch(`/relatorio/garcom/${garcomId}/repasse`, { method: 'POST', body: JSON.stringify(data) });
+export const estornarRepasseGarcom = (repasseId) =>
+  apiFetch(`/relatorio/garcom/repasse/${repasseId}`, { method: 'DELETE' });
+export const getRelatorioProdutos = (de, ate) => apiFetch(`/relatorio/produtos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`);
+export const setupStorage = () => apiFetch('/storage/setup', { method: 'POST' });
+
+export const uploadImagem = async (file, folder = 'geral') => {
+  const sessionResult = await supabase.auth.getSession().catch(() => ({ data: {} }));
+  const token = sessionResult?.data?.session?.access_token;
+  if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+  const form = new FormData();
+  form.append('file', file);
+
+  const res = await fetch(`${apiPath('/api/restaurante')}/storage/upload?folder=${encodeURIComponent(folder)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const json = contentType.includes('application/json') ? await res.json().catch(() => ({})) : {};
+  if (!res.ok) throw new Error(json?.message ?? `HTTP ${res.status}`);
+  return json; // { url: string }
+};
+
+// Motoboys — afiliação (motoboy solicita, restaurante aceita/recusa)
+export const listarMotoboys = () => apiFetch('/motoboys');
+export const listarSolicitacoesMotoboy = (status = 'pendente') =>
+  apiFetch(`/motoboys/solicitacoes${status !== 'pendente' ? `?status=${status}` : ''}`);
+export const contarSolicitacoesMotoboyPendentes = () => apiFetch('/motoboys/solicitacoes/count');
+export const aceitarSolicitacaoMotoboy = (id) =>
+  apiFetch(`/motoboys/solicitacoes/${id}/aceitar`, { method: 'PATCH' });
+export const recusarSolicitacaoMotoboy = (id, motivo) =>
+  apiFetch(`/motoboys/solicitacoes/${id}/recusar`, { method: 'PATCH', body: JSON.stringify({ motivo }) });
+export const revisarSolicitacaoMotoboy = (id) =>
+  apiFetch(`/motoboys/solicitacoes/${id}/revisar`, { method: 'PATCH' });
+export const removerAfiliacaoMotoboy = (motoboyId) =>
+  apiFetch(`/motoboys/${motoboyId}/remover`, { method: 'PATCH' });
+export const forcarLogoutMotoboy = (motoboyId) =>
+  apiFetch(`/motoboys/${motoboyId}/forcar-logout`, { method: 'POST' });
+export const atribuirMotoboy = (pedidoId, motoboyId) =>
+  apiFetch(`/motoboys/${pedidoId}/atribuir`, { method: 'PATCH', body: JSON.stringify({ motoboy_id: motoboyId }) });
+
+// Combos
+export const getMeusCombos = () => apiFetch('/combos');
+export const getComboDetalhe = (id) => apiFetch(`/combos/${id}`);
+export const criarCombo = (data) =>
+  apiFetch('/combos', { method: 'POST', body: JSON.stringify(data) });
+export const editarCombo = (id, data) =>
+  apiFetch(`/combos/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deletarCombo = (id) =>
+  apiFetch(`/combos/${id}`, { method: 'DELETE' });
+
+// Tags públicas — sem auth
+export const getTagsPublicas = () =>
+  fetch(apiPath('/api/tags')).then((r) => r.json());
+
+export const getCarrosseis = (restaurantId) =>
+  fetch(`${apiPath('/api/tags')}/carrosseis/${restaurantId}`).then((r) => r.json());
+
+// Endpoint público — sem auth
+export const getCardapioPorSlug = async (slug) => {
+  const res = await fetch(`${apiPath('/api/r')}/${slug}`);
+  const contentType = res.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+  if (!res.ok) {
+    const err = isJson ? await res.json().catch(() => ({})) : {};
+    throw new Error(err?.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+};
+
+// Resolve domínio customizado (ex: restordemo.com) pro cardápio do estabelecimento
+// — sem auth. Retorna null (em vez de lançar) se o host não é domínio de ninguém,
+// pra quem chama só precisar decidir "é loja" vs "é o marketplace".
+export const getCardapioPorDominio = async (hostname) => {
+  const res = await fetch(`${apiPath('/api/r/by-domain')}/${hostname}`);
+  if (!res.ok) return null;
+  return res.json();
+};
+
+export const updateDominio = (customDomain) =>
+  apiFetch('/dominio', { method: 'PATCH', body: JSON.stringify({ custom_domain: customDomain }) });
+
+export const solicitarRevisaoDominio = () =>
+  apiFetch('/dominio/solicitar', { method: 'PATCH' });
+
+// Módulo Salão — garçons (CRUD pelo dono)
+export const listarGarcons = () => apiFetch('/garcons');
+export const getGarconsOnline = () => apiFetch('/garcons/online');
+export const criarGarcom = (data) =>
+  apiFetch('/garcons', { method: 'POST', body: JSON.stringify(data) });
+export const atualizarGarcom = (id, data) =>
+  apiFetch(`/garcons/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const removerGarcom = (id) =>
+  apiFetch(`/garcons/${id}`, { method: 'DELETE' });
+export const forcarLogoutGarcom = (id) =>
+  apiFetch(`/garcons/${id}/forcar-logout`, { method: 'POST' });
+
+// Módulo Salão — regras de comissão do garçom (do estabelecimento, valem pra todos)
+export const listarComissoesGarcom = () => apiFetch('/garcons/comissoes');
+export const criarComissaoGarcom = (data) =>
+  apiFetch('/garcons/comissoes', { method: 'POST', body: JSON.stringify(data) });
+export const atualizarComissaoGarcom = (id, data) =>
+  apiFetch(`/garcons/comissoes/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const removerComissaoGarcom = (id) =>
+  apiFetch(`/garcons/comissoes/${id}`, { method: 'DELETE' });
+
+// Módulo Salão — impressoras por setor
+export const listarImpressoras = () => apiFetch('/impressoras');
+export const criarImpressora = (data) =>
+  apiFetch('/impressoras', { method: 'POST', body: JSON.stringify(data) });
+export const atualizarImpressora = (id, data) =>
+  apiFetch(`/impressoras/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const removerImpressora = (id) =>
+  apiFetch(`/impressoras/${id}`, { method: 'DELETE' });
+export const testarImpressora = (id) =>
+  apiFetch(`/impressoras/${id}/teste`, { method: 'POST' });
+export const renovarTokenImpressora = (id) =>
+  apiFetch(`/impressoras/${id}/token`, { method: 'PATCH' });
+
+// Agente de impressão local
+export const getImpressorasDetectadas = () => apiFetch('/impressoras/detectadas');
+export const gerarTokenAgente = () => apiFetch('/agente-impressao/gerar-token', { method: 'POST' });
+export const getStatusAgente = () => apiFetch('/agente-impressao/status');
+
+// Módulo Salão — PDV do caixa (mesas/comandas do salão)
+export const getSalaoMesas = () => apiFetch('/salao/mesas');
+export const bloquearMesaSalao = (id) => apiFetch(`/salao/mesas/${id}/bloquear`, { method: 'PATCH' });
+export const desbloquearMesaSalao = (id) => apiFetch(`/salao/mesas/${id}/desbloquear`, { method: 'PATCH' });
+export const getSalaoComandas = () => apiFetch('/salao/comandas');
+export const getSalaoComandasFechadasHoje = () => apiFetch('/salao/comandas/fechadas-hoje');
+export const abrirComandaSalao = ({ mesa_id, cliente_nome, cliente_telefone }) =>
+  apiFetch('/salao/comandas/abrir', { method: 'POST', body: JSON.stringify({ mesa_id: mesa_id ?? null, cliente_nome, cliente_telefone }) });
+export const abrirVendaBalcao = () => apiFetch('/salao/venda-balcao/abrir', { method: 'POST' });
+export const getSalaoComandaDetalhe = (id) => apiFetch(`/salao/comandas/${id}`);
+export const getFilaChamadaBalcao = () => apiFetch('/salao/chamada');
+export const marcarChamadaBalcao = (orderId) => apiFetch(`/salao/chamada/${orderId}/chamar`, { method: 'POST' });
+export const marcarItemBalcaoEntregue = (orderId, itemId) =>
+  apiFetch(`/salao/chamada/${orderId}/itens/${itemId}/entregar`, { method: 'POST' });
+export const aplicarDescontoComanda = (id, valor) =>
+  apiFetch(`/salao/comandas/${id}/desconto`, { method: 'PATCH', body: JSON.stringify({ valor }) });
+export const aplicarAcrescimoComanda = (id, valor) =>
+  apiFetch(`/salao/comandas/${id}/acrescimo`, { method: 'PATCH', body: JSON.stringify({ valor }) });
+export const cancelarComandaSalao = (id) =>
+  apiFetch(`/salao/comandas/${id}/cancelar`, { method: 'POST' });
+export const reabrirComandaSalao = (id) =>
+  apiFetch(`/salao/comandas/${id}/reabrir`, { method: 'POST' });
+export const imprimirConferenciaSalao = (id, valores) =>
+  apiFetch(`/salao/comandas/${id}/imprimir-conferencia`, { method: 'POST', body: JSON.stringify(valores ?? {}) });
+export const reimprimirReciboSalao = (id) =>
+  apiFetch(`/salao/comandas/${id}/reimprimir-recibo`, { method: 'POST' });
+export const pagarComandaSalao = (id, forma_pagamento, gorjeta_valor, valor_recebido, gorjeta_direta, troco_via_pix) =>
+  apiFetch(`/salao/comandas/${id}/pagar`, { method: 'POST', body: JSON.stringify({ forma_pagamento, gorjeta_valor, valor_recebido, gorjeta_direta, troco_via_pix }) });
+export const adicionarItensComandaSalao = (id, itens) =>
+  apiFetch(`/salao/comandas/${id}/itens`, { method: 'POST', body: JSON.stringify({ itens }) });
+export const enviarItensComandaSalao = (id) =>
+  apiFetch(`/salao/comandas/${id}/enviar`, { method: 'POST' });
+export const editarItemComandaSalao = (id, itemId, body) =>
+  apiFetch(`/salao/comandas/${id}/itens/${itemId}`, { method: 'PATCH', body: JSON.stringify(body) });
+export const removerItemComandaSalao = (id, itemId) =>
+  apiFetch(`/salao/comandas/${id}/itens/${itemId}`, { method: 'DELETE' });
+export const transferirGarcomComanda = (id, garcom_id) =>
+  apiFetch(`/salao/comandas/${id}/transferir-garcom`, { method: 'PATCH', body: JSON.stringify({ garcom_id }) });
+export const registrarPagamentoParcialSalao = (id, valor, forma_pagamento, valor_recebido, troco_via_pix) =>
+  apiFetch(`/salao/comandas/${id}/pagamento`, { method: 'POST', body: JSON.stringify({ valor, forma_pagamento, valor_recebido, troco_via_pix }) });
+export const editarPagamentoParcialSalao = (id, pagamentoId, valor, forma_pagamento) =>
+  apiFetch(`/salao/comandas/${id}/pagamentos/${pagamentoId}`, { method: 'PATCH', body: JSON.stringify({ valor, forma_pagamento }) });
+export const alterarTrocoPixComandaSalao = (id, pagamentoId, troco_via_pix) =>
+  apiFetch(`/salao/comandas/${id}/pagamentos/${pagamentoId}/troco-pix`, { method: 'PATCH', body: JSON.stringify({ troco_via_pix }) });
+export const removerPagamentoParcialSalao = (id, pagamentoId) =>
+  apiFetch(`/salao/comandas/${id}/pagamentos/${pagamentoId}`, { method: 'DELETE' });
+export const transferirComandaSalao = (id, { mesa_id, comanda_destino_id }) =>
+  apiFetch(`/salao/comandas/${id}/transferir`, { method: 'PATCH', body: JSON.stringify({ mesa_id, comanda_destino_id }) });
+export const dividirComandaSalao = (id, item_ids, cliente_nome, cliente_telefone) =>
+  apiFetch(`/salao/comandas/${id}/dividir`, { method: 'POST', body: JSON.stringify({ item_ids, cliente_nome, cliente_telefone }) });
+export const editarClienteComandaSalao = (id, cliente_nome, cliente_telefone) =>
+  apiFetch(`/salao/comandas/${id}/cliente`, { method: 'PATCH', body: JSON.stringify({ cliente_nome, cliente_telefone }) });
+export const getSugestaoGorjeta = (id) => apiFetch(`/salao/comandas/${id}/sugestao-gorjeta`);
+
+// Módulo Salão — mesas (CRUD simples pelo dono, cadastro inicial das mesas físicas)
+export const listarMesas = () => apiFetch('/mesas-cadastro');
+export const criarMesa = (data) =>
+  apiFetch('/mesas-cadastro', { method: 'POST', body: JSON.stringify(data) });
+export const removerMesa = (id) =>
+  apiFetch(`/mesas-cadastro/${id}`, { method: 'DELETE' });
+export const criarMesasEmLote = (de, ate) =>
+  apiFetch('/mesas-cadastro/lote', { method: 'POST', body: JSON.stringify({ de, ate }) });
+
+// Plano de assinatura
+export const getMeuPlanoStatus = () => apiFetch('/plano/status');
+export const getMeuPlano = () => apiFetch('/plano');
+export const getMinhasFaturas = () => apiFetch('/plano/faturas');
+export const getFaturaDetalhe = (id) => apiFetch(`/plano/faturas/${id}`);
+export const pagarFatura = (id, data) =>
+  apiFetch(`/plano/faturas/${id}/pagar`, { method: 'POST', body: JSON.stringify(data) });
+export const renovarPlanoAgora = () => apiFetch('/plano/renovar', { method: 'POST' });
+export const getPlanosDisponiveis = () => apiFetch('/plano/disponiveis');
+export const getPagBankChavePublica = () => apiFetch('/plano/pagbank-chave-publica');
+export const assinarPlano = (planoId) =>
+  apiFetch('/plano/assinar', { method: 'POST', body: JSON.stringify({ plano_id: planoId }) });

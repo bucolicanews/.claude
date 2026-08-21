@@ -5,7 +5,7 @@
       "repo": "anthropics/claude-plugins-official"
     },
     "installLocation": "C:\\Users\\Micro\\.claude\\plugins\\marketplaces\\claude-plugins-official",
-    "lastUpdated": "2026-08-18T19:12:28.746Z"
+    "lastUpdated": "2026-08-21T14:29:29.283Z"
   },
   "caveman": {
     "source": {
@@ -13,6 +13,6 @@
       "repo": "JuliusBrussee/caveman"
     },
     "installLocation": "C:\\Users\\Micro\\.claude\\plugins\\marketplaces\\caveman",
-    "lastUpdated": "2026-08-18T19:12:52.690Z"
+    "lastUpdated": "2026-08-21T14:29:39.912Z"
   }
 }

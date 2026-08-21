@@ -1,0 +1,23 @@
+import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+async function main() {
+  const { count, error } = await supabase
+    .from('motoboys')
+    .select('*', { count: 'exact', head: true });
+  if (error) throw error;
+  console.log('Total de motoboys:', count);
+
+  const { data, error: err2 } = await supabase
+    .from('motoboys')
+    .select('id, name, email, is_active, status_plataforma, criado_por_restaurant_id');
+  if (err2) throw err2;
+  console.log(JSON.stringify(data, null, 2));
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

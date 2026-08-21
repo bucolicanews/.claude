@@ -1,4 +1,7 @@
 {
+  "enabledPlugins": {
+    "caveman@caveman": true
+  },
   "extraKnownMarketplaces": {
     "caveman": {
       "source": {
@@ -8,7 +11,5 @@
     }
   },
   "theme": "dark",
-  "enabledPlugins": {
-    "caveman@caveman": true
-  }
+  "inputNeededNotifEnabled": true
 }

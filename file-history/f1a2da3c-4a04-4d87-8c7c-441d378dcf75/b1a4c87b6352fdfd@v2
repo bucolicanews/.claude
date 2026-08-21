@@ -1,0 +1,169 @@
+---
+name: project-deliveryhub
+description: "DeliveryHub white-label delivery platform — repo layout, stack, and current feature focus"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
+  modified: 2026-08-20T15:45:34.744Z
+---
+
+Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
+
+- `deliveryhub_white_label/` — frontend. React 18 + Vite + Redux Toolkit + TailwindCSS + React Router v6 + React Hook Form + Framer Motion + D3/Recharts. Scaffolded via Rocket.new. Dev server on port 4028. Backend is included as a git submodule at `server_delivery/`.
+- `serer_delivery/` — backend. NestJS + TypeScript. Dev server on port 3002. Uses Supabase (Postgres/auth/storage, run locally via `npx supabase start`) and Redis (caching, e.g. the "minha-empresa" sidebar route).
+
+Both repos are on `main`, up to date with origin as of 2026-08-15 end of session (checked via `git status`/`git fetch`; only local, expected diff is `deliveryhub_white_label/.env` — machine's LAN IP drifts, see gotcha below). `server_delivery` submodule and standalone `serer_delivery/` are in sync at the same commit (`1d5e4b5`, after the full security audit round).
+
+As of 2026-08-12 (most recent commits), active feature areas:
+- Restaurant location pin: draggable pin, address search, GPS high-accuracy, map/satellite toggle, manual-location backend endpoint.
+- Motoboy (courier) flow: registration, platform-side approval, limited revision requests.
+- Plans/subscriptions: restaurant signup now requires an active plan + checkout before the registration form unlocks; plan changes require payment up front.
+- Licensing system for local/individual installs, with checkin that distinguishes revocation from network failure.
+- Cash register (caixa): dedicated kitchen/bar receipt printer, Pix change-on-cash-payment, real Pix/cash balance tracking, editable observação on already-paid counter sales.
+- PagBank card payments (holder field now required).
+
+**Why:** captured from `git log` on both repos since no CLAUDE.md exists yet in either repo to document this.
+**How to apply:** use this as the map of the codebase when the user asks to work on either repo without re-deriving repo purpose from scratch each session. Still verify specifics (file paths, current line numbers) by reading the code — this snapshot will drift.
+
+## Gotcha: Supabase local key naming (2026-08-12)
+
+The Supabase CLI's `npx supabase status` (run from `deliveryhub_white_label/`, where `supabase/config.toml` lives) prints both legacy JWT-style keys (`ANON_KEY`, `SERVICE_ROLE_KEY`) and newer prefixed keys (`PUBLISHABLE_KEY` = `sb_publishable_...`, `SECRET_KEY` = `sb_secret_...`). `serer_delivery/.env`'s `SUPABASE_SERVICE_ROLE_KEY` had the `sb_publishable_...` value pasted into it by mistake, which made the seed script (`scripts/seed-primeiro-boot.ts`, using the Supabase Admin API to create users) fail with `AuthApiError: User not allowed (403 not_admin)` — the publishable/anon key has no admin rights.
+
+**Why:** the two key-naming schemes look similar and it's easy to grab the wrong one when copy-pasting from `supabase status` output.
+**How to apply:** if `seed:primeiro-boot` or any Admin API call fails with `403 not_admin`, check that `SUPABASE_SERVICE_ROLE_KEY` in `serer_delivery/.env` is the secret/service_role key (`sb_secret_...` or the `service_role`-role JWT), not the publishable/anon one. Also note: Supabase local services must be started from `deliveryhub_white_label/` (that's where `supabase/config.toml` lives), not from `serer_delivery/`.
+
+## Two independent backend checkouts, same local DB
+
+`deliveryhub_white_label/server_delivery` (git submodule) and the standalone `serer_delivery/` repo are **separate git checkouts** of the same remote (`jmoka/serer_delivery.git`) — each has its own `node_modules` and `.env`, so a fix in one (e.g. `.env` keys, `npm install`) does not propagate to the other and must be repeated in both. However both point at the same local Supabase instance (`SUPABASE_URL=http://127.0.0.1:54331`, started from `deliveryhub_white_label/`), so seeding via either one writes to the same DB — running `seed:primeiro-boot` in the second location after the first is a safe no-op (idempotency check finds the existing admin).
+
+**How to apply:** when doing setup/install/env fixes for this project, apply them to both `deliveryhub_white_label/server_delivery` and `serer_delivery/` unless told only one is in use. User gave this as a standing order (2026-08-13, reaffirmed after a doc commit landed in the submodule but not the standalone checkout): after any commit/push that touches `server_delivery` content, always check the standalone `serer_delivery/` checkout too and `git pull origin main` there to keep both in sync — do this proactively, without being asked each time.
+
+**Two concrete ways this bit during the 2026-08-15 security audit — both worth avoiding next time:**
+1. Added `helmet`/`@nestjs/throttler` (backend) via `npm install` in `serer_delivery/`, then just ran `npm install --package-lock-only` in the submodule to sync the lockfile — that only rewrites `package-lock.json`, it does **not** populate `node_modules`. Submodule's `npm run start` failed with `Cannot find module 'helmet'` until a real `npm install` (no flag) was run there too. **How to apply:** after adding a dependency in one checkout, run a real `npm install` (not `--package-lock-only`) in the other one too — check `ls node_modules/<pkg>` if unsure it actually landed.
+2. Added `APP_ALLOWED_ORIGINS` (new required env var for CORS, see security section below) to `serer_delivery/.env` only — forgot the submodule's `.env`, which has no such line since `.env` is git-ignored and never syncs. Symptom was CORS errors in the browser (`No 'Access-Control-Allow-Origin' header`) that looked like a code bug but was actually a missing env var in the checkout actually being run. **How to apply:** whenever adding a *new* required env var (not just editing a value), add it to `.env` in both `serer_delivery/` and `deliveryhub_white_label/server_delivery/` — grep both for the var name to confirm before declaring a fix done.
+
+## Resolvido (2026-08-15): seed agora cria plano/assinatura
+
+O que a seção abaixo descrevia como pendência foi resolvido: `scripts/seed-primeiro-boot.ts` (nos dois checkouts) agora cria um "Plano Teste" (`tipo: 'saas'`, `trial_dias: 30`, `inclui_delivery`/`inclui_salao: true`) se ainda não existir, e assina o restaurante seed a ele (status `trial`), sincronizando `modulo_delivery`/`modulo_salao`. Commits: `249102c` (serer_delivery, sincronizado no submódulo). Testado com reset completo do banco local + seed — funcionou de ponta a ponta, idempotência confirmada (rodar de novo não duplica).
+
+<details><summary>Contexto original (2026-08-12)</summary>
+
+Depois do reset do banco local (`npx supabase db reset`) + `npm run seed:primeiro-boot`, o dono de restaurante seed (`resto@delivery.com`) ficava bloqueado: `GET /restaurante/plano` retornava 404 "Loja não tem assinatura". Causa: tabelas `planos` e `assinaturas` ficavam vazias — o seed nunca tinha sido atualizado pra criar um plano padrão + assinatura/trial quando a feature de "exige adesão a plano" foi adicionada.
+</details>
+
+## Gotcha: VITE_API_URL/VITE_LAN_URL precisam do IP de rede local, e ele muda (2026-08-13)
+
+`deliveryhub_white_label/.env` (raiz, frontend) tem `VITE_API_URL` (aponta pro backend, porta 3002) e `VITE_LAN_URL` (usado no QR de acompanhamento do cliente, porta 4028). Em dev local, os dois precisam apontar pro **IP de rede local do PC** (ex. `http://10.163.119.144:3002`), não `localhost` — celular/outro dispositivo na mesma rede não alcança o `localhost` da máquina rodando o projeto. Esse IP muda por DHCP; quando muda e o `.env` fica desatualizado, o sintoma é `net::ERR_CONNECTION_TIMED_OUT` no console do browser em todas as chamadas de API, mesmo com o backend rodando normalmente (confirmar com `netstat -ano | grep 3002`). Corrigir com `ipconfig` (Windows) pra achar o IP atual e atualizar o `.env`.
+
+Isso já está documentado no `README.md` (raiz, passo 7) e no `server_delivery/README.md` (seção de deploy em produção) — commits `febfbda` (main) e `ef59b52` (server_delivery), 2026-08-13.
+
+**Why:** já causou um debug session inteiro (2026-08-13) até perceber que era só o IP desatualizado, não backend caído.
+**How to apply:** se o usuário reportar `ERR_CONNECTION_TIMED_OUT` nas chamadas de API, checar primeiro se `VITE_API_URL`/`VITE_LAN_URL` no `.env` batem com o IP atual (`ipconfig`) antes de investigar o backend.
+
+## Git identity local configurada (2026-08-13)
+
+Nem `deliveryhub_white_label/` nem `server_delivery/` (submódulo) tinham `user.name`/`user.email` configurados (nem local nem global) — commits anteriores foram feitos como `jmoka <jmokatavares@gmail.com>` mas a config tinha sumido/nunca foi setada nessa máquina. Configurei local (não global) nos dois repos com esses mesmos valores, com autorização explícita do usuário.
+
+**Why:** commit falhava com "Author identity unknown" antes da correção.
+**How to apply:** se voltar a falhar em outro repo/clone novo desse projeto, é o mesmo problema — configurar local (não `--global`) com `jmoka <jmokatavares@gmail.com>`, mas confirmar com o usuário antes (regra de não mexer em git config sem permissão).
+
+## Modelo de deploy: push no main = deploy (confirmado 2026-08-13)
+
+Não há CI/CD (`.github/workflows` vazio) nem branch de produção separada em nenhum dos dois repos — só o remote `origin`. O frontend tem um `docker-compose.yml` na raiz que só sobe um container `cloudflared` (túnel Cloudflare), então a "produção" aparentemente é servida por processos rodando direto nesta máquina (viu-se o backend rodando como `node dist/src/main` na porta 3002) expostos via túnel, não por uma plataforma de hospedagem com auto-deploy.
+
+**Why:** usuário confirmou explicitamente (via pergunta direta) que "o push no main já é o deploy", sem nenhum passo adicional de build/restart/container.
+**How to apply:** quando o usuário pedir para "commitar e ir pra produção/deploy", basta `git push origin main` nos repos relevantes — não tentar reiniciar containers, rodar `npm run build` manualmente, ou procurar plataforma de hospedagem, a menos que o usuário diga que algo não refletiu.
+
+**Correção (2026-08-16):** existe também um ambiente no EasyPanel (`app-desenvolvimento-delivery.ubjifz.easypanel.host`, ver seção CORS abaixo) que **não** faz auto-deploy no push — usuário confirmou que lá precisa clicar em "Deploy" manualmente no painel depois do push pra pegar o commit novo. Não tenho acesso a esse painel. Então "subir pra produção" tem dois passos possíveis dependendo de qual ambiente: túnel/teusite.top = só o `git push` (automático); EasyPanel = `git push` + o usuário clicar Deploy no painel web. Perguntar qual ambiente se não estiver claro, ou lembrar do passo manual do EasyPanel se o usuário mencionar esse painel especificamente.
+
+## Feature: importação de produtos via JSON + tabela editável (2026-08-13)
+
+Implementado e já em produção (push feito): botão "Importar produtos (JSON)" na tela `/restaurante/produtos` (upload de arquivo ou colar texto, modal com formato de exemplo) — backend cria categorias que não existirem e ignora duplicados por nome. Também: nova visão em tabela (alterna com a de cards existente) onde cada célula (nome, categoria, preço, preço promo, custo, estoque, estoque mínimo, destaque) é editável clicando direto na linha, salvando via PATCH parcial ao sair do campo — pensado para editar vários produtos rapidamente. Nessa visão, o container principal (`main`) fica com `max-w-[85%]` em vez do `max-w-4xl` padrão, só quando `viewMode === 'tabela'`, pra caber todas as colunas sem afetar a visão em cards.
+
+Commits: backend `f4cd04b` (`server_delivery`, sincronizado também em `serer_delivery/`), frontend `87b40ca` (`deliveryhub_white_label`). O `.env` (IP local de rede) ficou de fora do commit de propósito — é config de máquina, não faz parte da feature.
+
+**How to apply:** se o usuário pedir mais colunas editáveis na tabela ou o mesmo padrão de edição inline em outra listagem (ex. categorias, motoboys), reaproveitar o padrão `renderEditableCell`/`renderCategoriaCell` em `src/pages/restaurante-produtos/index.jsx` como referência.
+
+## Regra de negócio: carrinho/venda só existe no plano delivery (2026-08-13)
+
+Se a loja do cliente não tem o plano "delivery" contratado, a loja não tem carrinho de compras nem venda — funciona só como vitrine (catálogo de produtos pra visualização, sem checkout). O fluxo de carrinho/pedido só é habilitado quando o plano do restaurante é do tipo delivery.
+
+Se o plano for só "salão" (dine-in, sem delivery), a loja também vira vitrine apenas (sem carrinho/venda pelo site) e, além disso, **não aparece listada no DeliveryHub** (marketplace/busca principal) — só lojas com plano delivery aparecem lá.
+
+**Why:** regra de negócio do produto — diferencia planos de vitrine (só exibição) dos planos delivery (venda completa + listagem no marketplace). Plano só-salão é pra restaurante que atende só presencialmente, então não faz sentido aparecer pra quem busca delivery.
+**How to apply:** ao mexer em carrinho, checkout, ou qualquer fluxo de venda, verificar o tipo/plano do restaurante primeiro — não assumir que carrinho está sempre disponível. Ao mexer na listagem/busca do DeliveryHub (home, busca de restaurantes), filtrar por plano delivery. Ao investigar bugs de "carrinho sumiu", "não consigo comprar" ou "loja não aparece na busca", checar o plano antes de assumir defeito.
+
+### Implementado (2026-08-14) — testado e em produção
+
+O campo já existia: `restaurants.modulo_delivery` (boolean, migration `20260727000001_modulos_delivery_salao.sql`), sincronizado a partir de `planos.inclui_delivery` sempre que uma assinatura é atribuída (`PlanosService.atribuirAssinatura()` em `server_delivery/src/planos/planos.service.ts`). Também pode ser setado direto pelo admin em `/admin/empresas`, independente do plano — então hoje é "a loja tem delivery agora", não um valor só-derivado do plano.
+
+- Backend (`server_delivery/src/restaurante/catalogo.controller.ts`, commit `6dbbe2e`): `GET /r`, `/r/produtos`, `/r/combos`, `/r/filtros` agora filtram `.eq('modulo_delivery', true)` — lojas só-salão somem do marketplace. `GET /r/:slug` e `/r/by-domain/:host` (acesso direto à loja) **não são filtrados** — continuam funcionando, só passaram a incluir `modulo_delivery` no objeto `restaurante` retornado.
+- Frontend (`src/pages/restaurante-catalogo/index.jsx`, commit `48dbdbf`): calcula `temDelivery = restaurante.modulo_delivery !== false` e, quando `false`, esconde botão "Adicionar"/stepper de quantidade (`ProdutoCard`), combos clicáveis (`ComboCarrosselCard`/`ComboCarrossel`), ícone de carrinho no header, sidebar `CarrinhoDesktop`, botão flutuante mobile e drawer `CarrinhoMobile` — e mostra um banner escuro no topo avisando "Cardápio apenas para consulta". A página `cardapio-digital` (QR de mesa) já não tinha carrinho, não precisou de mudança.
+- `src/pages/home-router/index.jsx` e `cardapio-digital` não precisaram de mudança — já reusam os mesmos endpoints/dados.
+
+**How to apply:** se pedirem pra reforçar/estender essa regra em outro lugar do sistema (ex. painel do dono, app do motoboy), usar `restaurante.modulo_delivery` como fonte da verdade — já vem populado nas rotas públicas de cardápio. Não confundir com `useTipoRestaurante` (não relacionado a plano — é sobre categoria de estabelecimento tipo "Restaurante" vs "Farmácia") nem com `useModulosEmpresa` (mesmo campo `modulo_delivery`, mas hoje só usado na nav do painel do dono, não no storefront do cliente).
+
+## Auditoria de segurança completa (2026-08-15) — 18 achados, todos corrigidos
+
+Rodei o `PENTEST_CODE_REVIEW_PROTOCOL.md` do vault `may_memory` (ver [[reference_may_memory_vault]]) contra os dois repos — primeira aplicação real desse protocolo desde que foi criado na mesma sessão. Dois agentes de exploração (um por repo) levantaram achados, sintetizei num relatório (tabela de risco + patch + script de teste), depois corrigi tudo em rodadas sucessivas: 4 Crítica, 5 Alta, 9 Média/Baixa — **18/18 corrigidos**, nenhum aberto.
+
+**Crítica (4):** IDOR em `GET /pedidos/:id` (vazava pedido de qualquer usuário + `access_token` de motoboy); mass assignment em `PATCH /perfil` (cliente podia sobrescrever `customers.user_id`); webhooks PagBank (planos + pagamentos) sem verificação de assinatura, forjável; XSS via `document.write` nos fluxos de impressão (dados de cliente não escapados).
+
+**Alta (5):** IDOR em `GET /pagamentos/pedido/:id`; `criarPix`/`criarCartao` sem checar dono do pedido; injeção de filtro PostgREST no login do motoboy (`.or()` sem sanitizar); mass assignment em impressoras (podia trocar `restaurant_id`/token); CORS totalmente aberto (`enableCors()` sem opções).
+
+**Média/Baixa (9):** token PagBank em claro em duas rotas; ausência sistêmica de DTOs (rastreio dedicado achou só 2 mass assignments reais a mais, não os ~13 módulos temidos inicialmente — o resto já fazia whitelist manual); sem rate limit; token via URL persistido sem invalidação; JsBarcode via CDN sem SRI; sem `helmet()`; senha mínima fraca (4/6 → 8 caracteres); `.env` versionado no git; código morto consultando Supabase direto do browser.
+
+**Padrões reutilizáveis que ficaram no código** (útil se aparecer bug parecido em endpoint não coberto pela auditoria):
+- **IDOR/posse de recurso:** comparar `req.userId`/`req.userRole` contra o `user_id` do registro antes de retornar/mutar — ver `PedidosService.buscar()`, `PagamentosService.buscarPorPedido()`.
+- **Mass assignment:** nunca `.update({...body})` — montar objeto `campos` explícito campo a campo. Ver `impressoras.service.ts atualizar()`, `produtos.service.ts atualizar()`, `restaurante.service.ts atualizarCliente()`/`updateAparencia()`, `empresas.service.ts atualizar()`.
+- **Webhook não confiável:** nunca decidir "pago" a partir do corpo do POST — reconsultar a API do PagBank (`PagBankClient.buscarOrdem()`) antes. Ver `pagamentos.service.ts`/`planos.service.ts processarWebhook()`.
+- **Token de uso único (magic link):** endpoint de "resgate" que troca o token da URL por um novo, invalidando o antigo — `POST /cozinha-portal/resgatar-token` (`CozinhaPortalController`), reusa a rotação que já existia como ação manual do dono.
+- **XSS em HTML gerado dinamicamente:** `src/utils/escapeHtml.js` — usar em qualquer novo fluxo de impressão/relatório que interpole dado de usuário em `document.write`.
+
+### CORS — `APP_ALLOWED_ORIGINS` (novo, obrigatório)
+
+`CorsOriginsService` (`src/common/`) substituiu o `enableCors()` aberto por allowlist dinâmica: domínios "base" da plataforma vêm da env var `APP_ALLOWED_ORIGINS` (separado por vírgula, sem protocolo), domínios White Label por loja (`restaurants.custom_domain`, só aprovados) vêm do banco automaticamente (cache 60s) — não precisa editar `.env` a cada loja nova.
+
+Valores de produção (confirmados com o usuário 2026-08-15): `app-desenvolvimento-delivery.ubjifz.easypanel.host` (frontend no EasyPanel, mesmo projeto do backend `...-server-delivery...`) e `deliveryhub.teusite.top` (domínio próprio, provavelmente CNAME/túnel Cloudflare pro mesmo app — `teusite.top` é o mesmo padrão usado como domínio White Label de lojas individuais, ex. `recantodofarol.teusite.top`, então vale confirmar que não é coincidência de nome). Dev local: `localhost:4028,10.75.191.97:4028` (IP muda, mesmo gotcha de sempre).
+
+**How to apply:** `APP_ALLOWED_ORIGINS` precisa estar setada em produção (VPS/EasyPanel) pra loja principal funcionar — sem ela só as lojas White Label com domínio aprovado no banco conseguem chamar a API, o próprio app fica bloqueado. Requer reiniciar o processo do backend depois de mudar (env só é lido na subida). Se o usuário reportar CORS bloqueado em produção, primeiro checar se essa var está setada no ambiente real (painel do EasyPanel pode ter suas próprias env vars, separadas do `.env` em disco, dependendo do setup).
+
+## Bug de produção corrigido e CONFIRMADO (2026-08-16): guard de restaurante bloqueava pagamento pelo domínio principal
+
+Dono cadastrou restaurante novo em produção e levou `403 "Essas credenciais não pertencem a esta loja"` ao tentar pagar a fatura do plano via Pix (`POST /restaurante/plano/faturas/:id/pagar`). Causa: `RestaurantOwnerGuard` (`src/auth/restaurant-owner.guard.ts`, os dois checkouts) comparava o header `Origin`/`Referer` direto contra `restaurants.custom_domain` sem excluir os domínios **base** da plataforma (os mesmos de `APP_ALLOWED_ORIGINS`/`CorsOriginsService`, ex. `deliveryhub.teusite.top`) — se qualquer loja tivesse esse domínio salvo (por engano ou teste) como `custom_domain`, o guard passava a bloquear **todo mundo** que acessasse pelo domínio principal, não só quem tentasse usar credenciais de loja errada.
+
+Corrigido injetando `CorsOriginsService` no guard e pulando a checagem de posse de `custom_domain` quando `ehDominioBase(origin)` (novo método público) é true. Commits: `d78df7b` (`serer_delivery` e submódulo, mesmo hash — sincronizados via rebase), `9118adb` (`deliveryhub_white_label`, bump do ponteiro do submódulo).
+
+**Why:** esse guard protege contra um problema real (dono de uma loja White Label logando no domínio de outra), mas não tinha o mesmo cuidado que o `CorsOriginsService` já tinha de separar "domínio base compartilhado" de "domínio próprio de uma loja".
+**How to apply:** se aparecer de novo `403 "Essas credenciais não pertencem a esta loja"` de forma inesperada (usuário jura que as credenciais são as certas), suspeitar primeiro de alguma loja com `custom_domain` mal configurado no banco colidindo com o domínio que o usuário está acessando — mas essa classe específica (colidir com o domínio *base* da plataforma) já está protegida pelo fix acima.
+
+### Regressão do próprio fix (2026-08-16): esqueci de testar o boot antes de mandar fazer deploy
+
+O commit `d78df7b` acima (`imports: [CommonModule]` só no `AuthModule`) passou no `tsc --noEmit` e no `nest build`, mas **quebrou o boot em produção** — 502 + CORS bloqueado em TODAS as rotas depois do deploy no EasyPanel, não só as protegidas por `RestaurantOwnerGuard`. Causa: `RestaurantOwnerGuard` é usado via `@UseGuards()` em vários módulos além do `AuthModule` (ex. `AgenteImpressaoModule`, e todo módulo que usa a rota de restaurante) — importar `CommonModule` só no `AuthModule` não propaga a dependência pros outros. Nest falhava com `UnknownDependenciesException` já no `NestFactory.create()`, então o processo nunca chegava a escutar a porta — só descobri rodando `node dist/src/main.js` local e vendo o app não printar "Nest application successfully started". Corrigido marcando `CommonModule` como `@Global()` (commit `a6436b2`, mesmo padrão do `SupabaseModule`, que já é `@Global()` por exatamente esse motivo).
+
+**Why:** `tsc`/`nest build` só checam tipo, não checam se o grafo de DI do NestJS resolve em runtime — um guard usado em `@UseGuards()` fora do módulo onde foi declarado só enxerga as dependências desse módulo se elas vierem de um módulo `@Global()` (como já é `SupabaseModule`) ou se TODO módulo consumidor importar o módulo da dependência nova.
+**How to apply:** antes de mandar fazer deploy de qualquer mudança que adiciona uma dependência nova a um **guard, interceptor ou pipe compartilhado** (não um service comum de um módulo isolado), rodar localmente `npm run build && node dist/src/main.js` (ou `npm run start:dev`) e conferir que aparece `"Nest application successfully started"` sem `UnknownDependenciesException` antes — não confiar só no `tsc --noEmit`. Se a dependência nova vem de um módulo próprio (não `@Global()` ainda) e é usada por guard/interceptor espalhado pelo app, o caminho mais simples costuma ser marcar esse módulo como `@Global()` em vez de importar em cada consumidor.
+
+Commits do fix da regressão: `a6436b2` (`serer_delivery` e submódulo) + `eacede5` (`deliveryhub_white_label`, ponteiro). **Usuário confirmou em produção (2026-08-16, fim do dia) que o cadastro de restaurante + pagamento de fatura via Pix voltou a funcionar** depois desse segundo deploy — bug e regressão ambos fechados, nenhum follow-up pendente.
+
+## Gotcha: 3ª ocorrência do `.env` desincronizado entre os dois checkouts — `GARCOM_JWT_SECRET` (2026-08-16)
+
+Login de garçom (`POST /garcom/auth/login`) devolvia `500 Internal Server Error` depois de passar do rate limit (5 tentativas/min, `@Throttle` em `garcom-auth.controller.ts`). Causa: `garcom-auth.service.ts`/`auth/garcom.guard.ts` usam `this.config.getOrThrow('GARCOM_JWT_SECRET')`, e essa var só existia no `.env` do submódulo (`deliveryhub_white_label/server_delivery/.env`) — faltava no checkout standalone `serer_delivery/.env` (também faltava `MOTOBOY_JWT_SECRET`/`NOMINATIM_USER_AGENT`). Exatamente o mesmo padrão já documentado acima (seção "Two independent backend checkouts"), 3º caso real. Corrigido copiando os valores pro `.env` que faltava — **mas o processo backend rodando na porta 3002 (PID node, já ativo) precisa ser reiniciado manualmente pelo usuário pra ler a var nova**, não reiniciei sozinho por já estar em uso (provável teste ativo no celular).
+
+**How to apply:** se aparecer `500` num endpoint de auth próprio (garçom/motoboy, que usam JWT manual em vez de Supabase Auth) logo após passar da validação de credenciais, suspeitar primeiro de secret ausente no `.env` do checkout que está rodando — `grep` o nome da var nos dois `.env` (`serer_delivery/.env` e `deliveryhub_white_label/server_delivery/.env`) antes de investigar mais fundo. Lembrar de pedir pro usuário reiniciar o backend depois de editar `.env`.
+
+## Frente ativa (checada 2026-08-20): Comandas do Salão
+
+Desde 16/08 o foco migrou para o módulo de comandas do salão (dine-in), bem além do que estava mapeado antes. Ambos os repos limpos, sincronizados entre si e com origin nessa data. Recente:
+
+- Código de barras ESC/POS impresso nas comandas + busca por leitor de código de barras.
+- Envio manual de itens da comanda (garçom escolhe quando mandar pra cozinha, não só automático).
+- Pontos de preparo customizáveis (ex. Churrasqueira, Drinks), configuráveis por impressora (`impressoras.ponto_preparo`/`icone`).
+- Fila de chamada do balcão: estados separados "aguardando" vs "preparando" (antes era um estado só).
+- Mesas ganhou página própria no menu lateral, com opção de limpar todas de uma vez.
+- Cancelar comanda vazia agora deleta a linha do banco em vez de só marcar como cancelada.
+- Garçom recebe aviso de item pendente ao voltar pra tela, com opção de enviar antes de sair.
+
+**Why:** capturado do `git log` dos dois repos em 2026-08-20 pra atualizar o mapa do projeto, que estava parado em 16/08.
+**How to apply:** ao trabalhar em Comandas/Mesas/Balcão, considerar esse contexto recente como ponto de partida em vez de assumir que é a mesma versão simples descrita na seção de mapeamento original acima.
