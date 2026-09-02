@@ -1,0 +1,559 @@
+[main bf98e88] memory: liga CLAUDE.md e memorias de feedback ao framework de UX/UI do vault
+ 6 files changed, 71 insertions(+), 5 deletions(-)
+ create mode 100644 projects/C--Users-jotac-OneDrive-Documents-DEV/memory/feedback_carousel_autoscroll_pattern.md
+ create mode 100644 projects/C--Users-jotac-OneDrive-Documents-DEV/memory/feedback_layout_debugging.md
+ create mode 100644 projects/C--Users-jotac-OneDrive-Documents-DEV/memory/feedback_modal_sizing.md
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .last-cleanup
+	modified:   history.jsonl
+	deleted:    ide/32623.lock
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.claude-plugin/marketplace.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.claude-plugin/plugin.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.codex/config.toml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.codex/hooks.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.editorconfig
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.gitattributes
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.github/FUNDING.yml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.github/ISSUE_TEMPLATE/bug_report.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.github/ISSUE_TEMPLATE/feature_request.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.github/workflows/sync-skill.yml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.gitignore
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.in_use/644
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/.orphaned_at
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/AGENTS.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/CLAUDE.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/CODE_OF_CONDUCT.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/CONTRIBUTING.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/GEMINI.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/INSTALL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/LICENSE
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/SECURITY.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/agents/cavecrew-builder.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/agents/cavecrew-investigator.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/agents/cavecrew-reviewer.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/benchmarks/prompts.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/benchmarks/requirements.txt
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/benchmarks/results/.gitkeep
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/benchmarks/run.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/bin/install.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/bin/lib/openclaw.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/bin/lib/opencode-agent.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/bin/lib/settings.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-commit.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-commit.toml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-init.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-init.toml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-review.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-review.toml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-stats.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman-stats.toml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/commands/caveman.toml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/dist/caveman.skill
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/.nojekyll
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/HONEST-NUMBERS.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/assets/atlas-cloud-dark.svg
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/assets/atlas-cloud.svg
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/assets/caveman-logo-banner.png
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/assets/dancing-rock-32.png
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/assets/dancing-rock.svg
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/index.html
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/docs/install-windows.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/evals/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/evals/llm_run.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/evals/measure.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/evals/plot.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/evals/prompts/en.txt
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/evals/snapshots/results.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/gemini-extension.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/install.ps1
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/install.sh
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/package.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/.codex-plugin/plugin.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/agents/cavecrew-builder.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/agents/cavecrew-investigator.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/agents/cavecrew-reviewer.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/assets/caveman-small.svg
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/assets/caveman.svg
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/cavecrew/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/scripts/__init__.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/scripts/__main__.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/scripts/benchmark.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/scripts/cli.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/scripts/compress.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/scripts/detect.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-compress/scripts/validate.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman-stats/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman/agents/openai.yaml
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman/assets/caveman-small.svg
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/plugins/caveman/skills/caveman/assets/caveman.svg
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills-lock.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/cavecrew/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/cavecrew/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-commit/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-commit/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/SECURITY.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/scripts/__init__.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/scripts/__main__.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/scripts/benchmark.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/scripts/cli.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/scripts/compress.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/scripts/detect.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-compress/scripts/validate.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-help/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-help/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-review/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-review/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-stats/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman-stats/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/skills/caveman/SKILL.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/cavecrew-model-overrides.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/caveman-activate.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/caveman-config.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/caveman-mode-tracker.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/caveman-stats.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/caveman-statusline.ps1
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/caveman-statusline.sh
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/checksums.sha256
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/install.ps1
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/install.sh
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/package.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/uninstall.ps1
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/hooks/uninstall.sh
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/mcp-servers/caveman-shrink/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/mcp-servers/caveman-shrink/compress.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/mcp-servers/caveman-shrink/index.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/mcp-servers/caveman-shrink/package.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/mcp-servers/caveman-shrink/spawn-options.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/README.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/commands/caveman-commit.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/commands/caveman-compress.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/commands/caveman-help.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/commands/caveman-review.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/commands/caveman-stats.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/commands/caveman.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/package.json
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/plugins/opencode/plugin.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/rules/caveman-activate.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/rules/caveman-openclaw-bootstrap.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/src/tools/caveman-init.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/claude-md-preferences.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/claude-md-preferences.original.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/claude-md-project.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/claude-md-project.original.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/mixed-with-code.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/mixed-with-code.original.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/project-notes.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/project-notes.original.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/todo-list.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/caveman-compress/todo-list.original.md
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/e2e.dryrun.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/e2e.freshinstall.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/hermes.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/opencode-agent.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/opencode.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/ps1-pipe.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/slash-commands.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/unit.argv.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/installer/unit.settings.test.mjs
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_cavecrew_model_overrides.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_caveman_init.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_caveman_stats.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_compress_safety.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_detect.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_hooks.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_mcp_shrink.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_mode_tracker.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_mode_tracker_stdin.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_repo_local_config.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_symlink_flag.js
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/test_validate_inline.py
+	deleted:    plugins/cache/caveman/caveman/0d95a81d35a9/tests/verify_repo.py
+	modified:   plugins/known_marketplaces.json
+	modified:   plugins/marketplaces/caveman/.claude-plugin/plugin.json
+	modified:   plugins/marketplaces/caveman/.codex/config.toml
+	modified:   plugins/marketplaces/caveman/.github/workflows/ci.yml
+	modified:   plugins/marketplaces/caveman/.gitignore
+	modified:   plugins/marketplaces/caveman/CLAUDE.md
+	modified:   plugins/marketplaces/caveman/CONTRIBUTING.md
+	modified:   plugins/marketplaces/caveman/INSTALL.md
+	modified:   plugins/marketplaces/caveman/LICENSING.md
+	modified:   plugins/marketplaces/caveman/README.md
+	deleted:    plugins/marketplaces/caveman/agents/docs/AGENTS.md
+	deleted:    plugins/marketplaces/caveman/agents/docs/CLAUDE.md
+	modified:   plugins/marketplaces/caveman/bin/install.js
+	modified:   plugins/marketplaces/caveman/bin/lib/settings.js
+	modified:   plugins/marketplaces/caveman/browse/bin/release.generated.mjs
+	deleted:    plugins/marketplaces/caveman/cli/install.js
+	modified:   plugins/marketplaces/caveman/dist/caveman.skill
+	deleted:    plugins/marketplaces/caveman/docs/.nojekyll
+	deleted:    plugins/marketplaces/caveman/docs/index.html
+	deleted:    plugins/marketplaces/caveman/docs/plans/cavemem-multi-agent.md
+	deleted:    plugins/marketplaces/caveman/docs/plans/learn-v2-smart-optimizer.md
+	deleted:    plugins/marketplaces/caveman/docs/plans/learn-v3-user-specific-optimizer.md
+	deleted:    plugins/marketplaces/caveman/docs/plans/pi-extension.md
+	modified:   plugins/marketplaces/caveman/docs/technical/cli-reference.md
+	modified:   plugins/marketplaces/caveman/docs/technical/configuration.md
+	modified:   plugins/marketplaces/caveman/docs/technical/exploration-and-delegation.md
+	modified:   plugins/marketplaces/caveman/docs/technical/install-and-update.md
+	modified:   plugins/marketplaces/caveman/docs/technical/proxy-and-providers.md
+	modified:   plugins/marketplaces/caveman/docs/technical/sdks-and-packages.md
+	modified:   plugins/marketplaces/caveman/docs/technical/testing-and-benchmarks.md
+	deleted:    plugins/marketplaces/caveman/experiments/skillopt-luna-minimal/data/splits/reserve5-replacements/tasks.json
+	deleted:    plugins/marketplaces/caveman/explorer/README.md
+	deleted:    plugins/marketplaces/caveman/explorer/fastcontext.claude-agent.md
+	deleted:    plugins/marketplaces/caveman/explorer/package.json
+	deleted:    plugins/marketplaces/caveman/explorer/tests/agent-file.test.mjs
+	modified:   plugins/marketplaces/caveman/install.ps1
+	modified:   plugins/marketplaces/caveman/install.sh
+	modified:   plugins/marketplaces/caveman/mcp/bin/release.generated.mjs
+	modified:   plugins/marketplaces/caveman/package-lock.json
+	modified:   plugins/marketplaces/caveman/package.json
+	modified:   plugins/marketplaces/caveman/packages/agent/src/build.ts
+	modified:   plugins/marketplaces/caveman/packages/agent/tests/compiler.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/BINARY_RELEASE
+	modified:   plugins/marketplaces/caveman/packages/cli/package.json
+	modified:   plugins/marketplaces/caveman/packages/cli/scripts/gen-wedge-installer.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/src/agent-skills.generated.ts
+	modified:   plugins/marketplaces/caveman/packages/cli/src/binaries.generated.ts
+	modified:   plugins/marketplaces/caveman/packages/cli/src/index.ts
+	modified:   plugins/marketplaces/caveman/packages/cli/src/native-hook-fast.ts
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/agent-shortcut.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/harness-agent-upstream.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/harness/stub-bin.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/hooks.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/native-enable.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/porcelain.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/subscription-recovery.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/cli/tests/windows-platform.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/graders/AGENTS.md
+	deleted:    plugins/marketplaces/caveman/packages/graders/CLAUDE.md
+	deleted:    plugins/marketplaces/caveman/packages/graders/LICENSE
+	deleted:    plugins/marketplaces/caveman/packages/graders/package.json
+	deleted:    plugins/marketplaces/caveman/packages/graders/src/index.ts
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/grade.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/grader-registry.parity.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/langevals-judge.parity.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/langevals-judge.vectors.json
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/langevals-port.parity.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/langevals-port.vectors.json
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/localization_f1.parity.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/graders/tests/localization_f1.vectors.json
+	deleted:    plugins/marketplaces/caveman/packages/graders/tsconfig.json
+	deleted:    plugins/marketplaces/caveman/packages/graders/tsconfig.test.json
+	deleted:    plugins/marketplaces/caveman/packages/kit/AGENTS.md
+	deleted:    plugins/marketplaces/caveman/packages/kit/CHANGELOG.md
+	deleted:    plugins/marketplaces/caveman/packages/kit/CLAUDE.md
+	deleted:    plugins/marketplaces/caveman/packages/kit/LICENSE
+	deleted:    plugins/marketplaces/caveman/packages/kit/README.md
+	deleted:    plugins/marketplaces/caveman/packages/kit/package.json
+	deleted:    plugins/marketplaces/caveman/packages/kit/src/badge.tsx
+	deleted:    plugins/marketplaces/caveman/packages/kit/src/core.ts
+	deleted:    plugins/marketplaces/caveman/packages/kit/src/index.ts
+	deleted:    plugins/marketplaces/caveman/packages/kit/src/trial.tsx
+	deleted:    plugins/marketplaces/caveman/packages/kit/tests/badge.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/kit/tests/core.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/kit/tests/trial.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/kit/tests/types.test.tsx
+	deleted:    plugins/marketplaces/caveman/packages/kit/tsconfig.json
+	deleted:    plugins/marketplaces/caveman/packages/kit/tsconfig.test.json
+	deleted:    plugins/marketplaces/caveman/packages/mastra/README.md
+	deleted:    plugins/marketplaces/caveman/packages/mastra/package.json
+	deleted:    plugins/marketplaces/caveman/packages/mastra/src/index.ts
+	deleted:    plugins/marketplaces/caveman/packages/mastra/tests/exporter.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/mastra/tests/links.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/mastra/tests/outcome.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/mastra/tests/processor.runtime.mjs
+	deleted:    plugins/marketplaces/caveman/packages/mastra/tests/types.test.ts
+	deleted:    plugins/marketplaces/caveman/packages/mastra/tsconfig.json
+	deleted:    plugins/marketplaces/caveman/packages/mastra/tsconfig.test.json
+	modified:   plugins/marketplaces/caveman/packages/pi-extension/src/protocol.ts
+	modified:   plugins/marketplaces/caveman/packages/pi-extension/src/provider.ts
+	modified:   plugins/marketplaces/caveman/packages/pi-extension/tests/fixtures/stub-provider-extension.mjs
+	modified:   plugins/marketplaces/caveman/packages/pi-extension/tests/integration.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/pi-extension/tests/protocol.runtime.mjs
+	modified:   plugins/marketplaces/caveman/packages/shared/binary-installer/release.generated.mjs
+	modified:   plugins/marketplaces/caveman/plugins/caveman/skills/cavecrew/SKILL.md
+	modified:   plugins/marketplaces/caveman/plugins/caveman/skills/caveman-compress/SKILL.md
+	modified:   plugins/marketplaces/caveman/plugins/caveman/skills/caveman-compress/scripts/compress.py
+	modified:   plugins/marketplaces/caveman/plugins/caveman/skills/caveman-compress/scripts/detect.py
+	modified:   plugins/marketplaces/caveman/plugins/caveman/skills/caveman/SKILL.md
+	modified:   plugins/marketplaces/caveman/pnpm-lock.yaml
+	modified:   plugins/marketplaces/caveman/pnpm-workspace.yaml
+	modified:   plugins/marketplaces/caveman/proxy/CLAUDE.md
+	modified:   plugins/marketplaces/caveman/proxy/cmd/caveman-proxy/main.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/config/config.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/config/config_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/gateway/chatgpt.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/gateway/proxy.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/gateway/retrieve_tool.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/gateway/server.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/gateway/subscription_live_zone_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/gateway/toolschema_strip.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/nativehook/hook.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/nativeruntime/runtime.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/nativeruntime/runtime_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/nativeruntime/server_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/repointel/index.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/repointel/index_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/standalone/standalone.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/standalone/standalone_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/config_scan.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/detect_cache_hygiene.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/detect_cache_hygiene_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/learn.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/learn_loops_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/learn_outcomes.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/learn_retro_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/learn_types.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/learn_v2_p0_test.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/report.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/session_source.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/source_claude.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/source_codex.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/source_gemini.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/source_opencode.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/store.go
+	modified:   plugins/marketplaces/caveman/proxy/internal/store/usage_import.go
+	modified:   plugins/marketplaces/caveman/proxy/providers/openai/content_compress.go
+	modified:   plugins/marketplaces/caveman/proxy/providers/openai/content_compress_test.go
+	modified:   plugins/marketplaces/caveman/shrink/bin/release.generated.mjs
+	modified:   plugins/marketplaces/caveman/skills/cavecrew/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-commit/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-compress/README.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-compress/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-compress/scripts/compress.py
+	modified:   plugins/marketplaces/caveman/skills/caveman-compress/scripts/detect.py
+	modified:   plugins/marketplaces/caveman/skills/caveman-discover/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-evidence-review/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-explore/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-help/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-learn/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-manage/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-optimize/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-review/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-setup/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman-stats/SKILL.md
+	modified:   plugins/marketplaces/caveman/skills/caveman/SKILL.md
+	modified:   plugins/marketplaces/caveman/src/hooks/README.md
+	modified:   plugins/marketplaces/caveman/src/hooks/caveman-activate.js
+	modified:   plugins/marketplaces/caveman/src/hooks/caveman-config.js
+	modified:   plugins/marketplaces/caveman/src/hooks/caveman-mode-tracker.js
+	modified:   plugins/marketplaces/caveman/src/hooks/caveman-stats.js
+	modified:   plugins/marketplaces/caveman/src/hooks/caveman-statusline.ps1
+	modified:   plugins/marketplaces/caveman/src/hooks/caveman-statusline.sh
+	modified:   plugins/marketplaces/caveman/src/hooks/checksums.sha256
+	modified:   plugins/marketplaces/caveman/src/hooks/install.ps1
+	modified:   plugins/marketplaces/caveman/src/hooks/install.sh
+	modified:   plugins/marketplaces/caveman/src/hooks/uninstall.ps1
+	modified:   plugins/marketplaces/caveman/src/hooks/uninstall.sh
+	modified:   plugins/marketplaces/caveman/src/plugins/opencode/plugin.js
+	modified:   plugins/marketplaces/caveman/tests/installer/e2e.freshinstall.test.mjs
+	modified:   plugins/marketplaces/caveman/tests/installer/shim-security.test.mjs
+	modified:   plugins/marketplaces/caveman/tests/installer/unit.settings.test.mjs
+	modified:   plugins/marketplaces/caveman/tests/test_caveman_stats.js
+	modified:   plugins/marketplaces/caveman/tests/test_compress_safety.py
+	modified:   plugins/marketplaces/caveman/tests/test_detect.py
+	modified:   plugins/marketplaces/caveman/tests/test_hooks.py
+	modified:   plugins/marketplaces/caveman/tests/test_mode_tracker.py
+	modified:   plugins/marketplaces/caveman/tests/verify_repo.py
+	deleted:    plugins/marketplaces/caveman/ui/AGENTS.md
+	deleted:    plugins/marketplaces/caveman/ui/CLAUDE.md
+	deleted:    plugins/marketplaces/caveman/ui/package.json
+	deleted:    plugins/marketplaces/caveman/ui/src/index.ts
+	deleted:    plugins/marketplaces/caveman/ui/tests/index.test.mjs
+	deleted:    plugins/marketplaces/caveman/ui/tsconfig.json
+	modified:   plugins/marketplaces/claude-plugins-official/.claude-plugin/marketplace.json
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/.claude-plugin/plugin.json
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/README.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/agents/claude-security.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/agents/scan-inventory.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/agents/scan-researcher.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/agents/scan-verifier.md
+	deleted:    plugins/marketplaces/claude-plugins-official/plugins/claude-security/hooks/banner_hook.sh
+	deleted:    plugins/marketplaces/claude-plugins-official/plugins/claude-security/hooks/banner_notice.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/hooks/hooks.json
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/keep-waiting.sh
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/lib/absolute.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/lib/finding.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/lib/plugin.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/lib/sarif.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/lib/strictjson.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/patch_artifacts.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/render_report.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/write_scan_meta.py
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/skills/claude-security/SKILL.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/skills/claude-security/jobs/scan-changes.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/skills/claude-security/jobs/scan-codebase.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/skills/claude-security/jobs/suggest-patches.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/skills/claude-security/specs/report-spec.md
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/claude-security/workflows/scan.js
+	modified:   plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md
+	modified:   projects/C--Users-jotac-OneDrive-Documents-DEV/5ae47def-f302-4e2c-a687-692d537d9f11.jsonl
+	modified:   projects/C--Users-jotac-OneDrive-Documents-DEV/memory/project_deliveryhub.md
+	deleted:    sessions/15064.json
+	deleted:    shell-snapshots/snapshot-bash-1787322679687-dax3qp.sh
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	file-history/07506601-998f-47ef-9d89-1ce55d75a67d/
+	file-history/1e119dd4-cf21-419d-a027-0847e5b71acd/
+	file-history/21a82692-5d1a-4214-bff3-ae34ae91cb2b/
+	file-history/223db6fe-1015-4340-92cb-792c93c5bc2b/
+	file-history/286a6d87-a2ca-48b4-ab54-efc1bcef7003/
+	file-history/40fb0ab5-c45d-42a2-8fd3-bcd8aab01d10/
+	file-history/71127ad8-d7cc-486e-a278-2a645ae25580/
+	file-history/71c89367-60e7-4f41-ad60-00ead553cbb3/
+	file-history/8d09f23b-e3a5-46d5-805e-025eb4acef26/
+	file-history/b1781813-2e2b-49bf-b197-b81bd21590be/
+	file-history/b452eab7-be5a-4956-8ec6-df9e56cc6d7c/
+	file-history/c22737d0-71da-4901-8381-d21a5d2e2b75/
+	file-history/e9c82208-f31d-4fc9-8c7a-e69b1b7b49c7/
+	ide/45604.lock
+	paste-cache/0d95f36d6432cc9d.txt
+	paste-cache/18717669aac6b3d0.txt
+	paste-cache/1a2ecdc5038c4432.txt
+	paste-cache/280cd4b2e2357311.txt
+	paste-cache/2b70f533ad188a3b.txt
+	paste-cache/2eea7c3f7e0f621d.txt
+	paste-cache/42fdde30db4fa887.txt
+	paste-cache/45fdd68eb5b1386d.txt
+	paste-cache/495c3186f897ec34.txt
+	paste-cache/4ada9569d0aea761.txt
+	paste-cache/53f09fed5b8f8d12.txt
+	paste-cache/566099167aab9168.txt
+	paste-cache/5ac2eed1deb0bebd.txt
+	paste-cache/60bd9533c0cda7a3.txt
+	paste-cache/62e66bc2196316da.txt
+	paste-cache/6719202a2c56e557.txt
+	paste-cache/6a4b97eb9be0e129.txt
+	paste-cache/6d7215643a12a7c1.txt
+	paste-cache/709cc5faca6ec832.txt
+	paste-cache/79a4160826a04b12.txt
+	paste-cache/7e6c0d9993fc4afa.txt
+	paste-cache/8d0a6f6d09dfcce4.txt
+	paste-cache/8f4bd7f7dd5e2f4e.txt
+	paste-cache/904716a48717258b.txt
+	paste-cache/9456c197e9d462a8.txt
+	paste-cache/955fa0077209d9aa.txt
+	paste-cache/99f18d79a21e370c.txt
+	paste-cache/9dd3ccc33c19b471.txt
+	paste-cache/9e94b51d1f50a3b3.txt
+	paste-cache/a0ee534a22591979.txt
+	paste-cache/a3b7c5daa0f4ec32.txt
+	paste-cache/a973df37d0e985bc.txt
+	paste-cache/b3b041a3876b4117.txt
+	paste-cache/b3f046a6924e9f20.txt
+	paste-cache/ba639d4acdbb1194.txt
+	paste-cache/bd5690f054189f88.txt
+	paste-cache/be71b6b96c699feb.txt
+	paste-cache/c3cfcf8c36695dda.txt
+	paste-cache/c4c1fa98585f8e5a.txt
+	paste-cache/c4d5e636b6f93ed6.txt
+	paste-cache/d34e1b24f8fa0066.txt
+	paste-cache/eb765136959d3a61.txt
+	paste-cache/ec040c49cc03940d.txt
+	paste-cache/f37efb8fe6d26718.txt
+	paste-cache/f3de0e8781db906f.txt
+	paste-cache/f89bc73af2d8bc15.txt
+	paste-cache/f9dbf0449f64e366.txt
+	plans/adaptive-marinating-peach.md
+	plans/eager-puzzling-pinwheel.md
+	plans/planeje-e-vamos-implementar-jolly-dijkstra.md
+	plans/proud-chasing-sketch.md
+	plans/stateless-twirling-toast.md
+	plans/wondrous-sparking-sloth.md
+	plugins/marketplaces/caveman/docs/technical/agent-profile-registry.md
+	plugins/marketplaces/caveman/docs/testing-session-modes.md
+	plugins/marketplaces/caveman/packages/cli/src/git-safe.ts
+	plugins/marketplaces/caveman/packages/cli/src/proxy-fetch.ts
+	plugins/marketplaces/caveman/packages/cli/tests/learn-savings.runtime.mjs
+	plugins/marketplaces/caveman/packages/cli/tests/proxy-fetch.runtime.mjs
+	plugins/marketplaces/caveman/packages/device-auth/
+	plugins/marketplaces/caveman/proxy/internal/gateway/upstream_body_test.go
+	plugins/marketplaces/caveman/proxy/internal/gitsafe/
+	plugins/marketplaces/caveman/proxy/internal/nativehook/hook_repostate_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_config_trend.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_config_trend_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_outcomes.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_outcomes_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_procedures.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_procedures_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_subagent_spend.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_subagent_spend_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_tool_portfolio.go
+	plugins/marketplaces/caveman/proxy/internal/store/detect_tool_portfolio_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_attribution.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_attribution_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_digest.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_digest_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_experiment.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_experiment_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_pricing.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_pricing_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_reconcile.go
+	plugins/marketplaces/caveman/proxy/internal/store/learn_reconcile_test.go
+	plugins/marketplaces/caveman/proxy/internal/store/report_chart_test.go
+	plugins/marketplaces/caveman/tests/hooks/
+	plugins/marketplaces/caveman/tests/installer/package-bin.test.mjs
+	plugins/marketplaces/caveman/tests/installer/unit.wedge-installer.test.mjs
+	plugins/marketplaces/caveman/tests/manual/
+	plugins/marketplaces/caveman/tests/test_call_claude_timeout.py
+	plugins/marketplaces/caveman/tests/test_compress_concurrency.py
+	plugins/marketplaces/caveman/tests/test_mode_tracker_stdout.js
+	plugins/marketplaces/claude-plugins-official/plugins/claude-security/agents/scan-loader.md
+	plugins/marketplaces/claude-plugins-official/plugins/claude-security/hooks/hooks.py
+	plugins/marketplaces/claude-plugins-official/plugins/claude-security/hooks/hooks.sh
+	plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/lib/chain.py
+	plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/lib/source.py
+	plugins/marketplaces/claude-plugins-official/plugins/claude-security/scripts/save_result.py
+	projects/C--GDOOR-Sistemas-GDOOR-SLIM/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/07506601-998f-47ef-9d89-1ce55d75a67d.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/07506601-998f-47ef-9d89-1ce55d75a67d/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/1e119dd4-cf21-419d-a027-0847e5b71acd.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/1e119dd4-cf21-419d-a027-0847e5b71acd/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/223db6fe-1015-4340-92cb-792c93c5bc2b.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/286a6d87-a2ca-48b4-ab54-efc1bcef7003.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/286a6d87-a2ca-48b4-ab54-efc1bcef7003/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/40fb0ab5-c45d-42a2-8fd3-bcd8aab01d10.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/40fb0ab5-c45d-42a2-8fd3-bcd8aab01d10/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/58e19760-a49c-4baf-8c60-6ca5be00ad87.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/71127ad8-d7cc-486e-a278-2a645ae25580.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/71127ad8-d7cc-486e-a278-2a645ae25580/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/71c89367-60e7-4f41-ad60-00ead553cbb3.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/8d09f23b-e3a5-46d5-805e-025eb4acef26.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/8d09f23b-e3a5-46d5-805e-025eb4acef26/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/b1781813-2e2b-49bf-b197-b81bd21590be.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/b1781813-2e2b-49bf-b197-b81bd21590be/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/b452eab7-be5a-4956-8ec6-df9e56cc6d7c.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/b452eab7-be5a-4956-8ec6-df9e56cc6d7c/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/c22737d0-71da-4901-8381-d21a5d2e2b75.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/c22737d0-71da-4901-8381-d21a5d2e2b75/
+	projects/C--Users-jotac-OneDrive-Documents-DEV/e9c82208-f31d-4fc9-8c7a-e69b1b7b49c7.jsonl
+	projects/C--Users-jotac-OneDrive-Documents-DEV/memory/feedback_askuserquestion_investigative.md
+	projects/C--Users-jotac-OneDrive-Documents-DEV/memory/feedback_migration_order.md
+	sessions/4076.json
+	shell-snapshots/snapshot-bash-1787356729113-tv2dan.sh
+	shell-snapshots/snapshot-bash-1788352780496-4xbt06.sh
+	tasks/1e119dd4-cf21-419d-a027-0847e5b71acd/
+	tasks/286a6d87-a2ca-48b4-ab54-efc1bcef7003/
+	tasks/8d09f23b-e3a5-46d5-805e-025eb4acef26/
+	tasks/c22737d0-71da-4901-8381-d21a5d2e2b75/
+	telemetry/1p_failed_events.58e19760-a49c-4baf-8c60-6ca5be00ad87.8c75516b-473c-484e-9fef-43b7b4a650a3.json
+	telemetry/1p_failed_events.b1781813-2e2b-49bf-b197-b81bd21590be.fc77d314-108a-4135-936d-23f7080101c5.json
+	telemetry/1p_failed_events.c22737d0-71da-4901-8381-d21a5d2e2b75.3f13d976-917f-4796-a8a6-19bc515d9abf.json
+
+no changes added to commit (use "git add" and/or "git commit -a")

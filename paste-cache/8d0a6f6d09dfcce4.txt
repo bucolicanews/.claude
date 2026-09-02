@@ -1,0 +1,11 @@
+  File "C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\api_gdoor\.venv\Lib\site-packages\requests\sessions.py", line 784, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\api_gdoor\.venv\Lib\site-packages\requests\adapters.py", line 729, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=3002): Max retries exceeded with url: /agente-gdoor/cnpj (Caused by NewConnectionError("HTTPConnection(host='localhost', port=3002): Failed to establish a new connection: [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente"))
+INFO:gdoor_delivery_sync.poller:job 15 importado como venda_id=37
+INFO:gdoor_delivery_sync.poller:job 16 importado como venda_id=38
+INFO:gdoor_delivery_sync.poller:job 17 importado como venda_id=39
+INFO:gdoor_delivery_sync.poller:job 18 importado como venda_id=40
+INFO:gdoor_delivery_sync.poller:job 19 importado como venda_id=41
+INFO:gdoor_delivery_sync.poller:job 20 importado como venda_id=42

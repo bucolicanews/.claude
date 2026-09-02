@@ -1,0 +1,106 @@
+# Solicitação de repasse do motoboy (PIX + nota fiscal + comprovante)
+
+## Contexto
+
+Hoje o repasse de comissão pro motoboy é 100% unilateral: o dono do restaurante entra em
+`/restaurante/relatorios/motoboy`, escolhe um período, vê o total de comissão acumulada e
+clica "Pagar" — sem o motoboy pedir nada, sem chave PIX, sem nota fiscal, sem comprovante.
+O motoboy não tem visibilidade nenhuma de "quanto tenho a receber, já pedi, já foi pago".
+
+O pedido é trocar esse fluxo do lado do motoboy por um saldo devido por estabelecimento +
+um botão "Resgatar valor", que dispara uma solicitação (com nota fiscal opcional e a chave
+PIX do motoboy) pro restaurante — que confirma o pagamento anexando um comprovante.
+
+Investigação confirmou:
+- `motoboy_comissoes` (status `pendente`/`pago`, por pedido) já é a fonte de verdade do que
+  é devido — não precisa recalcular nada, só somar por `restaurant_id`.
+- `motoboy_repasses` é só o registro do repasse manual por período já existente — não mexe
+  nele, o fluxo novo convive ao lado, e ambos no fim das contas mexem no mesmo
+  `motoboy_comissoes.status` pra ficarem coerentes entre si.
+- Não existe chave PIX de motoboy em lugar nenhum (nem coluna, nem campo de perfil) — precisa
+  criar do zero.
+- `restaurante-motoboys/index.jsx` já tem exatamente o padrão de UI que preciso replicar
+  (lista de solicitação + modal de ficha + `ArquivoPreview` pra imagem/PDF anexado + badge de
+  contagem pendente na nav) — vou seguir o mesmo padrão em vez de inventar um novo.
+- Upload de imagem já tem um padrão único no projeto: frontend converte pra base64
+  (`arquivoParaBase64`), manda no JSON, backend decodifica e sobe pro bucket público
+  `comprovantes-pix`, guarda a URL pública direto na coluna. Vou reaproveitar o mesmo bucket
+  (prefixos de path diferentes pra nota fiscal vs comprovante), sem criar bucket novo.
+
+## Decisões de design (documentando pra não perguntar de novo)
+
+- **Onde o restaurante vê/gerencia**: dentro de `/restaurante/motoboys`, como uma seção nova
+  "Solicitações de repasse" ao lado da já existente "Solicitações de afiliação" — é a tela
+  que já tem o padrão de ficha/modal/anexo que preciso, evita criar página nova do zero.
+- **Valor**: campo editável no modal de resgate, pré-preenchido com o saldo total devido
+  daquele estabelecimento, motoboy pode pedir menos (não pode pedir mais que o saldo).
+- **Reconciliação com `motoboy_comissoes`**: ao confirmar pagamento, o backend marca como
+  `pago` as comissões mais antigas (`pendente`, FIFO) daquele motoboy+restaurante até a soma
+  bater ou passar o valor solicitado — nunca quebra uma comissão de pedido ao meio. Isso
+  mantém o relatório antigo (`/restaurante/relatorios/motoboy`) coerente sem precisar mexer
+  nele.
+- **Recusar**: restaurante pode recusar com motivo (mesmo padrão de
+  `recusarSolicitacaoMotoboy` já usado pra afiliação). Recusada não mexe em `motoboy_comissoes`
+  — o valor volta a contar no saldo disponível automaticamente.
+- **Badge de alerta**: conta pendente de repasse + pendente de afiliação somados no mesmo
+  badge da nav "Motoboys" (mesmo ícone/bolinha que já existe hoje).
+
+## Banco de dados (nova migration em `deliveryhub_white_label/supabase/migrations/`)
+
+1. `ALTER TABLE motoboys ADD COLUMN chave_pix TEXT;`
+2. Nova tabela `motoboy_repasse_solicitacoes`:
+   - `id`, `motoboy_id` FK, `restaurant_id` FK, `valor_solicitado numeric(10,2)`,
+     `chave_pix_motoboy text` (snapshot no momento do pedido — histórico não muda se o
+     motoboy trocar a chave depois), `nota_fiscal_url text`, `comprovante_pagamento_url text`,
+     `status text default 'pendente' check in ('pendente','pago','recusada')`,
+     `motivo_recusa text`, `criado_em timestamptz default now()`, `respondido_em timestamptz`.
+   - RLS habilitada, sem policy — mesmo padrão de `motoboy_comissoes` (acesso só via backend
+     com service role, JwtGuard/MotoboyGuard resolvem os ids a partir do token).
+
+## Backend (`serer_delivery`, sincronizado no submódulo depois)
+
+**Lado motoboy** (`motoboy.service.ts` / `motoboy-portal.controller.ts`):
+- `GET /motoboy/saldo` → saldo por estabelecimento afiliado = soma de `motoboy_comissoes`
+  pendente menos soma de solicitações `pendente` já em aberto (evita pedir a mesma grana
+  duas vezes).
+- `POST /motoboy/repasses` `{restaurant_id, valor, nota_fiscal?}` → valida afiliação aceita,
+  valida `chave_pix` cadastrada (senão erro pedindo pra cadastrar no perfil primeiro), valida
+  valor > 0 e ≤ saldo disponível, sobe nota fiscal se veio, grava snapshot da chave PIX.
+- `GET /motoboy/repasses` → histórico das próprias solicitações (pendente/pago/recusada).
+
+**Lado restaurante** (`restaurante-motoboys.controller.ts`, que já lida com solicitação de
+motoboy — reaproveita o service por trás):
+- `GET /restaurante/motoboys/repasses?status=` → lista com nome/telefone/chave PIX do motoboy.
+- `GET /restaurante/motoboys/repasses/count` → contagem pendente pro badge.
+- `PATCH /restaurante/motoboys/repasses/:id/pagar` `{comprovante}` → sobe comprovante, faz o
+  FIFO em `motoboy_comissoes`, marca solicitação `pago`.
+- `PATCH /restaurante/motoboys/repasses/:id/recusar` `{motivo}`.
+
+## Frontend
+
+**Motoboy — `AbaFinanceiro`** (`motoboy-portal/index.jsx`): troca a seção "Por
+estabelecimento (total geral)" por "Saldo por estabelecimento" — nome da loja, saldo devido,
+botão "Resgatar valor" (abre modal: valor pré-preenchido/editável, upload opcional de nota
+fiscal). Se não tiver chave PIX cadastrada, mostra aviso linkando pra aba Perfil em vez do
+botão. Abaixo, lista "Minhas solicitações" com status. Mantém os cards de ganho (Hoje/Total)
+e o histórico de entregas como estão — não pedido pra mexer neles.
+
+**Motoboy — `AbaPerfil`**: novo campo "Chave PIX" no formulário de dados pessoais, salvo via
+`atualizarPerfil`.
+
+**Restaurante — `restaurante-motoboys/index.jsx`**: nova seção "Solicitações de repasse",
+reaproveitando `ArquivoPreview` (já existe no arquivo) pra mostrar a nota fiscal anexada.
+Cada solicitação pendente mostra motoboy, valor, chave PIX (com botão copiar), nota fiscal
+(se tiver) e botões "Pagar" (modal com upload de comprovante) / "Recusar" (motivo). Badge da
+nav passa a somar afiliação + repasse pendentes.
+
+## Verificação
+- `npx tsc --noEmit` no backend depois de cada arquivo mexido.
+- Aplicar migration local (`npx supabase migration up`), testar fluxo completo com dados de
+  teste já existentes (motoboy1/Restaurante Teste): cadastrar chave PIX no perfil, gerar uma
+  comissão pendente real (completar uma entrega de ponta a ponta, ou inserir uma linha de
+  teste em `motoboy_comissoes` via SQL se não houver tempo de rodar o fluxo inteiro),
+  solicitar resgate, conferir em `/restaurante/motoboys`, confirmar pagamento com comprovante,
+  conferir que o saldo do motoboy caiu e a comissão virou `pago`.
+- Sincronizar backend nos dois checkouts (`cp` + diff), aplicar migration em produção
+  (`db push --linked`) só depois de confirmar com o usuário, igual sempre.

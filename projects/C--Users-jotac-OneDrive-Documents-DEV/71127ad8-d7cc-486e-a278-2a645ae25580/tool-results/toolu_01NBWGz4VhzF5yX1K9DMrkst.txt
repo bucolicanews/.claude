@@ -1,0 +1,345 @@
+src\config\restauranteNavLinks.js:46:// Estabelecimento tipo ≠ Restaurante (farmácia, material de construção...) chama
+src\config\restauranteNavLinks.js:49:export const getRestauranteNavLinks = (moduloDelivery, moduloSalao, pontosPreparo = [], tipoRestaurante = true) => {
+src\config\restauranteNavLinks.js:51:  const deliveryLinks = tipoRestaurante
+src\contexts\LocalModeContext.jsx:20:  const [restauranteNome, setRestauranteNome] = useState(null);
+src\contexts\LocalModeContext.jsx:68:        if (found) setRestauranteNome(found.name);
+src\contexts\LocalModeContext.jsx:98:      Modo Local — {restauranteNome ? `Restaurante: ${restauranteNome}` : `ID #${localRestaurantId}`}
+src\contexts\AuthContext.jsx:55:  // sessão (RestauranteGuard usa isso pra bloquear o painel se estiver vencido).
+src\components\MapaDistanciaEntrega.jsx:24:  const temRestaurante = restauranteLat != null && restauranteLng != null;
+src\components\MapaDistanciaEntrega.jsx:27:  if (!temRestaurante || !temCliente) {
+src\components\MapaDistanciaEntrega.jsx:31:        Não foi possível localizar {!temRestaurante ? 'o restaurante' : 'o endereço de entrega'} no mapa.
+src\components\MapaDistanciaEntrega.jsx:50:            <Popup>Restaurante</Popup>
+src\components\MapaDistanciaEntrega.jsx:60:            <span className="w-2.5 h-2.5 rounded-full bg-[#FF441F] flex-shrink-0" /> Restaurante
+src\components\ui\Skeleton.jsx:7:export const SkeletonRestauranteCard = () => (
+src\components\ui\BrandedHeader.jsx:134:                        {userProfile?.role === 'restaurant_owner' && 'Restaurante'}
+src\components\RestauranteGuard.jsx:5:const RestauranteGuard = ({ children }) => {
+src\components\RestauranteGuard.jsx:30:export default RestauranteGuard;
+src\components\admin\AdminHeader.jsx:13:// RestauranteHeader, sem colapso em hambúrguer nenhuma página ficava
+src\components\restaurante\PracasStatus.jsx:6:// pro motoboy. `pracas` vem do backend (RestauranteService.pracasPorPedido), populado em
+src\components\restaurante\RestauranteSidebar.jsx:9:const RestauranteSidebar = ({ open, onClose, links, activePath, pendentesMotoboy = 0, slugLoja, onSair, onMeuPerfil, isFavorito, onToggleFavorito }) => {
+src\components\restaurante\RestauranteSidebar.jsx:90:export default RestauranteSidebar;
+src\components\restaurante\RestauranteHeader.jsx:5:import RestauranteSidebar from './RestauranteSidebar';
+src\components\restaurante\RestauranteHeader.jsx:14:import { useRestauranteFavoritos } from '../../hooks/useRestauranteFavoritos';
+src\components\restaurante\RestauranteHeader.jsx:15:import { getRestauranteNavLinks } from '../../config/restauranteNavLinks';
+src\components\restaurante\RestauranteHeader.jsx:61:const RestauranteHeader = ({ active, title, subtitle, onRefresh }) => {
+src\components\restaurante\RestauranteHeader.jsx:66:  const { moduloDelivery, moduloSalao, tipoRestaurante } = useModulosEmpresa();
+src\components\restaurante\RestauranteHeader.jsx:69:  const { favoritos, toggleFavorito, isFavorito, mostrarNomes, toggleMostrarNomes } = useRestauranteFavoritos();
+src\components\restaurante\RestauranteHeader.jsx:86:  const links = getRestauranteNavLinks(moduloDelivery, moduloSalao, pontosPreparoLinks, tipoRestaurante);
+src\components\restaurante\RestauranteHeader.jsx:170:      <RestauranteSidebar
+src\components\restaurante\RestauranteHeader.jsx:186:export default RestauranteHeader;
+src\hooks\useModulosEmpresa.js:12:    tipoRestaurante: !!data?.empresa?.tipo_restaurante,
+src\pages\admin-aparencia\index.jsx:231:            <TextField label="Rótulo 1 (contagem de restaurantes)" value={form.stat1_label} onChange={(v) => set('stat1_label', v)} placeholder="Restaurantes" />
+src\pages\customer-account-order-history\index.jsx:87:            Restaurantes
+src\utils\printComanda.js:82:export const printCartazCardapioDigital = (qrUrl, nomeRestaurante, logoUrl) => {
+src\utils\printComanda.js:83:  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cardápio Digital - ${esc(nomeRestaurante ?? '')}</title>
+src\utils\printComanda.js:98:<div class="nome">${esc(nomeRestaurante ?? 'Nosso Restaurante')}</div>
+src\utils\printComanda.js:129:export const printTicketCardapioDigital = (qrUrl, nomeRestaurante, logoUrl) => {
+src\utils\printComanda.js:144:<div class="rest">${esc(nomeRestaurante ?? 'RESTAURANTE')}</div>
+src\pages\customer-account-order-history\components\PreferencesSettings.jsx:171:          <h2 className="text-xl font-semibold text-foreground">Restaurantes Favoritos</h2>
+src\utils\agruparPedidosDelivery.js:1:// Agrupa itens de KDS (getKdsItensRestaurante/getKdsItens) do mesmo pedido de delivery
+src\pages\admin-usuarios\index.jsx:72:            <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Restaurante</label>
+src\pages\admin-usuarios\index.jsx:396:                    <th className="px-2 sm:px-4 py-3 text-left font-medium text-gray-600 dark:text-zinc-400 hidden md:table-cell">Restaurante vinculado</th>
+src\pages\admin-tipos-estabelecimento\index.jsx:183:      <AdminHeader active="/admin/tipos-estabelecimento" title="Tipos de Estabelecimento" subtitle="Restaurante, farmácia, material de construção..." />
+src\hooks\useTipoRestaurante.js:4:// Só estabelecimentos do tipo "Restaurante" veem o módulo Salão (mesas/comandas/garçons)
+src\hooks\useTipoRestaurante.js:6:export function useTipoRestaurante() {
+src\hooks\useTipoRestaurante.js:7:  const [tipoRestaurante, setTipoRestaurante] = useState(false);
+src\hooks\useTipoRestaurante.js:12:      .then((d) => { if (ativo) setTipoRestaurante(!!d?.empresa?.tipo_restaurante); })
+src\hooks\useTipoRestaurante.js:17:  return tipoRestaurante;
+src\hooks\useRestauranteFavoritos.js:17:export const useRestauranteFavoritos = () => {
+src\Routes.jsx:30:import RestauranteGuard from './components/RestauranteGuard';
+src\Routes.jsx:32:import RestauranteDashboard from './pages/restaurante-dashboard';
+src\Routes.jsx:33:import RestauranteProdutos from './pages/restaurante-produtos';
+src\Routes.jsx:34:import RestaurantePedidos from './pages/restaurante-pedidos';
+src\Routes.jsx:35:import RestauranteCatalogo from './pages/restaurante-catalogo';
+src\Routes.jsx:36:import RestauranteConfig from './pages/restaurante-config';
+src\Routes.jsx:37:import RestauranteMeuPerfil from './pages/restaurante-meu-perfil';
+src\Routes.jsx:38:import RestaurantePlano from './pages/restaurante-plano';
+src\Routes.jsx:39:import RestauranteClientes from './pages/restaurante-clientes';
+src\Routes.jsx:40:import RestauranteAparencia from './pages/restaurante-aparencia';
+src\Routes.jsx:41:import RestauranteMotoboys from './pages/restaurante-motoboys';
+src\Routes.jsx:42:import RestauranteEntregas from './pages/restaurante-entregas';
+src\Routes.jsx:43:import RestauranteCozinha from './pages/restaurante-cozinha';
+src\Routes.jsx:44:import RestauranteProducao from './pages/restaurante-producao';
+src\Routes.jsx:45:import RestauranteBar from './pages/restaurante-bar';
+src\Routes.jsx:46:import RestauranteChamada from './pages/restaurante-chamada';
+src\Routes.jsx:47:import RestauranteSessao from './pages/restaurante-sessao';
+src\Routes.jsx:48:import RestauranteDelivery from './pages/restaurante-delivery';
+src\Routes.jsx:49:import RestauranteCaixa from './pages/restaurante-caixa';
+src\Routes.jsx:50:import RestauranteFinanceiro from './pages/restaurante-financeiro';
+src\Routes.jsx:51:import RestauranteCombos from './pages/restaurante-combos';
+src\Routes.jsx:52:import RestauranteRelatorios from './pages/restaurante-relatorios';
+src\Routes.jsx:53:import RestauranteRelatorioGarcom from './pages/restaurante-relatorios/Garcom';
+src\Routes.jsx:54:import RestauranteRelatorioMotoboy from './pages/restaurante-relatorios/Motoboy';
+src\Routes.jsx:55:import RestauranteRelatorioFinanceiro from './pages/restaurante-relatorios/Financeiro';
+src\Routes.jsx:56:import RestauranteRelatorioProdutos from './pages/restaurante-relatorios/Produtos';
+src\Routes.jsx:61:import RestauranteGarcons from './pages/restaurante-garcons';
+src\Routes.jsx:62:import RestauranteMesas from './pages/restaurante-mesas';
+src\Routes.jsx:63:import RestauranteImpressoras from './pages/restaurante-impressoras';
+src\Routes.jsx:64:import RestauranteSalao from './pages/restaurante-salao';
+src\Routes.jsx:65:import RestauranteVendaBalcao from './pages/restaurante-venda-balcao';
+src\Routes.jsx:66:import RestaurantePontosPreparo from './pages/restaurante-pontos-preparo';
+src\Routes.jsx:67:import RestaurantePontoPreparo from './pages/restaurante-ponto-preparo';
+src\Routes.jsx:68:import RestauranteCardapioDigital from './pages/restaurante-cardapio-digital';
+src\Routes.jsx:69:import RestauranteImpulsionar from './pages/restaurante-impulsionar';
+src\Routes.jsx:71:import RestauranteKdsSetor from './pages/restaurante-kds-setor';
+src\Routes.jsx:110:        <Route path="/r/:slug" element={<RestauranteCatalogo />} />
+src\Routes.jsx:115:        {/* Restaurante — requer role=restaurant_owner */}
+src\Routes.jsx:116:        <Route path="/restaurante" element={<RestauranteGuard><RestauranteDashboard /></RestauranteGuard>} />
+src\Routes.jsx:117:        <Route path="/restaurante/produtos" element={<RestauranteGuard><RestauranteProdutos /></RestauranteGuard>} />
+src\Routes.jsx:118:        <Route path="/restaurante/pedidos" element={<RestauranteGuard><RestaurantePedidos /></RestauranteGuard>} />
+src\Routes.jsx:119:        <Route path="/restaurante/config" element={<RestauranteGuard><RestauranteConfig /></RestauranteGuard>} />
+src\Routes.jsx:120:        <Route path="/restaurante/meu-perfil" element={<RestauranteGuard><RestauranteMeuPerfil /></RestauranteGuard>} />
+src\Routes.jsx:121:        <Route path="/restaurante/plano" element={<RestauranteGuard><RestaurantePlano /></RestauranteGuard>} />
+src\Routes.jsx:122:        <Route path="/restaurante/clientes" element={<RestauranteGuard><RestauranteClientes /></RestauranteGuard>} />
+src\Routes.jsx:123:        <Route path="/restaurante/aparencia" element={<RestauranteGuard><RestauranteAparencia /></RestauranteGuard>} />
+src\Routes.jsx:124:        <Route path="/restaurante/motoboys" element={<RestauranteGuard><RestauranteMotoboys /></RestauranteGuard>} />
+src\Routes.jsx:125:        <Route path="/restaurante/entregas" element={<RestauranteGuard><RestauranteEntregas /></RestauranteGuard>} />
+src\Routes.jsx:126:        <Route path="/restaurante/cozinha" element={<RestauranteCozinha />} />
+src\Routes.jsx:127:        <Route path="/restaurante/producao" element={<RestauranteGuard><RestauranteProducao /></RestauranteGuard>} />
+src\Routes.jsx:128:        <Route path="/restaurante/pontos-preparo" element={<RestauranteGuard><RestaurantePontosPreparo /></RestauranteGuard>} />
+src\Routes.jsx:129:        <Route path="/restaurante/ponto-preparo/:id" element={<RestauranteGuard><RestaurantePontoPreparo /></RestauranteGuard>} />
+src\Routes.jsx:130:        <Route path="/restaurante/bar" element={<RestauranteGuard><RestauranteBar /></RestauranteGuard>} />
+src\Routes.jsx:131:        <Route path="/restaurante/chamada" element={<RestauranteGuard><RestauranteChamada /></RestauranteGuard>} />
+src\Routes.jsx:132:        <Route path="/restaurante/sessao" element={<RestauranteGuard><RestauranteSessao /></RestauranteGuard>} />
+src\Routes.jsx:133:        <Route path="/restaurante/delivery" element={<RestauranteGuard><RestauranteDelivery /></RestauranteGuard>} />
+src\Routes.jsx:134:        <Route path="/restaurante/caixa" element={<RestauranteGuard><RestauranteCaixa /></RestauranteGuard>} />
+src\Routes.jsx:135:        <Route path="/restaurante/financeiro" element={<RestauranteGuard><RestauranteFinanceiro /></RestauranteGuard>} />
+src\Routes.jsx:136:        <Route path="/restaurante/combos" element={<RestauranteGuard><RestauranteCombos /></RestauranteGuard>} />
+src\Routes.jsx:137:        <Route path="/restaurante/relatorios" element={<RestauranteGuard><RestauranteRelatorios /></RestauranteGuard>} />
+src\Routes.jsx:138:        <Route path="/restaurante/relatorios/garcom" element={<RestauranteGuard><RestauranteRelatorioGarcom /></RestauranteGuard>} />
+src\Routes.jsx:139:        <Route path="/restaurante/relatorios/motoboy" element={<RestauranteGuard><RestauranteRelatorioMotoboy /></RestauranteGuard>} />
+src\Routes.jsx:140:        <Route path="/restaurante/relatorios/financeiro" element={<RestauranteGuard><RestauranteRelatorioFinanceiro /></RestauranteGuard>} />
+src\Routes.jsx:141:        <Route path="/restaurante/relatorios/produtos" element={<RestauranteGuard><RestauranteRelatorioProdutos /></RestauranteGuard>} />
+src\Routes.jsx:142:        <Route path="/restaurante/cardapio-digital" element={<RestauranteGuard><RestauranteCardapioDigital /></RestauranteGuard>} />
+src\Routes.jsx:143:        <Route path="/restaurante/impulsionar" element={<RestauranteGuard><RestauranteImpulsionar /></RestauranteGuard>} />
+src\Routes.jsx:145:        {/* Módulo Salão — só estabelecimentos tipo Restaurante */}
+src\Routes.jsx:146:        <Route path="/restaurante/salao" element={<RestauranteGuard><RestauranteSalao /></RestauranteGuard>} />
+src\Routes.jsx:147:        <Route path="/restaurante/venda-balcao" element={<RestauranteGuard><RestauranteVendaBalcao /></RestauranteGuard>} />
+src\Routes.jsx:148:        <Route path="/restaurante/garcons" element={<RestauranteGuard><RestauranteGarcons /></RestauranteGuard>} />
+src\Routes.jsx:149:        <Route path="/restaurante/mesas" element={<RestauranteGuard><RestauranteMesas /></RestauranteGuard>} />
+src\Routes.jsx:150:        <Route path="/restaurante/impressoras" element={<RestauranteGuard><RestauranteImpressoras /></RestauranteGuard>} />
+src\Routes.jsx:151:        <Route path="/restaurante/kds" element={<RestauranteKdsSetor />} />
+src\pages\restaurante-venda-balcao\index.jsx:25:const RestauranteVendaBalcao = () => {
+src\pages\restaurante-venda-balcao\index.jsx:593:export default RestauranteVendaBalcao;
+src\pages\restaurante-sessao\index.jsx:4:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-sessao\index.jsx:24:const RestauranteSessao = () => {
+src\pages\restaurante-sessao\index.jsx:78:      <RestauranteHeader active="/restaurante/sessao" title="Pedidos da Sessão" onRefresh={carregar} />
+src\pages\restaurante-sessao\index.jsx:192:export default RestauranteSessao;
+src\pages\admin-configuracoes\index.jsx:21:  const [modoIndividualRestauranteId, setModoIndividualRestauranteId] = useState('');
+src\pages\admin-configuracoes\index.jsx:44:        setModoIndividualRestauranteId(d.modo_individual_restaurant_id ?? '');
+src\pages\admin-configuracoes\index.jsx:63:        modo_individual_restaurant_id: modoIndividual && modoIndividualRestauranteId
+src\pages\admin-configuracoes\index.jsx:64:          ? parseInt(modoIndividualRestauranteId, 10)
+src\pages\admin-configuracoes\index.jsx:173:                <strong>Restaurante precisa:</strong> informar o ID da conta deles em /restaurante/config → "ID da conta PagBank"
+src\pages\admin-configuracoes\index.jsx:316:                      value={modoIndividualRestauranteId}
+src\pages\admin-configuracoes\index.jsx:317:                      onChange={(e) => setModoIndividualRestauranteId(e.target.value)}
+src\pages\admin-configuracoes\index.jsx:326:                      Restaurante que ficará visível no painel admin. Não afeta o login do dono, que já acessa direto o painel da loja.
+src\pages\admin-configuracoes\index.jsx:342:                  disabled={salvandoModo || (modoIndividual && !modoIndividualRestauranteId)}
+src\pages\restaurante-salao\index.jsx:19:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-salao\index.jsx:1325:const RestauranteSalao = () => {
+src\pages\restaurante-salao\index.jsx:1532:      <RestauranteHeader active="/restaurante/salao" title="Salão" onRefresh={carregar} />
+src\pages\restaurante-salao\index.jsx:1722:export default RestauranteSalao;
+src\pages\restaurante-config\index.jsx:15:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-config\index.jsx:1112:const RestauranteConfig = () => {
+src\pages\restaurante-config\index.jsx:1230:      <RestauranteHeader active="/restaurante/config" title="Configurações de Pagamento" subtitle="Integração PagBank" />
+src\pages\restaurante-config\index.jsx:1706:export default RestauranteConfig;
+src\pages\restaurante-combos\index.jsx:8:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-combos\index.jsx:15:const RestauranteCombos = () => {
+src\pages\restaurante-combos\index.jsx:168:      <RestauranteHeader active="/restaurante/combos" title="Combos" />
+src\pages\restaurante-combos\index.jsx:402:export default RestauranteCombos;
+src\pages\restaurante-relatorios\Produtos.jsx:103:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-relatorios\Produtos.jsx:121:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-clientes\index.jsx:5:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-clientes\index.jsx:327:const RestauranteClientes = () => {
+src\pages\restaurante-clientes\index.jsx:376:      <RestauranteHeader active="/restaurante/clientes" title="Clientes" subtitle={`${total} cliente${total !== 1 ? 's' : ''} neste restaurante`} />
+src\pages\restaurante-clientes\index.jsx:509:export default RestauranteClientes;
+src\services\restauranteService.js:36:export const registrarRestauranteInicial = (data) =>
+src\services\restauranteService.js:39:export const finalizarCadastroRestaurante = (data) =>
+src\services\restauranteService.js:143:export const toggleStatusRestaurante = (aberto) =>
+src\services\restauranteService.js:183:export const getKdsItensRestaurante = (impressoraId) => apiFetch(`/kds?impressora_id=${impressoraId}`);
+src\services\restauranteService.js:185:export const marcarItemProntoRestaurante = (itemId) => apiFetch(`/kds/itens/${itemId}/pronto`, { method: 'PATCH' });
+src\services\restauranteService.js:186:export const reimprimirItemRestaurante = (itemId) =>
+src\services\restauranteService.js:190:export const iniciarPreparoItemRestaurante = (itemId) =>
+src\services\restauranteService.js:192:export const voltarStatusItemRestaurante = (itemId) =>
+src\services\restauranteService.js:194:export const cancelarItemRestaurante = (itemId) =>
+src\services\restauranteService.js:196:export const moverItemRestaurante = (itemId, direcao) =>
+src\pages\restaurante-relatorios\Motoboy.jsx:77:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-relatorios\Motoboy.jsx:94:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-relatorios\index.jsx:4:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-relatorios\index.jsx:41:const RestauranteRelatorios = () => {
+src\pages\restaurante-relatorios\index.jsx:46:      <RestauranteHeader active="/restaurante/relatorios" title="Conferências" />
+src\pages\restaurante-relatorios\index.jsx:70:export default RestauranteRelatorios;
+src\pages\restaurante-relatorios\Garcom.jsx:83:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-relatorios\Garcom.jsx:102:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-chamada\index.jsx:20:const RestauranteChamada = () => {
+src\pages\restaurante-chamada\index.jsx:90:  // (mesmo padrão do botão "Atualizar dados" do RestauranteHeader).
+src\pages\restaurante-chamada\index.jsx:223:export default RestauranteChamada;
+src\pages\restaurante-relatorios\Financeiro.jsx:97:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-relatorios\Financeiro.jsx:106:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-catalogo\index.jsx:250:const RestauranteCatalogo = ({ dadosPreCarregados } = {}) => {
+src\pages\restaurante-catalogo\index.jsx:329:      <p className="text-lg font-semibold text-[#27272A] dark:text-[#F4F4F5]">Restaurante não encontrado</p>
+src\pages\restaurante-catalogo\index.jsx:521:            <p className="text-sm font-bold">Restaurante fechado no momento — pedidos indisponíveis</p>
+src\pages\restaurante-catalogo\index.jsx:635:export default RestauranteCatalogo;
+src\pages\restaurante-mesas\index.jsx:3:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-mesas\index.jsx:5:const RestauranteMesas = () => {
+src\pages\restaurante-mesas\index.jsx:79:      <RestauranteHeader active="/restaurante/mesas" title="Mesas" onRefresh={carregar} />
+src\pages\restaurante-mesas\index.jsx:148:export default RestauranteMesas;
+src\pages\restaurante-produtos\index.jsx:11:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-produtos\index.jsx:44:const RestauranteProdutos = () => {
+src\pages\restaurante-produtos\index.jsx:482:      <RestauranteHeader active="/restaurante/produtos" title="Produtos" />
+src\pages\restaurante-produtos\index.jsx:1155:export default RestauranteProdutos;
+src\pages\restaurante-cardapio-digital\index.jsx:4:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-cardapio-digital\index.jsx:271:const RestauranteCardapioDigital = () => {
+src\pages\restaurante-cardapio-digital\index.jsx:294:      <RestauranteHeader active="/restaurante/cardapio-digital" title="Cardápio Digital" />
+src\pages\restaurante-cardapio-digital\index.jsx:379:export default RestauranteCardapioDigital;
+src\pages\restaurante-kds-setor\index.jsx:53:const RestauranteKdsSetor = () => {
+src\pages\restaurante-kds-setor\index.jsx:233:export default RestauranteKdsSetor;
+src\pages\restaurante-producao\index.jsx:3:import { listarImpressoras, getKdsItensRestaurante, getKdsSemImpressora, reenviarItemKds, marcarItemProntoRestaurante, reimprimirItemRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, cancelarItemRestaurante, moverItemRestaurante, getMinhaEmpresa, getSalaoComandaDetalhe, editarItemComandaSalao } from '../../services/restauranteService';
+src\pages\restaurante-producao\index.jsx:167:const RestauranteProducao = () => {
+src\pages\restaurante-producao\index.jsx:172:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-producao\index.jsx:187:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-producao\index.jsx:194:        Promise.all(lista.map((imp) => getKdsItensRestaurante(imp.id).then((r) => [imp, r.itens ?? []]))),
+src\pages\restaurante-producao\index.jsx:232:    await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-producao\index.jsx:237:    await iniciarPreparoItemRestaurante(item.id);
+src\pages\restaurante-producao\index.jsx:242:    await voltarStatusItemRestaurante(item.id);
+src\pages\restaurante-producao\index.jsx:252:      await Promise.all(itemIds.map((id) => iniciarPreparoItemRestaurante(id)));
+src\pages\restaurante-producao\index.jsx:264:      await Promise.all(itemIds.map((id) => marcarItemProntoRestaurante(id)));
+src\pages\restaurante-producao\index.jsx:276:      await Promise.all(itemIds.map((id) => voltarStatusItemRestaurante(id)));
+src\pages\restaurante-producao\index.jsx:287:      await moverItemRestaurante(item.id, direcao);
+src\pages\restaurante-producao\index.jsx:297:      await cancelarItemRestaurante(item.id);
+src\pages\restaurante-producao\index.jsx:306:      const res = await reimprimirItemRestaurante(item.id);
+src\pages\restaurante-producao\index.jsx:592:export default RestauranteProducao;
+src\pages\restaurante-caixa\index.jsx:4:const RestauranteCaixa = () => {
+src\pages\restaurante-caixa\index.jsx:10:export default RestauranteCaixa;
+src\pages\restaurante-impulsionar\index.jsx:3:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-impulsionar\index.jsx:105:const RestauranteImpulsionar = () => {
+src\pages\restaurante-impulsionar\index.jsx:144:      <RestauranteHeader active="/restaurante/impulsionar" title="Impulsionar no Marketplace" />
+src\pages\restaurante-impulsionar\index.jsx:239:export default RestauranteImpulsionar;
+src\pages\restaurante-pontos-preparo\index.jsx:9:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-pontos-preparo\index.jsx:16:const RestaurantePontosPreparo = () => {
+src\pages\restaurante-pontos-preparo\index.jsx:91:      <RestauranteHeader active="/restaurante/pontos-preparo" title="Pontos de Preparo" onRefresh={carregar} />
+src\pages\restaurante-pontos-preparo\index.jsx:218:export default RestaurantePontosPreparo;
+src\pages\restaurante-bar\index.jsx:3:import { listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, getMinhaEmpresa } from '../../services/restauranteService';
+src\pages\restaurante-bar\index.jsx:16:const RestauranteBar = () => {
+src\pages\restaurante-bar\index.jsx:20:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-bar\index.jsx:34:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-bar\index.jsx:43:        impressoras.map((imp) => getKdsItensRestaurante(imp.id).then((r) => r.itens ?? [])),
+src\pages\restaurante-bar\index.jsx:75:    await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-bar\index.jsx:80:    await iniciarPreparoItemRestaurante(item.id);
+src\pages\restaurante-bar\index.jsx:86:      await voltarStatusItemRestaurante(item.id);
+src\pages\restaurante-bar\index.jsx:98:      await Promise.all(itemIds.map((id) => iniciarPreparoItemRestaurante(id)));
+src\pages\restaurante-bar\index.jsx:110:      await Promise.all(itemIds.map((id) => marcarItemProntoRestaurante(id)));
+src\pages\restaurante-bar\index.jsx:122:      await Promise.all(itemIds.map((id) => voltarStatusItemRestaurante(id)));
+src\pages\restaurante-bar\index.jsx:359:export default RestauranteBar;
+src\pages\restaurante-impressoras\index.jsx:7:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-impressoras\index.jsx:80:const RestauranteImpressoras = () => {
+src\pages\restaurante-impressoras\index.jsx:165:      <RestauranteHeader active="/restaurante/impressoras" title="Impressoras" onRefresh={carregar} />
+src\pages\restaurante-impressoras\index.jsx:280:export default RestauranteImpressoras;
+src\pages\restaurante-ponto-preparo\index.jsx:3:import { listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, getMinhaEmpresa } from '../../services/restauranteService';
+src\pages\restaurante-ponto-preparo\index.jsx:16:const RestaurantePontoPreparo = () => {
+src\pages\restaurante-ponto-preparo\index.jsx:20:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-ponto-preparo\index.jsx:35:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-ponto-preparo\index.jsx:47:      const { itens: novosItens } = await getKdsItensRestaurante(impressoraId);
+src\pages\restaurante-ponto-preparo\index.jsx:75:    await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-ponto-preparo\index.jsx:80:    await iniciarPreparoItemRestaurante(item.id);
+src\pages\restaurante-ponto-preparo\index.jsx:86:      await voltarStatusItemRestaurante(item.id);
+src\pages\restaurante-ponto-preparo\index.jsx:98:      await Promise.all(itemIds.map((id) => iniciarPreparoItemRestaurante(id)));
+src\pages\restaurante-ponto-preparo\index.jsx:110:      await Promise.all(itemIds.map((id) => marcarItemProntoRestaurante(id)));
+src\pages\restaurante-ponto-preparo\index.jsx:122:      await Promise.all(itemIds.map((id) => voltarStatusItemRestaurante(id)));
+src\pages\restaurante-ponto-preparo\index.jsx:368:export default RestaurantePontoPreparo;
+src\pages\restaurante-aparencia\index.jsx:6:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-aparencia\index.jsx:55:const RestauranteAparencia = () => {
+src\pages\restaurante-aparencia\index.jsx:217:      <RestauranteHeader active="/restaurante/aparencia" title="Designer" subtitle="Personalização da página de vendas" />
+src\pages\restaurante-aparencia\index.jsx:557:export default RestauranteAparencia;
+src\pages\restaurante-garcons\index.jsx:7:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-garcons\index.jsx:204:const RestauranteGarcons = () => {
+src\pages\restaurante-garcons\index.jsx:226:      <RestauranteHeader active="/restaurante/garcons" title="Garçons" onRefresh={carregar} />
+src\pages\restaurante-garcons\index.jsx:247:export default RestauranteGarcons;
+src\pages\restaurant-registration-setup\index.jsx:13:import { registrarRestauranteInicial, finalizarCadastroRestaurante, getTiposEstabelecimento, getPlanosDisponiveisCadastro, verificarDisponibilidadeCadastro } from '../../services/restauranteService';
+src\pages\restaurant-registration-setup\index.jsx:137:        const isRestaurante = !tipoSelecionado || tipoSelecionado.name === 'Restaurante';
+src\pages\restaurant-registration-setup\index.jsx:138:        if (isRestaurante && !formData?.cuisineType) {
+src\pages\restaurant-registration-setup\index.jsx:290:      const r = await registrarRestauranteInicial({
+src\pages\restaurant-registration-setup\index.jsx:346:      await finalizarCadastroRestaurante({
+src\pages\restaurant-registration-setup\index.jsx:366:      // RestauranteGuard avalia a rota seguinte, e ele barra a navegação.
+src\pages\restaurante-financeiro\index.jsx:6:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-financeiro\index.jsx:167:const RestauranteFinanceiro = () => {
+src\pages\restaurante-financeiro\index.jsx:168:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-financeiro\index.jsx:197:    getMinhaEmpresa().then((d) => setRestauranteNome(d.empresa?.name ?? '')).catch(() => {});
+src\pages\restaurante-financeiro\index.jsx:225:      <RestauranteHeader active="/restaurante/financeiro" title="Financeiro" subtitle="Gestão financeira gerencial" onRefresh={() => Promise.all([carregarDados(), buscar()])} />
+src\pages\restaurante-financeiro\index.jsx:483:export default RestauranteFinanceiro;
+src\pages\restaurante-plano\index.jsx:5:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-plano\index.jsx:105:const RestaurantePlano = () => {
+src\pages\restaurante-plano\index.jsx:154:      <RestauranteHeader active="/restaurante/plano" title="Meu Plano" subtitle="Assinatura, limites e faturas" />
+src\pages\restaurante-plano\index.jsx:306:export default RestaurantePlano;
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:3:import { adicionarSaida, adicionarEntrada, estornarSaida, fecharCaixa, atualizarStatusPedido, marcarItemProntoRestaurante, cancelarComandaSalao } from '../../services/restauranteService';
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:137:        ...itemIds.map((id) => marcarItemProntoRestaurante(id)),
+src\pages\restaurante-pedidos\index.jsx:6:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-pedidos\index.jsx:35:const RestaurantePedidos = () => {
+src\pages\restaurante-pedidos\index.jsx:42:  const [restauranteId, setRestauranteId] = useState(null);
+src\pages\restaurante-pedidos\index.jsx:57:      .then((d) => setRestauranteId(d.empresa?.id ?? null))
+src\pages\restaurante-pedidos\index.jsx:106:      <RestauranteHeader active="/restaurante/pedidos" title="Pedidos" />
+src\pages\restaurante-pedidos\index.jsx:188:export default RestaurantePedidos;
+src\pages\restaurante-entregas\index.jsx:4:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-entregas\index.jsx:197:const RestauranteEntregas = () => {
+src\pages\restaurante-entregas\index.jsx:266:      <RestauranteHeader
+src\pages\restaurante-entregas\index.jsx:372:export default RestauranteEntregas;
+src\pages\restaurante-motoboys\index.jsx:10:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-motoboys\index.jsx:494:const RestauranteMotoboys = () => {
+src\pages\restaurante-motoboys\index.jsx:495:  const { tipoRestaurante } = useModulosEmpresa();
+src\pages\restaurante-motoboys\index.jsx:496:  const termoCap = tipoRestaurante ? 'Motoboy' : 'Entregador';
+src\pages\restaurante-motoboys\index.jsx:667:      <RestauranteHeader active="/restaurante/motoboys" title={tipoRestaurante ? 'Motoboys' : 'Entregadores'} subtitle="Entregadores afiliados ao seu estabelecimento" onRefresh={reload} />
+src\pages\restaurante-motoboys\index.jsx:901:export default RestauranteMotoboys;
+src\pages\restaurant-registration-setup\components\BusinessInformationForm.jsx:14:  const isRestaurante = !tipoSelecionado || tipoSelecionado.name === 'Restaurante';
+src\pages\restaurant-registration-setup\components\BusinessInformationForm.jsx:56:            description="Restaurante, farmácia, material de construção..."
+src\pages\restaurant-registration-setup\components\BusinessInformationForm.jsx:58:          {tipoSelecionado && !isRestaurante && (
+src\pages\restaurant-registration-setup\components\BusinessInformationForm.jsx:79:        {isRestaurante && (
+src\pages\restaurante-meu-perfil\index.jsx:2:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-meu-perfil\index.jsx:189:const RestauranteMeuPerfil = () => {
+src\pages\restaurante-meu-perfil\index.jsx:194:      <RestauranteHeader active="/restaurante/meu-perfil" title="Meu Perfil" subtitle="Dados do estabelecimento, email e senha de acesso" />
+src\pages\restaurante-meu-perfil\index.jsx:204:export default RestauranteMeuPerfil;
+src\pages\restaurante-delivery\index.jsx:11:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-delivery\index.jsx:42:const RestauranteDelivery = () => {
+src\pages\restaurante-delivery\index.jsx:137:      <RestauranteHeader active="/restaurante/delivery" title="Delivery" onRefresh={recarregarCaixa} />
+src\pages\restaurante-delivery\index.jsx:297:export default RestauranteDelivery;
+src\pages\menu-catalog-product-browse\index.jsx:44:  stat1_label: 'Restaurantes',
+src\pages\menu-catalog-product-browse\index.jsx:258:              Restaurante fechado
+src\pages\menu-catalog-product-browse\index.jsx:315:              Restaurante fechado
+src\pages\menu-catalog-product-browse\index.jsx:721:  const [restaurantes, setRestaurantes] = useState([]);
+src\pages\menu-catalog-product-browse\index.jsx:899:        setRestaurantes(d.restaurantes ?? []);
+src\pages\menu-catalog-product-browse\index.jsx:1304:                    {catAtiva === null ? 'Todos os restaurantes' : categoriasParaExibir.find((c) => c.id === catAtiva)?.name ?? 'Restaurantes'}
+src\pages\restaurante-dashboard\index.jsx:6:  adicionarSaida, toggleStatusRestaurante, getRelatorioFretes,
+src\pages\restaurante-dashboard\index.jsx:7:  atualizarStatusPedido, marcarItemProntoRestaurante, cancelarComandaSalao,
+src\pages\restaurante-dashboard\index.jsx:18:import RestauranteHeader from '../../components/restaurante/RestauranteHeader';
+src\pages\restaurante-dashboard\index.jsx:26:const RestauranteDashboard = () => {
+src\pages\restaurante-dashboard\index.jsx:59:  const [restauranteId, setRestauranteId] = useState(null);
+src\pages\restaurante-dashboard\index.jsx:129:      setRestauranteId(emp.empresa?.id ?? null);
+src\pages\restaurante-dashboard\index.jsx:134:        toggleStatusRestaurante(false).catch(() => {});
+src\pages\restaurante-dashboard\index.jsx:244:    try { await toggleStatusRestaurante(novoStatus); } catch (e) { setStatusAberto(!novoStatus); alert(e.message); }
+src\pages\restaurante-dashboard\index.jsx:295:        ...itemIds.map((id) => marcarItemProntoRestaurante(id)),
+src\pages\restaurante-dashboard\index.jsx:350:      <RestauranteHeader
+src\pages\restaurante-dashboard\index.jsx:352:        title={empresa?.name ?? 'Meu Restaurante'}
+src\pages\restaurante-dashboard\index.jsx:375:            <p className="font-black text-[#18181B] dark:text-[#F4F4F5]">{statusAberto ? '🟢 Restaurante ABERTO' : '🔴 Restaurante FECHADO'}</p>
+src\pages\restaurante-dashboard\index.jsx:816:export default RestauranteDashboard;
+src\pages\motoboy-portal\index.jsx:56:            Pedido permanece "Em entrega". Restaurante será notificado da ocorrência.
+src\pages\restaurante-cozinha\index.jsx:5:  listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante,
+src\pages\restaurante-cozinha\index.jsx:75:const RestauranteCozinha = () => {
+src\pages\restaurante-cozinha\index.jsx:101:  const [restauranteNome, setRestauranteNome] = useState('');
+src\pages\restaurante-cozinha\index.jsx:102:  const [restauranteId, setRestauranteId] = useState(null);
+src\pages\restaurante-cozinha\index.jsx:181:  const carregar = useCallback(async (currentRestauranteNome, usarToken = false) => {
+src\pages\restaurante-cozinha\index.jsx:208:      const getItens = usarToken ? getKdsItens : getKdsItensRestaurante;
+src\pages\restaurante-cozinha\index.jsx:238:        .then((d) => { nome = d.restaurante?.name ?? ''; setRestauranteNome(nome); setRestauranteId(d.restaurante?.id ?? null); })
+src\pages\restaurante-cozinha\index.jsx:248:        setRestauranteNome(nome);
+src\pages\restaurante-cozinha\index.jsx:249:        setRestauranteId(d.empresa?.id ?? null);
+src\pages\restaurante-cozinha\index.jsx:333:      await Promise.all(itemIds.map((id) => (modoToken ? iniciarPreparoItem(id) : iniciarPreparoItemRestaurante(id))));
+src\pages\restaurante-cozinha\index.jsx:345:      await Promise.all(itemIds.map((id) => (modoToken ? marcarItemPronto(id) : marcarItemProntoRestaurante(id))));
+src\pages\restaurante-cozinha\index.jsx:357:      await Promise.all(itemIds.map((id) => (modoToken ? voltarStatusItem(id) : voltarStatusItemRestaurante(id))));
+src\pages\restaurante-cozinha\index.jsx:369:      else await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-cozinha\index.jsx:379:      else await iniciarPreparoItemRestaurante(item.id);
+src\pages\restaurante-cozinha\index.jsx:389:      else await voltarStatusItemRestaurante(item.id);
+src\pages\restaurante-cozinha\index.jsx:689:export default RestauranteCozinha;
+src\pages\menu-catalog-product-browse\components\BusinessHoursNotice.jsx:24:            Restaurante Fechado
+src\pages\home-router\index.jsx:4:import RestauranteCatalogo from '../restaurante-catalogo';
+src\pages\home-router\index.jsx:35:  if (status === 'loja') return <RestauranteCatalogo dadosPreCarregados={dadosLoja} />;
+src\pages\garcom-portal\index.jsx:1210:const RESTAURANTE_FECHADO_MSG = 'Restaurante fechado. Aguarde o caixa ser aberto para entrar.';
+src\pages\garcom-portal\index.jsx:1212:const RestauranteFechado = () => (
+src\pages\garcom-portal\index.jsx:1218:      <h1 className="text-lg font-black text-[#18181B] dark:text-[#F4F4F5]">Restaurante fechado</h1>
+src\pages\garcom-portal\index.jsx:1686:  if (bloqueado) return <RestauranteFechado />;

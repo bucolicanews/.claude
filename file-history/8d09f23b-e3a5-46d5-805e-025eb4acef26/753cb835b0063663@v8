@@ -1,0 +1,43 @@
+# Cardápio Impresso — grupo (minhas categorias) x categoria (plataforma)
+
+## Contexto
+
+Continuação da feature "Cardápio Impresso" (branch `cardapio-impresso`, já commitada e funcionando: botão em `/restaurante/cardapio-digital`, modal de seleção de produtos, impressão A4 em duas colunas agrupada por categoria).
+
+Pedido novo: o cardápio impresso deve agrupar em **dois níveis** — primeiro por "grupo" (ex.: PF, Prato Executivo, Refeição p/ 2 pessoas), depois por categoria dentro de cada grupo (ex.: Bife, Frango). O usuário percebeu que **não precisa de tabela nova pra isso**: o produto já tem duas fontes de categoria hoje — "Minhas categorias" (`categories.restaurant_id = <loja>`) e "Categorias da plataforma" (`categories.restaurant_id IS NULL`) — só que hoje elas ficam **misturadas num único `<select>`** (dois `<optgroup>`, um campo `category_id` só). A ideia é **separar em dois campos** no formulário do produto: "Minhas categorias" vira o **grupo** (topo), "Categoria da plataforma" continua sendo a **categoria** (dentro do grupo).
+
+Decisão confirmada com o usuário: **"Categoria da plataforma" continua obrigatória, exatamente como hoje. "Minha categoria" (grupo) é um campo novo, opcional** — produtos existentes continuam válidos sem precisar editar nada.
+
+## O que já existe e vou reaproveitar
+
+- **`categories`** já tem tudo que precisa: `restaurant_id` nullable (`NULL` = plataforma, preenchido = próprio da loja), sem mudança de schema nela.
+- **Painel "Minhas Categorias"** (`src/pages/restaurante-produtos/index.jsx` linhas 457-514) já é o CRUD completo de criar/deletar categoria própria — **vira automaticamente o gerenciador de "grupos"**, sem nenhuma tela nova. Só preciso renomear o rótulo na UI pra deixar claro o novo papel (ex.: "Meus Grupos (PF, Executivo...)").
+- **`getMinhasCategorias()`/`criarCategoria()`/`deletarCategoria()`** (`src/services/restauranteService.js` linhas 96-102) e o backend por trás (`categorias.service.ts` `listarPorEmpresa`/`criar`/`remover`, proxied em `restaurante.service.ts` linhas 539-552, rotas em `restaurante.controller.ts` linhas 150-163) — **nenhuma mudança**, continuam servindo exatamente a mesma lista, só usada com outro propósito no produto.
+- **Validação de categoria pertencer ao restaurante** já existe em `criarProduto`/`editarProduto` (`restaurante.service.ts` linhas 244-249, 389-395) — replico o mesmo padrão pro `grupo_id`, exigindo que seja SEMPRE uma categoria própria (`restaurant_id === restaurantId`, nunca `NULL`) já que "grupo" é por definição algo que só a própria loja cadastra.
+
+## Implementação
+
+### Migration (1 linha, sem tabela nova)
+`ALTER TABLE public.products ADD COLUMN IF NOT EXISTS grupo_id BIGINT REFERENCES public.categories(id) ON DELETE SET NULL;` — FK pra mesma tabela `categories`, mas semanticamente restrita (por validação de aplicação, igual já é feito com `category_id`) a categorias com `restaurant_id` preenchido.
+
+### Backend
+- `restaurante.service.ts`: `criarProduto`/`editarProduto` aceitam `grupo_id?: number | null`, validam (quando informado) que a categoria referenciada tem `restaurant_id === restaurantId` (rejeita `NULL`/de outro restaurante) — mesmo padrão de `category_id`, mas sem exigir (campo opcional, `null` explícito remove o grupo).
+- `meusProdutos`: `.select(...)` ganha o segundo join pra mesma tabela (`categories!products_grupo_id_fkey(name)`, ao lado do `categories!products_category_id_fkey(name)` — nome do FK confirmar após aplicar a migration, Postgres gera `products_grupo_id_fkey` por padrão) — retorna `grupo_name` no produto, mesmo espírito de `category_name` já existente (linha ~230).
+- Aplicar nos dois checkouts (`server_delivery` submódulo + `serer_delivery` standalone) — mas só sincronizar o standalone quando essa branch for pra `main` (mesma decisão já tomada na rodada anterior desta mesma feature).
+
+### Frontend — formulário de produto (`restaurante-produtos/index.jsx`)
+- `EMPTY_FORM`/`abrirEditar`/payload de salvar (linhas 15, 105-118, ~311-322): adicionar `grupo_id`.
+- Campo "Categoria" (linhas 822-844) passa a listar **só `categoriasGlobais`** (plataforma) — continua obrigatório. Resguardo: se o produto já tiver um `category_id` legado que não está nessa lista (categoria própria usada como categoria principal, cenário de antes dessa mudança), incluir essa opção extra no select pra não sumir/resetar ao editar.
+- Campo novo "Grupo (opcional)" logo abaixo/ao lado: `<select>` só com `categorias` (próprias), com opção "Nenhum grupo" — não obrigatório.
+- Painel "Minhas Categorias" (linhas 457-514): só ajuste de texto/subtítulo pra refletir o novo uso ("esses são os grupos usados no cardápio impresso, ex.: PF, Executivo").
+
+### Frontend — cardápio impresso (`restaurante-cardapio-digital/index.jsx` + `src/utils/printCardapioImpresso.js`)
+- `CardapioImpressoModal`: hoje agrupa produtos só por `category_name` (`categorias` no `useMemo`, linha ~140). Passa a agrupar em 2 níveis: por `grupo_name` primeiro (produtos sem `grupo_id` ficam num nível "sem grupo", renderizados soltos — sem cabeçalho de grupo, conforme já decidido), depois por `category_name` dentro de cada grupo. Checkbox de seleção continua por categoria (nível folha) e por produto — só ganha mais um nível visual de cabeçalho acima.
+- `printCardapioImpresso(...)`: parâmetro `categorias` vira `grupos: [{ nome: string | null, categorias: [...] }]`. O algoritmo de bin-packing (`distribuirEmColunas`) passa a operar no nível de **grupo inteiro** (grupo + suas categorias vira um bloco indivisível pra não separar categorias do mesmo grupo em colunas diferentes) — produtos sem grupo continuam cada categoria como bloco indivisível próprio, igual está hoje. HTML ganha um `<div class="grupo-titulo">` acima dos blocos de categoria quando `nome` existe.
+
+## Verificação
+
+1. `npx tsc --noEmit` (backend) e `npx vite build` (frontend) limpos.
+2. Confirmar nome real da FK gerada pela migration (`\d products` ou `information_schema.table_constraints`) antes de escrever o `.select()` com join duplo — Supabase/PostgREST exige o nome exato da constraint quando há duas FKs pra mesma tabela.
+3. Manual: criar um grupo próprio ("PF"), criar/editar um produto marcando grupo + categoria da plataforma, abrir o modal de cardápio impresso e confirmar 2 níveis de agrupamento no preview de impressão, com produto sem grupo aparecendo solto (sem cabeçalho de grupo) e nenhuma categoria cortada entre grupos diferentes.
+4. Editar um produto que hoje tem `category_id` apontando pra uma categoria própria (cenário legado) — confirmar que o form não reseta/perde essa categoria ao abrir pra editar.

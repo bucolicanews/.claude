@@ -1,0 +1,19 @@
+---
+titulo: Hub de Design Systems
+criado: 2026-06-10
+tipo: hub
+tags: [design, ui, ux, design-system, tailwind, mobile-first]
+---
+
+# Designer
+
+Hub de Design Systems e diretrizes visuais dos projetos.
+
+## Documentos
+
+- [[DESIGN SYSTEM OFICIAL(DELIVERY-RESTAURANTES)]] — Design System: Plataforma Delivery inspirada no Rappi (cores, tipografia, componentes, animações)
+
+## Relacionamentos
+
+- [[../07-PROJETOS/README]] — Projetos ativos
+- [[../22-ENGENHARIA/README]] — Diretrizes de Engenharia

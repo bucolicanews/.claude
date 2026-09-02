@@ -1,0 +1,147 @@
+# Faturamento por comissão para lojas sem split ativo
+
+## Contexto
+
+Hoje a plataforma só cobra comissão automaticamente quando o PagBank split está
+configurado na loja (`restaurants.payment_config.pagbank_seller_account_id`) —
+nesse caso, `PagamentosService` já desconta a comissão (`comissao_pct` da loja
+ou `comissao_padrao_pct` do admin) na hora do pagamento via split PagBank.
+
+Quando a loja está em **recebimento manual** (sem PagBank configurado — cliente
+paga direto na chave Pix da loja, fora da plataforma) ou usa o PagBank com
+token próprio mas sem sub-conta de split, a plataforma não recebe nada: a
+comissão simplesmente não é cobrada.
+
+O pedido é fechar essa lacuna criando um **plano híbrido** (mensalidade fixa +
+comissão) — quando o plano tem essa flag ligada, a fatura mensal passa a somar
+a mensalidade normal **mais** a comissão de todas as vendas do período que
+**não** tiveram split PagBank ativo. Assim que a loja configura o split, essa
+mesma venda passa a ser cobrada automaticamente na hora (split) e sai do
+cálculo da fatura — confirmado com o usuário, essa é a regra: nunca cobrar a
+mesma comissão duas vezes.
+
+Investigação confirmou que já existe quase toda a infraestrutura de dados
+necessária — não precisa reinventar nada, só conectar:
+- `plataforma_comissoes` (`empresa_id, pedido_id, valor_venda, comissao_pct,
+  comissao_valor, criado_em`) já é populada **incondicionalmente** por um
+  trigger de banco (`on_order_delivered`) pra todo pedido `delivered` — é
+  exatamente o "detalhe das comissões e das vendas" que o usuário quer
+  mostrar, só falta expor.
+- O único dado que falta é **se aquela venda já teve o split cobrado** —
+  `split_ativo` já é calculado em `PagamentosService.criarPix()`/`criarCartao()`
+  na hora do pagamento, mas hoje só existe na resposta da API, nunca é
+  persistido. Precisa virar coluna em `pagamentos`.
+- `PlanosService.sincronizarPeriodo()` já é o método que gera a fatura sob
+  demanda (sem cron) e já tem exatamente o padrão que preciso replicar: a
+  isenção por `piso_faturamento` já busca `orders` do período e soma — vou
+  fazer o mesmo pra `plataforma_comissoes`, só que excluindo o que já teve
+  split.
+
+## Decisões confirmadas com o usuário
+
+- **Evitar cobrança dupla**: fatura de comissão soma só vendas onde o
+  pagamento **não** teve split ativo. Se a loja configurar o split depois,
+  essas vendas saem da conta automaticamente (não precisa de lógica extra —
+  é natural, já que a query sempre olha `pagamentos.split_ativo` no momento).
+- **Modelo híbrido**: o plano mantém a mensalidade fixa (`plano.valor`,
+  pode ser configurada baixa ou R$0 pelo admin se quiser um plano
+  "praticamente só comissão") e a comissão é somada em cima, na mesma fatura,
+  separada em campo próprio pra mostrar o detalhamento "mensalidade + comissão
+  = total".
+- A isenção por `piso_faturamento` (que hoje zera a mensalidade se o
+  faturamento do período for baixo) continua valendo só pra mensalidade — a
+  comissão é cobrada de qualquer forma, já que ela reflete venda real que
+  aconteceu, não é uma cobrança fixa que faça sentido isentar.
+
+## Banco de dados (nova migration em `deliveryhub_white_label/supabase/migrations/`)
+
+1. `ALTER TABLE pagamentos ADD COLUMN split_ativo boolean NOT NULL DEFAULT false;`
+2. `ALTER TABLE planos ADD COLUMN cobra_comissao boolean NOT NULL DEFAULT false;`
+3. `ALTER TABLE plano_faturas ADD COLUMN comissao_valor numeric(10,2) NOT NULL DEFAULT 0;`
+
+## Backend (`serer_delivery`, sincronizado no submódulo depois)
+
+**Persistir `split_ativo`** (`src/pagamentos/pagamentos.service.ts`):
+- `criarPix()` (insert atual nas linhas ~148-160) e `criarCartao()` (insert
+  atual nas linhas ~216-228): adicionar `split_ativo: !!splitConfig,` no
+  objeto do `.insert()` em ambos — `splitConfig` já está em escopo (vem de
+  `getPagBankClient()`, desestruturado nas linhas 127/193). Já existe o mesmo
+  padrão na resposta da API (`split_ativo: !!splitConfig` nas linhas 169/244),
+  só replicar pro insert.
+
+**Cálculo da fatura com comissão** (`src/planos/planos.service.ts`,
+`sincronizarPeriodo()`, bloco de `valorFatura`/isenção nas linhas ~404-422):
+- Extrair um método privado `buscarComissoesNaoColetadas(restaurantId, inicio,
+  fim)` que: busca `plataforma_comissoes` (`empresa_id=restaurantId`,
+  `criado_em` entre `inicio`/`fim`), busca `pagamentos` correspondentes por
+  `order_id in (pedido_ids)` (mesmo padrão de merge-em-JS já usado em
+  `PlataformaService.metricas()`), filtra fora as linhas cujo pagamento tem
+  `split_ativo=true` — pedido sem linha em `pagamentos` (recebimento manual
+  ou dinheiro) conta como não-split, ou seja, entra na comissão devida (é
+  exatamente o caso que motivou a feature). Retorna `{ comissoes: [...],
+  total: number }`.
+- Em `sincronizarPeriodo()`: se `plano.cobra_comissao` (disponível direto —
+  `assinatura.planos` já vem com `select('*, planos(*)')`), chamar esse
+  método com `titular.restaurantId`/`inicioPeriodo`/`fimPeriodo`, somar
+  `comissaoSomada` ao `valorFatura` **depois** da isenção do piso (isenção só
+  zera a parte de mensalidade) e gravar `comissao_valor: comissaoSomada` no
+  insert de `novaFatura` (linhas ~426-435).
+
+**Detalhe da fatura pro cliente ver as vendas** — no método que já serve
+`GET /restaurante/plano/faturas/:id` (`getFaturaDetalhe` ou equivalente):
+quando `fatura.comissao_valor > 0`, reusar `buscarComissoesNaoColetadas`
+(mesmo período gravado na fatura, `periodo_inicio`/`periodo_fim`) e anexar
+`comissoes: [...]` na resposta — reaproveita o mesmo helper, sem duplicar
+lógica.
+
+**DTOs** (`src/planos/dto/criar-plano.dto.ts` e `atualizar-plano.dto.ts`):
+adicionar `@IsOptional() @IsBoolean() cobra_comissao?: boolean;` no mesmo
+bloco de `inclui_delivery`/`inclui_salao`/`inclui_gdoor`.
+
+**Whitelist de campos** (`PlanosService.criarPlano()`/`atualizarPlano()`):
+adicionar `cobra_comissao` ao objeto de insert e ao bloco condicional de
+`campos` do PATCH — mesmo padrão de `inclui_gdoor` já usado ali (nunca
+`.update({...body})`, sempre campo a campo).
+
+## Frontend
+
+**Admin — `admin-planos/index.jsx`**: `cobra_comissao: false` no `EMPTY`
+(linha 44) e no form-init a partir do plano existente (~linha 60); incluir no
+corpo do submit (~linha 97); novo checkbox no bloco "Módulos incluídos"
+(~linhas 199-203, mesmo padrão dos outros checkboxes) com texto explicando
+que será cobrada comissão sobre vendas sem split ativo, além da mensalidade —
+atende o pedido do usuário de "informar que será cobrada a comissão" na
+criação do plano; badge no card do plano na listagem (~linhas 358-370, mesmo
+padrão de `inclui_delivery`/`inclui_salao`/`inclui_gdoor`).
+
+**Dono da loja — `restaurante-plano/index.jsx`**: na linha da fatura
+(~linhas 260-279), quando `f.comissao_valor > 0` mostrar o detalhamento
+"Mensalidade {fmt(f.valor - f.comissao_valor)} + Comissão
+{fmt(f.comissao_valor)} = {fmt(f.valor)}" em vez de só o total; adicionar
+"Ver detalhe das vendas" que expande a lista `comissoes[]` (pedido, valor da
+venda, % de comissão, valor da comissão) vinda de `getFaturaDetalhe(f.id)`
+(já existe em `restauranteService.js`, só precisa do campo novo na resposta).
+Conferir `PagamentoFaturaModal.jsx` (já consome `getFaturaDetalhe`) e
+estender o mesmo bloco lá se fizer sentido mostrar o detalhe também no modal
+de pagamento.
+
+## Verificação
+
+- `npx tsc --noEmit -p .` no backend depois de cada arquivo mexido.
+- Aplicar a migration local (`npx supabase migration up`, rodado de dentro de
+  `deliveryhub_white_label/`).
+- Teste manual de ponta a ponta com dados do seed: criar um plano com
+  `cobra_comissao=true`, assinar com uma loja sem split configurado (seed já
+  tem esse caso — `restaurante Teste` sem `pagbank_seller_account_id`), gerar
+  um pedido `delivered` (dispara o trigger existente e cria a linha em
+  `plataforma_comissoes` automaticamente), forçar a geração da fatura
+  (`POST /plano/renovar` ou botão "Gerar fatura" no admin) e conferir que o
+  valor bate com mensalidade + comissão esperada, e que a lista de vendas
+  aparece certa na tela do dono.
+- Depois, simular o caso com split ativo (gravar `split_ativo=true` numa
+  linha de `pagamentos` de teste, ou configurar de verdade uma sub-conta de
+  split) e confirmar que essa venda específica **não** entra na próxima
+  fatura gerada — é o teste que garante a regra de não cobrar duas vezes.
+- Sincronizar backend nos dois checkouts (`cp` + diff), só aplicar a migration
+  em produção (`db push --linked`) depois de confirmar com o usuário, como
+  sempre.

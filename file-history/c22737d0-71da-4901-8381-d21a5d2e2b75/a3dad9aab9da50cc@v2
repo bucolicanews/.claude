@@ -1,0 +1,90 @@
+# Sessão de trabalho do garçom (turno)
+
+## Contexto
+
+Hoje o garçom já tem um "sessão" — mas é só um lock de dispositivo (`garcons.active_session_id`/`session_expires_at`, `GarcomAuthService.abrirSessao`), sem nenhuma ligação com vendas, comissão ou gorjeta. O dono já tem um relatório completo por garçom (`getRelatorioGarcom`, `restaurante-relatorios/Garcom.jsx`) com filtro de data livre e fluxo de repasse — mas quem consulta esse relatório é sempre o dono; o garçom nunca vê seus próprios números, e não existe conceito de "turno de trabalho" com início/fim, nem um passo em que o garçom confere e concorda com os valores antes de encerrar.
+
+O pedido: quando o garçom loga e abre a primeira comanda, abre automaticamente uma sessão de trabalho. Pra encerrar essa sessão (via "Sair"), ele vê as comandas ainda em aberto (decide manter aberto — permanece igual, sem ação nenhuma), consulta uma aba financeira nova (vendas, gorjeta, comissão, itens vendidos, comandas fechadas por ele) e confirma se concorda com os valores antes do sistema fechar de vez. O relatório do dono passa a mostrar se aquela sessão foi conferida/aceita pelo garçom.
+
+Decisões já validadas com o usuário:
+- "Sair" sempre dispara o fluxo de encerramento (não dá pra deslogar com sessão de trabalho aberta).
+- "Não concordo" não bloqueia — só fica registrado como alerta no relatório do dono, com observação opcional.
+- Valores da sessão são **congelados no momento do encerramento** (mesmo padrão do `caixas.resumo`) — não recalculam depois.
+
+Pra não confundir com a sessão de autenticação existente, o nome técnico interno é **turno** (tabela `garcom_turnos`); a UI continua chamando de "sessão" pro garçom, como o usuário pediu.
+
+## Modelo de dados — nova migration
+
+`deliveryhub_white_label/supabase/migrations/<timestamp>_garcom_turnos.sql` (padrão idêntico a `20260727190000_garcom_repasses.sql`: RLS via `restaurant_id IN (SELECT id FROM restaurants WHERE user_id = auth.uid())`):
+
+```sql
+CREATE TABLE public.garcom_turnos (
+  id                    BIGSERIAL PRIMARY KEY,
+  restaurant_id         BIGINT NOT NULL REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  garcom_id             BIGINT NOT NULL REFERENCES public.garcons(id) ON DELETE CASCADE,
+  aberto_em             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  fechado_em            TIMESTAMPTZ,
+  status                TEXT NOT NULL DEFAULT 'aberto' CHECK (status IN ('aberto','fechado')),
+  resumo                JSONB,        -- snapshot: total_vendido, total_gorjeta, total_comissao, vendas[], comandas_mantidas_abertas[]
+  conferido_pelo_garcom BOOLEAN,      -- null enquanto aberto; true/false no encerramento
+  observacao_garcom     TEXT
+);
+CREATE INDEX idx_garcom_turnos_garcom ON public.garcom_turnos (garcom_id);
+CREATE INDEX idx_garcom_turnos_restaurant ON public.garcom_turnos (restaurant_id);
+-- só 1 turno aberto por garçom por vez
+CREATE UNIQUE INDEX idx_garcom_turnos_um_aberto ON public.garcom_turnos (garcom_id) WHERE status = 'aberto';
+```
+
+Sem FK nova em `orders`/`garcom_comissoes_lancamentos` — o vínculo do turno com as vendas é só pelo intervalo `[aberto_em, fechado_em]`, reaproveitando exatamente a mesma query que `getRelatorioGarcom` já faz (`orders.created_at` no intervalo + `status='paga'`, comissão via `garcom_comissoes_lancamentos`, gorjeta via `orders.gorjeta_valor`). Isso evita mexer no fluxo de pagamento (`pagar()` em `salao-pdv.service.ts`).
+
+## Backend — `serer_delivery/src/salao/` (aplicar igual no submódulo)
+
+**Novo `GarcomTurnoService`** (arquivo novo `garcom-turno.service.ts`, injetado em `SalaoController`):
+- `turnoAtivo(garcomId)` — busca linha `status='aberto'` do garçom (ou null).
+- `garantirTurnoAberto(garcomId, restaurantId)` — chamado no início de `SalaoService.abrirComanda()` (`salao.service.ts:450`): se não houver turno aberto, insere um. Chamada simples antes da lógica existente, sem alterar o resto do método.
+- `resumoTurno(garcomId, restaurantId, turno)` — reaproveita a MESMA lógica de agregação de `RestauranteService.getRelatorioGarcom` (extrair um helper privado compartilhável, ou duplicar o filtro já que é pequeno) restrita a um único `garcom_id`, no intervalo `[turno.aberto_em, now()]`. Usado tanto pra prévia (turno ainda aberto, tela "Financeiro") quanto pra montar o snapshot no encerramento.
+- `encerrarTurno(garcomId, restaurantId, { comandas_mantidas_abertas, conferido, observacao })` — busca turno aberto (404 se não houver), monta `resumo` via `resumoTurno`, grava `status='fechado'`, `fechado_em`, `resumo`, `conferido_pelo_garcom`, `observacao_garcom`. Não mexe nas comandas em si (ficar aberta já é o estado natural, não precisa de update).
+
+**Novos endpoints em `SalaoController`** (`salao.controller.ts`, guard `GarcomGuard` já aplicado na classe):
+- `GET /garcom/turno` → turno ativo atual (ou null) + resumo ao vivo (pra badge/indicador na home).
+- `GET /garcom/turno/preview-encerramento` → comandas ainda abertas do garçom (reaproveita `minhasComandas`) + resumo financeiro ao vivo — dados pra tela de encerramento.
+- `POST /garcom/turno/encerrar` body `{ conferido: boolean, observacao?: string }` → chama `encerrarTurno`. Comandas mantidas abertas são só as que já estavam abertas no momento — não precisa o front mandar lista, o backend já sabe consultando `minhasComandas` de novo no snapshot.
+
+**Logout ligado ao encerramento**: `SalaoController.logout()` continua existindo, mas o FRONT só chama `logout()` depois de completar `POST /garcom/turno/encerrar` (ver fluxo abaixo) — não precisa mudar `GarcomAuthService.logout`.
+
+**`RestauranteService.getRelatorioGarcom`** (`restaurante.service.ts:2100`): acrescentar busca de `garcom_turnos` fechados no período (`fechado_em` no intervalo `de`/`ate`) e devolver junto no retorno (`turnos: [...]`, com `garcom_id`, `aberto_em`, `fechado_em`, `resumo`, `conferido_pelo_garcom`, `observacao_garcom`) — pra tela do dono listar sessões e mostrar o selo de conferência.
+
+## Frontend garçom — `deliveryhub_white_label/src/pages/garcom-portal/`
+
+**`services/garcomService.js`**: novas funções `getTurnoAtivo`, `getPreviewEncerramento`, `encerrarTurno` (mesmo padrão `garcomFetch` já usado).
+
+**`index.jsx`** (`GarcomHome`):
+- Botão "Sair" (linha ~1443) passa a chamar um novo handler `handleSair`: busca turno ativo; se houver, abre um modal novo `EncerrarSessaoModal` em vez de deslogar direto; se não houver turno (não deveria acontecer já que abre automático, mas por segurança), desloga direto como hoje.
+- Novo componente `EncerrarSessaoModal` (arquivo novo `EncerrarSessaoModal.jsx` no mesmo diretório, seguindo o estilo dos outros modais da tela ex. `AbrirComandaModal`): 2 passos internos —
+  1. **Comandas em aberto**: lista (reaproveita o mesmo card usado na aba "Minhas comandas") + texto explicando que continuam abertas pra próxima sessão. Botão "Continuar".
+  2. **Financeiro + aceite**: cards de total vendido/gorjeta/comissão, lista de vendas (comanda, itens, valores) — reaproveita o layout de cards do `restaurante-relatorios/Garcom.jsx` simplificado. Dois botões "Concordo com os valores" / "Não concordo" (o segundo abre campo de observação opcional). Ao confirmar: `encerrarTurno({conferido, observacao})` → `logout()` → `clearGarcomToken()` → reload.
+- Aba nova **"Financeiro"** ao lado de Mesas/Comandas/Cozinha (mesmo padrão de `aba`/botões, linha ~1449): mostra o resumo do turno ATIVO ao vivo (não precisa filtro de período pedido pelo usuário pro turno corrente — período fixo é o turno em andamento) — mas a pedido explícito do usuário ("aba financeiro que terá filtro de datas e período"), essa aba também deve permitir escolher outro intervalo pra consultar **turnos passados** (reaproveita `GET /garcom/turno` só pro ativo; pra histórico, novo endpoint simples `GET /garcom/turnos?de=&ate=` listando os `garcom_turnos` fechados do próprio garçom nesse intervalo, com os mesmos campos do relatório do dono).
+
+## Frontend dono — `restaurante-relatorios/Garcom.jsx`
+
+Nova seção/tabela "Sessões do período" abaixo da tabela existente: lista os `turnos` retornados por `getRelatorioGarcom` (aberto_em, fechado_em, total vendido/comissão/gorjeta daquele turno especificamente, e um selo "✓ Conferido pelo garçom" / "⚠ Garçom não concordou" com a observação em tooltip, mesmo padrão visual do selo "✓ Pago em..." que já existe pro repasse (linha ~304-307).
+
+## Arquivos principais
+
+- `deliveryhub_white_label/supabase/migrations/<novo>_garcom_turnos.sql` — nova tabela
+- `serer_delivery/src/salao/garcom-turno.service.ts` — novo (+ espelhar no submódulo)
+- `serer_delivery/src/salao/salao.service.ts` — hook em `abrirComanda` (linha 450)
+- `serer_delivery/src/salao/salao.controller.ts` — 3 endpoints novos
+- `serer_delivery/src/salao/salao.module.ts` — registrar `GarcomTurnoService`
+- `serer_delivery/src/restaurante/restaurante.service.ts` — `getRelatorioGarcom` (linha 2100) inclui `turnos`
+- `deliveryhub_white_label/src/services/garcomService.js` — funções novas
+- `deliveryhub_white_label/src/pages/garcom-portal/index.jsx` — aba Financeiro + handler Sair
+- `deliveryhub_white_label/src/pages/garcom-portal/EncerrarSessaoModal.jsx` — novo
+- `deliveryhub_white_label/src/pages/restaurante-relatorios/Garcom.jsx` — selo de conferência
+
+## Verificação
+
+1. `npx tsc --noEmit` nos dois backends, `npx vite build` no frontend.
+2. Fluxo manual local: logar como garçom → abrir comanda (confirma turno criado, 1 linha `status=aberto` em `garcom_turnos`) → adicionar itens, pagar uma comanda, deixar outra aberta → clicar "Sair" → ver tela de comandas abertas → ver financeiro batendo com o que foi vendido → "Concordo" → confirma logout real e turno com `status=fechado`, `conferido_pelo_garcom=true`.
+3. Repetir marcando "Não concordo" com observação → conferir que aparece no relatório do dono (`restaurante-relatorios/Garcom.jsx`) o selo de alerta.
+4. Reabrir sessão (logar de novo, abrir comanda) → confirma que cria turno NOVO (não reaproveita o fechado) e a comanda deixada aberta antes continua aparecendo em "Minhas comandas".

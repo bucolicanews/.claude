@@ -1,0 +1,26 @@
+---
+name: reference-may-memory-vault
+description: "Local Obsidian vault repo \"Ecossistema JHON\" — cross-project knowledge base (security policy, architecture decisions, UX/UI design guidelines, standing protocols) shared by all the user's projects, not just DeliveryHub"
+metadata: 
+  node_type: memory
+  type: reference
+  originSessionId: 4e2cc708-7996-4a68-9cfa-5d12e0a76935
+  modified: 2026-09-02T12:42:54.964Z
+---
+
+`C:\Users\jotac\OneDrive\Documents\DEV\may_memory` is a git repo (remote `github.com/bucolicanews/may_memory.git`, branch `main`) holding an Obsidian vault called "Ecossistema JHON" — the user's cross-project knowledge base: security policy, architecture decisions (ADRs), infra, incidents, and per-project docs (`07-PROJETOS/GESTAO-PROJETOS-VUE`, `07-PROJETOS/openclaw`, etc.). Entry point is `INDEX.md` (MOC — Map of Content).
+
+No git identity was configured locally when first found (2026-08-15) — same situation as [[project_deliveryhub]]'s repos; configured local (not `--global`) `jmoka <jmokatavares@gmail.com>` with explicit user authorization.
+
+Key docs in `21-SEGURANCA/` (security hub, see its `README.md`):
+- `POLITICAS.md` — master security policy (Zero Trust, RBAC, LGPD, DevSecOps, credential handling)
+- `ARCHITECTURE_SECURITY_RULES 1.md` / `... 2.md` — 40 mandatory architecture rules + relationship diagrams
+- `SECURITY SYSTEM DESIGN.md` — secure-by-default design for the React+NestJS+Supabase stack (same stack as DeliveryHub)
+- `PENTEST_CODE_REVIEW_PROTOCOL.md` — added 2026-08-15 at user's request: standing pentest/code-review procedure (BOLA/IDOR, injections, secrets, error/log leakage, insecure config) with a mandatory output format (risk table → detail → patch → Python/cURL staging test script). Fills the gap between "how to build secure" (the other docs) and "how to audit what already exists." **First real run** was against DeliveryHub the same day — 18 findings (4 Crítica/5 Alta/9 Média-Baixa), all fixed; see [[project_deliveryhub]]'s "Auditoria de segurança completa" section for the summary and reusable patterns. Confirms the protocol's output format works end-to-end in practice.
+
+Key docs in `26-DESIGNER/` (design hub, see its `README.md`):
+- `DIRETRIZES-UX-UI.md` — added 2026-09-02: the canonical UX/UI framework, mandatory for any design/UX/UI work across projects. Covers HCD (ISO 9241-210), usability metrics (ISO 9241-11), Garrett's 5 planes of UX (Strategy→Scope→Structure→Skeleton→Surface), Nielsen's 10 usability heuristics, accessibility checklist (ISO 9241-171/WCAG, 4.5:1 contrast, keyboard nav, alt text, aria-labels), Jordan's dialogue principles, and Lean UX practice (outcomes over outputs, GOOB prototyping). Was previously an unlinked file at the vault root (`UX_UI.md`); moved into `26-DESIGNER/` and wired into `INDEX.md` + the hub `README.md` on 2026-09-02 so it's discoverable like the security docs.
+- `DESIGN SYSTEM OFICIAL(DELIVERY-RESTAURANTES).md` — concrete design system for the delivery platform (Rappi-inspired: colors, typography, components, animation) — the Surface-plane (Plano 5) application of `DIRETRIZES-UX-UI.md` for [[project_deliveryhub]] specifically.
+
+**Why:** the vault is the canonical source for standards meant to apply across every project the user works on (security, architecture, LGPD) — broader in scope and higher authority than any single project's own CLAUDE.md or in-repo docs.
+**How to apply:** when asked about security policy, architecture rules, UX/UI/design decisions, or "how we always do X across projects," check this vault first before improvising an answer from scratch. Before any UX/UI/design task (new screen, form, flow, styleguide), read `DIRETRIZES-UX-UI.md` and run the request through its checklists (Nielsen heuristics, accessibility, Lean UX outcomes) rather than freelancing — it's the shared source of truth for [[feedback_mobile_forms_pattern]], [[feedback_layout_debugging]], [[feedback_carousel_autoscroll_pattern]], and [[feedback_modal_sizing]], which are the concrete Claude Code-side lessons learned applying it. When the user wants a new standing rule/protocol applied to every project (not just the one currently open), add it here (not only to a project-specific memory like [[project_deliveryhub]]) and link it from `INDEX.md` and the relevant `NN-*/README.md` hub so it stays discoverable. Before running `PENTEST_CODE_REVIEW_PROTOCOL.md` against a project, re-read it — it may have been extended since this snapshot.

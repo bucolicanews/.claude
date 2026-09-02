@@ -1,0 +1,72 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { LicencaService } from '../licenca/licenca.service';
+
+interface ItemPedidoGdoor {
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+interface PedidoParaGdoor {
+  id: number;
+  itens: ItemPedidoGdoor[];
+  cliente: { name: string; cpf_cnpj?: string | null } | null;
+}
+
+// Envia o pedido fechado pro serviço local api_gdoor (FastAPI, roda na mesma
+// máquina do restaurante, ao lado do GDOOR SLIM), que grava como pré-venda no
+// Firebird do GDOOR — aparece pronta pra importar no PDV NFC-e (F5 → F3).
+// Best-effort: essa instalação pode não ter GDOOR nenhum (API_GDOOR_URL vazio =
+// integração desligada) e uma falha aqui nunca pode travar o fluxo do pedido.
+@Injectable()
+export class ApiGdoorService {
+  private readonly logger = new Logger(ApiGdoorService.name);
+
+  constructor(
+    private licenca: LicencaService,
+    private config: ConfigService,
+  ) {}
+
+  async enviarPedido(pedido: PedidoParaGdoor): Promise<void> {
+    const url = this.config.get<string>('API_GDOOR_URL');
+    if (!url || !pedido.cliente) return;
+
+    const status = this.licenca.getStatus();
+    const devToken = this.config.get<string>('API_GDOOR_DEV_TOKEN');
+    // Licença ativa de verdade (instalação local vendida) OU um token fixo de
+    // dev pra testar sem depender do servidor central de licenciamento.
+    const token = status.ativo && !status.bloqueado && !status.revogado
+      ? this.config.get<string>('LICENCA_SERIAL')
+      : devToken;
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${url.replace(/\/$/, '')}/pedidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-webhook-token': token },
+        body: JSON.stringify({
+          pedido_id: String(pedido.id),
+          cliente: { nome: pedido.cliente.name, cpf_cnpj: pedido.cliente.cpf_cnpj || null },
+          itens: pedido.itens.map((i) => ({
+            product_id: i.product_id,
+            descricao: i.product_name,
+            quantidade: i.quantity,
+            valor_unitario: i.unit_price,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        this.logger.warn(`api_gdoor recusou o pedido ${pedido.id}: HTTP ${res.status} — ${await res.text()}`);
+        return;
+      }
+      this.logger.log(`Pedido ${pedido.id} enviado pro GDOOR`);
+    } catch (e) {
+      // Nunca propaga — mesmo padrão de registrarEntradaCaixa/registrarComissaoEntrega
+      // em PedidosService.atualizarStatus. Instalação pode simplesmente não ter
+      // o api_gdoor rodando (ex: fora do horário, serviço caiu).
+      this.logger.warn(`Falha ao enviar pedido ${pedido.id} pro GDOOR: ${(e as Error).message}`);
+    }
+  }
+}

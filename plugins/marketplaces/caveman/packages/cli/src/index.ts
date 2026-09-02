@@ -35,6 +35,7 @@ import {
   BINARY_RELEASE_BASE_DEFAULT,
   BINARY_SIGNING_PUBKEY,
 } from "./binaries.generated.js";
+import { installProxyAwareFetch } from "./proxy-fetch.js";
 import { RECIPES, type IntegrationRecipe } from "./recipes.generated.js";
 import { PRACTICE_REGISTRY } from "./practices.generated.js";
 import { RESERVED_VERBS } from "./reserved-verbs.generated.js";
@@ -52,6 +53,7 @@ import {
   type JSONValue,
 } from "./agent-mcp.js";
 import { portableInvocation } from "./portable-command.js";
+import { hardenedGitArgs, hardenedGitEnv } from "./git-safe.js";
 
 type TokenStore = "keychain" | "file";
 type TelemetryConfig = { enabled: boolean; anonymousId?: string; decidedAt: string; promptVersion: number };
@@ -381,6 +383,7 @@ function printDiscovery(group: CommandGroup, all = false): void {
 function resolveInvocation(raw: string[]): ResolvedInvocation {
   const top = raw[0] ?? "help";
   if (top === "--help") return { verb: "help", argv: [], handler: help };
+  if (top === "--version") return { verb: "version", argv: [], handler: LEGACY_HANDLERS.version! };
   if ((top === "tools" || top === "cloud") && raw.length === 1) {
     return { verb: top, argv: [], group: top, handler: () => printDiscovery(top) };
   }
@@ -500,6 +503,9 @@ let telemetryCommandSent = false;
 let telemetryEphemeralId = "";
 
 async function main() {
+  // Node's fetch does not read HTTP_PROXY/HTTPS_PROXY, so do it here before any
+  // request is made; without this every call fails on a proxy-only host.
+  installProxyAwareFetch();
   await ensureTelemetryDefault();
   try {
     await dispatch();
@@ -2025,8 +2031,8 @@ async function start(argv: string[] = []) {
   env.CAVE_ENGINE_TOON = runtime.mode === "compress" && runtime.toon ? "best-of" : "";
   env.CAVE_PIXEL_MODELS = runtime.pixelModels ?? "";
   env.CAVE_PIXEL_DENSITY = runtime.pixelDensity ?? "";
-  if (subscriptionCompress && mcpRecovery) {
-    process.stderr.write(dim("→ subscription logins (Claude Pro/Max) compress locally too — live zone only; compressed turns are re-sent byte-identically so the provider cache stays warm\n"));
+  if (subscriptionCompress && anyMcpInstalled()) {
+    process.stderr.write(dim("→ subscription logins (Claude Pro/Max) compress locally too, for sessions whose agent carries caveman_retrieve — live zone only; compressed turns are re-sent byte-identically so the provider cache stays warm\n"));
     process.stderr.write(dim(`→ ${SUBSCRIPTION_TOKENS_ONLY_NOTE}\n`));
   } else if (subscriptionCompress) {
     // Deliberately NOT the marker-only variant. That note's remedy is
@@ -4905,7 +4911,7 @@ function wrapUsage(stream: "stdout" | "stderr" = "stderr") {
   write(`Capability groups: think / remember / execute — inspect with \`${invokedAs()} tools config get\`.`);
   write("Auth passes through untouched: API keys AND subscription OAuth logins (Claude Pro/Max) both work.");
   write("Subscription logins compress locally too, no account needed (live zone only — compressed turns are re-sent byte-identically so the provider cache stays warm;");
-  write("needs MCP recovery; Claude/Codex wrap provide it ephemerally when caveman-mcp is available). Subscription savings are reported in tokens, never dollars. An account adds the dashboard, not compression.");
+  write("needs MCP recovery; Claude/Codex wrap provide it ephemerally when caveman-mcp is available, and sessions carrying caveman_retrieve prove it per request). Subscription savings are reported in tokens, never dollars. An account adds the dashboard, not compression.");
 }
 
 function normalizeAgentShortcutWrapArgs(input: string[]): string[] {
@@ -4954,6 +4960,21 @@ async function agentShortcut(rest: string[]) {
   const agent = findAgent(rest[0] ?? "");
   const native = agent ? nativeAgentId(agent.id) : undefined;
   if (!agent || !native) return wrap(rest);
+  // Host help is observational. Never turn `caveman claude --help` into a
+  // machine-wide integration install before printing another program's usage.
+  if (rest.slice(1).some((arg) => arg === "--help" || arg === "-h")) {
+    const bin = which(binOf(agent));
+    if (!bin) {
+      wrapNotFoundUI(rest[0]!, agent);
+      process.exitCode = 127;
+      return;
+    }
+    const invocation = portableInvocation(bin, [...agent.args, ...rest.slice(1)]);
+    const result = spawnSync(invocation.command, invocation.args, { stdio: "inherit" });
+    if (result.error) throw new Error(`failed to exec ${bin}: ${result.error.message}`);
+    process.exitCode = result.status ?? 1;
+    return;
+  }
   // A Cave Build lock is enforced at the wrap door (claudeCaveBuildEnv); the
   // native door applies none of its transforms, so a locked project must keep
   // routing through wrap or the lock would be silently unenforced.
@@ -6128,6 +6149,7 @@ export function hookExecutableInvocation(
   executable: string,
   script: string | undefined,
   platform: NodeJS.Platform = process.platform,
+  powershell: boolean = platform === "win32",
 ): string {
   const invocation = script
     ? `${quoteHookPath(executable, platform)} ${quoteHookPath(script, platform)}`
@@ -6135,7 +6157,7 @@ export function hookExecutableInvocation(
   // Claude/Codex/Gemini dispatch command hooks through PowerShell on native
   // Windows. A quoted executable is only a string literal there; `&` is the
   // required invocation operator. POSIX hook commands keep their exact shape.
-  return platform === "win32" ? `& ${invocation}` : invocation;
+  return platform === "win32" && powershell ? `& ${invocation}` : invocation;
 }
 
 function nativeHookCommand(agentId: string): string {
@@ -6153,14 +6175,112 @@ function nativeHookCommand(agentId: string): string {
   return `${cavemanBinForHook()} native-hook ${agentId}`;
 }
 
-function nativeHookEntry(command: string): Record<string, unknown> {
-  return { hooks: [{ type: "command", command }] };
+function nativeHookEntry(command: string, agentId?: "claude" | "codex" | "gemini"): Record<string, unknown> {
+  const hook: Record<string, unknown> = { type: "command", command };
+  if (agentId === "claude") {
+    hook.timeout = 30;
+    if (process.platform === "win32") hook.shell = "powershell";
+  }
+  return { hooks: [hook] };
 }
 
 function hookEntryCommand(entry: Record<string, unknown>): string | undefined {
   const hooks = Array.isArray(entry.hooks) ? entry.hooks as Array<Record<string, unknown>> : [];
   if (hooks.length !== 1 || hooks[0]?.type !== "command") return undefined;
   return typeof hooks[0].command === "string" ? hooks[0].command : undefined;
+}
+
+function hookCommandTokens(command: string): string[] | undefined {
+  const tokens: string[] = [];
+  let token = "";
+  let started = false;
+  let quote: "'" | '"' | undefined;
+  for (let index = 0; index < command.length; index += 1) {
+    const char = command[index]!;
+    if (quote) {
+      if (char === quote) {
+        if (quote === "'" && command[index + 1] === "'") {
+          token += "'";
+          index += 1;
+        } else {
+          quote = undefined;
+        }
+      } else if (quote === '"' && char === "\\" && index + 1 < command.length) {
+        token += command[++index]!;
+      } else {
+        token += char;
+      }
+      started = true;
+      continue;
+    }
+    if (/\s/.test(char)) {
+      if (started) {
+        tokens.push(token);
+        token = "";
+        started = false;
+      }
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      started = true;
+      continue;
+    }
+    if (char === "\\" && index + 1 < command.length) {
+      token += command[++index]!;
+      started = true;
+      continue;
+    }
+    if (/[|;<>\n\r`]/.test(char) || (char === "&" && (started || tokens.length > 0))) return undefined;
+    token += char;
+    started = true;
+  }
+  if (quote) return undefined;
+  if (started) tokens.push(token);
+  if (tokens[0] === "&") tokens.shift();
+  return tokens.length > 0 ? tokens : undefined;
+}
+
+function hookCommandBasename(token: string): string {
+  return basename(token.replace(/\\/g, "/")).toLowerCase().replace(/\.(?:exe|cmd|bat)$/i, "");
+}
+
+function isCavemanCliInvocation(tokens: string[]): boolean {
+  const executable = hookCommandBasename(tokens[0] ?? "");
+  if (executable === "caveman" || executable === "cave") return true;
+  return executable === "node" && hookCommandBasename(tokens[1] ?? "") === "index.js";
+}
+
+function managedHookIdentity(command: string): string | undefined {
+  const tokens = hookCommandTokens(command);
+  if (!tokens) return undefined;
+
+  const executable = hookCommandBasename(tokens[0] ?? "");
+  const nodeScript = executable === "node" ? hookCommandBasename(tokens[1] ?? "") : undefined;
+  const argsStart = executable === "node" ? 2 : 1;
+  const args = tokens.slice(argsStart);
+  const agent = args[1];
+  const nativeAgent = agent === "claude" || agent === "codex" || agent === "gemini";
+  const supportedNative =
+    (executable === "caveman-proxy" && args.length === 4 && args[0] === "native-hook" && nativeAgent && args[2] === "--adapter")
+    || ((executable === "caveman" || executable === "cave") && args.length === 2 && args[0] === "native-hook" && nativeAgent)
+    || (nodeScript !== undefined && ["index.js", "native-hook-fast.js"].includes(nodeScript) && args.length === 2 && args[0] === "native-hook" && nativeAgent);
+  if (supportedNative) return `native-hook:${agent}`;
+
+  if (isCavemanCliInvocation(tokens)) {
+    if (args.length === 1 && args[0] === "shrink-hook") return "shrink-hook";
+    if (args.length === 2 && args[0] === "mem" && args[1] === "recall-hook") return "mem:recall-hook";
+  }
+  return undefined;
+}
+
+function canonicalManagedHookEntry(entry: Record<string, unknown>): string | undefined {
+  const identity = managedHookIdentity(hookEntryCommand(entry) ?? "");
+  if (!identity) return undefined;
+  const clone = JSON.parse(JSON.stringify(entry)) as Record<string, unknown>;
+  const hooks = clone.hooks as Array<Record<string, unknown>>;
+  hooks[0]!.command = identity;
+  return JSON.stringify(clone);
 }
 
 function nativeHooksDocument(agentId: "claude" | "codex" | "gemini", includeShrink: boolean, base: Record<string, unknown> = {}, includeRecall = false): Record<string, unknown> {
@@ -6172,11 +6292,11 @@ function nativeHooksDocument(agentId: "claude" | "codex" | "gemini", includeShri
     ? ["SessionStart", "BeforeAgent", "BeforeModel", "BeforeTool", "AfterTool", "AfterModel", "PreCompress", "AfterAgent", "SessionEnd"]
     : agentId === "codex"
     ? ["SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest", "PostToolUse", "PostToolUseFailure", "PreCompact", "PostCompact", "SubagentStart", "SubagentStop", "Stop", "SessionEnd"]
-    : ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "PreCompact", "PostCompact", "SubagentStart", "SubagentStop", "Stop", "SessionEnd"];
+    : ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "PreCompact", "SubagentStart", "SubagentStop", "Stop", "SessionEnd"];
   const command = nativeHookCommand(agentId);
   for (const event of lifecycle) {
     const list = Array.isArray(hooks[event]) ? hooks[event] as Array<Record<string, unknown>> : [];
-    if (!list.some((entry) => hookEntryCommand(entry) === command)) list.push(nativeHookEntry(command));
+    if (!list.some((entry) => hookEntryCommand(entry) === command)) list.push(nativeHookEntry(command, agentId));
     hooks[event] = list;
   }
   if (includeShrink) {
@@ -6185,8 +6305,8 @@ function nativeHooksDocument(agentId: "claude" | "codex" | "gemini", includeShri
     const shrinkCommand = `${cavemanBinForHook()} shrink-hook`;
     if (!list.some((entry) => hookEntryCommand(entry) === shrinkCommand)) {
       list.push(agentId === "gemini"
-        ? { matcher: "run_shell_command", ...nativeHookEntry(shrinkCommand) }
-        : nativeHookEntry(shrinkCommand));
+        ? { matcher: "run_shell_command", ...nativeHookEntry(shrinkCommand, agentId) }
+        : nativeHookEntry(shrinkCommand, agentId));
     }
     hooks[shrinkEvent] = list;
   }
@@ -6194,7 +6314,7 @@ function nativeHooksDocument(agentId: "claude" | "codex" | "gemini", includeShri
     const list = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit as Array<Record<string, unknown>> : [];
     const recallCommand = `${cavemanBinForHook()} mem recall-hook`;
     if (!list.some((entry) => hookEntryCommand(entry) === recallCommand)) {
-      list.push(nativeHookEntry(recallCommand));
+      list.push(nativeHookEntry(recallCommand, agentId));
     }
     hooks.UserPromptSubmit = list;
   }
@@ -6222,10 +6342,26 @@ function nativeHookEntriesHealthy(root: Record<string, unknown>, agentId: "claud
     : undefined;
   if (!hooks) return false;
   const expected = nativeHooksDocument(agentId, true).hooks as Record<string, unknown>;
-  return Object.entries(expected).every(([event, expectedRaw]) => {
+  const required = Object.entries(expected).every(([event, expectedRaw]) => {
     const actual = Array.isArray(hooks[event]) ? hooks[event] as Array<Record<string, unknown>> : [];
-    const actualEntries = new Set(actual.map((entry) => JSON.stringify(entry)));
-    return (expectedRaw as Array<Record<string, unknown>>).every((entry) => actualEntries.has(JSON.stringify(entry)));
+    const actualEntries = new Set(actual.map(canonicalManagedHookEntry).filter(Boolean));
+    return (expectedRaw as Array<Record<string, unknown>>).every((entry) => {
+      const canonical = canonicalManagedHookEntry(entry);
+      return canonical !== undefined && actualEntries.has(canonical);
+    });
+  });
+  if (!required) return false;
+  return Object.entries(hooks).every(([event, raw]) => {
+    const expectedEvent = new Set(
+      (Array.isArray(expected[event]) ? expected[event] as Array<Record<string, unknown>> : [])
+        .map(canonicalManagedHookEntry)
+        .filter(Boolean),
+    );
+    const actual = Array.isArray(raw) ? raw as Array<Record<string, unknown>> : [];
+    return actual.every((entry) => {
+      const canonical = canonicalManagedHookEntry(entry);
+      return canonical === undefined || expectedEvent.has(canonical);
+    });
   });
 }
 
@@ -7527,20 +7663,32 @@ function removeNativeHookEntries(root: Record<string, unknown>, agent: "claude" 
     : undefined;
   if (!hooks) return root;
   const expected = nativeHooksDocument(agent, true).hooks as Record<string, unknown>;
-  for (const [event, expectedRaw] of Object.entries(expected)) {
+  const allowedManaged = new Set(
+    Object.values(expected)
+      .flatMap((raw) => Array.isArray(raw) ? raw as Array<Record<string, unknown>> : [])
+      .map(canonicalManagedHookEntry)
+      .filter(Boolean),
+  );
+  for (const event of Object.keys(hooks)) {
+    const expectedRaw = expected[event];
     const list = Array.isArray(hooks[event]) ? hooks[event] as Array<Record<string, unknown>> : [];
     const expectedEntries = Array.isArray(expectedRaw) ? expectedRaw as Array<Record<string, unknown>> : [];
-    const expectedStrings = new Set(expectedEntries.map((entry) => JSON.stringify(entry)));
+    const expectedStrings = new Set(expectedEntries.map(canonicalManagedHookEntry).filter(Boolean));
     for (const entry of list) {
-      const encoded = JSON.stringify(entry);
       const command = hookEntryCommand(entry) ?? "";
-      const nativeMarker = `native-hook ${agent}`;
-      const looksManagedNative = command.endsWith(nativeMarker) || command.includes(`${nativeMarker} --adapter `);
-      if ((looksManagedNative || /(?:^|\s)shrink-hook$/.test(command)) && !expectedStrings.has(encoded)) {
+      const identity = managedHookIdentity(command);
+      const canonical = canonicalManagedHookEntry(entry);
+      const ownedNative = identity === `native-hook:${agent}`;
+      if (identity && !ownedNative && !allowedManaged.has(canonical)) {
         throw new Error(`${agent} ${event} Caveman hook changed after enable; refusing destructive disable`);
       }
     }
-    const kept = list.filter((entry) => !expectedStrings.has(JSON.stringify(entry)));
+    const kept = list.filter((entry) => {
+      const identity = managedHookIdentity(hookEntryCommand(entry) ?? "");
+      if (!identity) return true;
+      if (identity === `native-hook:${agent}`) return false;
+      return !expectedStrings.has(canonicalManagedHookEntry(entry));
+    });
     if (kept.length > 0) hooks[event] = kept;
     else delete hooks[event];
   }
@@ -9777,6 +9925,10 @@ function startMcpRecoveryAvailable(): boolean {
   return false;
 }
 
+function anyMcpInstalled(): boolean {
+  return AGENTS.some((agent) => mcpInstalled(agent.id));
+}
+
 // resolveMcpCommand decides how to launch the caveman MCP server, in order:
 // CAVEMAN_MCP_BIN, `caveman-mcp` on PATH or ~/.caveman/bin, else `npx -y
 // caveman-mcp`. The returned argv is what gets written into each agent's MCP config.
@@ -10663,11 +10815,11 @@ function shouldShrink(command: string): boolean {
 
 // cavemanBinForHook is the invocation a Claude hook uses to call back into this
 // CLI, robust to PATH: a resolved `caveman`/`cave`, else this very script's node.
-function cavemanBinForHook(): string {
+function cavemanBinForHook(powershell: boolean = process.platform === "win32"): string {
   const command = which("caveman") ?? which("cave");
   return command
-    ? hookExecutableInvocation(command, undefined)
-    : hookExecutableInvocation(process.execPath, process.argv[1]!);
+    ? hookExecutableInvocation(command, undefined, process.platform, powershell)
+    : hookExecutableInvocation(process.execPath, process.argv[1]!, process.platform, powershell);
 }
 
 // shrinkHook is the settings-hook callback for the agents whose harness can
@@ -10689,7 +10841,9 @@ async function shrinkHook() {
   if (!isGemini && !isBash && !isCodex) process.exit(0);
   const command = evt.tool_input?.command;
   if (typeof command !== "string" || !shouldShrink(command)) process.exit(0);
-  const rewritten = `${cavemanBinForHook()} shrink -- ${command.trim()}`;
+  // updatedInput.command executes in host shell (Git Bash on Claude Windows),
+  // not hook's explicit PowerShell shell. Never leak PowerShell `&` into it.
+  const rewritten = `${cavemanBinForHook(false)} shrink -- ${command.trim()}`;
   // Each harness has a different (silent-on-mismatch) override contract: Gemini merges
   // hookSpecificOutput.tool_input (snake_case, no event discriminator); Claude replaces
   // via hookSpecificOutput.updatedInput (camelCase + hookEventName). Emit the right one.
@@ -10980,7 +11134,8 @@ function nativeGitDir(cwd: string): string | undefined {
 function nativeRepositoryState(cwd: string | undefined): string | undefined {
   if (!cwd) return undefined;
   try {
-    const status = execFileSync("git", ["-C", cwd, "status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"], {
+    const status = execFileSync("git", hardenedGitArgs(cwd, "status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"), {
+      env: hardenedGitEnv(),
       timeout: 100,
       maxBuffer: 8 * 1024 * 1024,
       encoding: "buffer",
@@ -11318,7 +11473,13 @@ async function nativeHook(argv: string[]) {
   if (sessionId) entry.host_session_id = sessionId;
   if (toolName) entry.tool_name = toolName;
   if (cwd) entry.cwd_sha256 = `sha256:${createHash("sha256").update(cwd).digest("hex")}`;
-  if (normalizedEvent === "SessionStart") {
+  // SessionStart revives a missing local proxy, but native routing points every
+  // LATER turn of the session at that proxy too, and a wrap-owned instance
+  // idle-exits ~30m after its wrap dies. A plain (unwrapped) session then
+  // hard-fails with ConnectionRefused on its next prompt, with nothing left to
+  // restart the proxy. The port check below makes the revive idempotent, so run
+  // it for the mid-session events that reach the full CLI as well.
+  if (normalizedEvent === "SessionStart" || normalizedEvent === "UserPromptSubmit" || normalizedEvent === "PostCompact") {
     try {
       const opts = defaultWrapOptions();
       const gw = gatewayURL();
@@ -12736,6 +12897,17 @@ type LearnConfirmed = {
   verdict: "improved" | "unchanged" | "regressed" | "insufficient_data";
   supporting_prefix_tokens?: number;
   supporting_prefix_sessions?: number;
+  // How the after-value was obtained, and whether the artifact caveman
+  // fingerprinted at apply time is still the artifact on disk. Absent on older
+  // proxies; a row without it is unattributed, not attributed-by-default.
+  attribution?: {
+    method: string;
+    rung: number;
+    confidence: string;
+    provenance: string;
+    target_path?: string;
+    confounders?: string[];
+  };
 };
 
 type LearnPortfolioGroup = {
@@ -12763,6 +12935,24 @@ type LearnRepo = {
   measured_prefix_tokens?: number;
 };
 
+// LearnSpend prices the scanned window from provider-counted usage at the
+// dated catalog's published rates. It is spend attribution, never a savings
+// claim, and older proxies omit it — treat it as absent-able.
+type LearnSpendComponent = { key: string; tokens: number; usd: number; share_pct?: number };
+type LearnSpend = {
+  basis: string;
+  currency: string;
+  catalog_version?: string;
+  window_days?: number;
+  usd: number;
+  tokens?: number;
+  components?: LearnSpendComponent[];
+  unpriced?: { provider: string; model: string; tokens: number; reason: string }[];
+  effective_input_usd_per_mtok?: number;
+  effective_input_multiplier?: number;
+  caveats?: string[];
+};
+
 type LearnPlan = {
   schema: "caveman.learn.v1";
   basis: "inferred";
@@ -12771,6 +12961,7 @@ type LearnPlan = {
   cave_score: { score: number; basis: string; scope?: string };
   sinks: LearnSink[];
   retro?: LearnRetro;
+  spend?: LearnSpend;
   confirmed?: LearnConfirmed[];
   portfolio?: LearnPortfolio;
   repos?: LearnRepo[];
@@ -13032,6 +13223,37 @@ export function buildLearnTuiModel(
   };
 }
 
+// renderLearnSpendLines shows what the scanned window cost and, more usefully,
+// what a million input tokens ACTUALLY cost after the user's own cache mix.
+// The multiplier is the one number that decides whether every other finding in
+// the report is expensive or trivial, so it earns a line above the moves.
+function renderLearnSpendLines(spend: LearnSpend | undefined, markdown: boolean): string[] {
+  if (!spend) return [];
+  const lines: string[] = [];
+  const currency = spend.currency || "USD";
+  const label = markdown ? "### Window cost" : "window cost";
+  if (spend.usd > 0) {
+    const window = spend.window_days ? ` over ${spend.window_days}d` : "";
+    lines.push(`${label}  ${fmtMoney(spend.usd, currency)}${window}  ·  provider-counted tokens at published rates`);
+  }
+  const multiplier = spend.effective_input_multiplier ?? 0;
+  const rate = spend.effective_input_usd_per_mtok ?? 0;
+  if (multiplier > 0 && rate > 0) {
+    lines.push(`effective input  ${fmtMoney(rate, currency)}/Mtok  ·  ${multiplier.toFixed(2)}x list after cache reuse`);
+  }
+  const components = (spend.components ?? []).filter((component) => component.usd > 0);
+  if (components.length > 0 && spend.usd > 0) {
+    lines.push(components.map((component) => `${component.key.replace("_", " ")} ${Math.round(component.share_pct ?? 0)}%`).join("  ·  "));
+  }
+  for (const row of spend.unpriced ?? []) {
+    lines.push(`unpriced  ${row.provider}/${row.model}  ${humanTokens(row.tokens)} tokens excluded — total is a floor`);
+  }
+  if (lines.length > 0) {
+    lines.push("subscription plans have no marginal cost; the figure is then the API-equivalent value of the tokens");
+  }
+  return lines;
+}
+
 export function renderLearnPlan(
   plan: LearnPlan,
   options: { markdown?: boolean; report?: string; diff?: LearnDiff; verbose?: boolean; all?: boolean } = {},
@@ -13069,6 +13291,8 @@ export function renderLearnPlan(
     }
     const diffText = learnDiffText(options.diff);
     if (diffText) lines.push(diffText);
+    const spendLines = renderLearnSpendLines(plan.spend, markdown);
+    if (spendLines.length > 0) lines.push("", ...spendLines);
     if (confirmedLines.length > 0) lines.push("", ...confirmedLines);
     if (verbose) {
       lines.push("", ...renderLearnDetailedRows(plan, markdown), "", LEARN_DETAILED_NEXT);
@@ -13130,7 +13354,12 @@ function renderLearnConfirmed(confirmed: LearnConfirmed[] | undefined, markdown:
       return [markdown ? `- *${line}*` : line];
     }
     if (entry.after === undefined || !Number.isFinite(entry.after)) return [];
-    const line = `${symbols[entry.verdict]} ${entry.sink_id} — ${learnMeasureValue(entry.before)} → ${learnMeasureValue(entry.after)} ${learnMeasureUnit(entry.unit)} over ${entry.sessions_after} sessions (${entry.verdict}) · applied ${applied}`;
+    // How it was measured travels with the number. A confirmed row without its
+    // attribution reads as stronger evidence than it is.
+    const attribution = entry.attribution
+      ? ` · ${entry.attribution.method} (${entry.attribution.confidence}${entry.attribution.provenance === "intact" ? "" : `, ${entry.attribution.provenance}`})`
+      : "";
+    const line = `${symbols[entry.verdict]} ${entry.sink_id} — ${learnMeasureValue(entry.before)} → ${learnMeasureValue(entry.after)} ${learnMeasureUnit(entry.unit)} over ${entry.sessions_after} sessions (${entry.verdict}) · applied ${applied}${attribution}`;
     return [markdown ? `- ${line}` : line];
   });
   if (rows.length === 0) return [];
@@ -13331,6 +13560,90 @@ function renderLearnApply(raw: Record<string, any>, dryRun: boolean): string {
   return `${lines.join("\n")}\n`;
 }
 
+// renderLearnSavings prints the attributed savings ledger. The design rule it
+// enforces visually is the same one the analyzer enforces structurally: rows
+// are grouped by how they were measured, and there is no single blended total.
+// A re-counted file and a before/after session median never share a number.
+export function renderLearnSavings(raw: Record<string, any>): string {
+  const rows = Array.isArray(raw.rows) ? (raw.rows as Record<string, any>[]) : [];
+  const currency = String(raw.currency ?? "");
+  const out: string[] = [];
+  if (rows.length === 0) {
+    out.push("no fix recorded yet");
+    out.push("apply one through the caveman-learn skill and it lands here with its attribution");
+    for (const caveat of (raw.caveats ?? []) as string[]) out.push(dim(`· ${caveat}`));
+    return `${out.join("\n")}\n`;
+  }
+  const byRung = raw.total_saved_usd_by_rung as Record<string, number> | undefined;
+  const grouped = new Map<string, Record<string, any>[]>();
+  for (const row of rows) {
+    const method = String(row.attribution?.method ?? "unattributed");
+    if (!grouped.has(method)) grouped.set(method, []);
+    grouped.get(method)!.push(row);
+  }
+  for (const [method, group] of grouped) {
+    const total = byRung?.[method];
+    const head = total != null && currency
+      ? `${method}  ${fmtMoney(total, currency)}/day`
+      : method;
+    out.push(bold(head));
+    for (const row of group) {
+      const verdict = String(row.verdict ?? "");
+      const badge = verdict === "improved" ? green("✓") : verdict === "regressed" ? red("✗") : yellow("~");
+      const saved = row.saved_value != null
+        ? `${Number(row.saved_value) > 0 ? "−" : "+"}${Math.abs(Number(row.saved_value)).toFixed(0)} ${String(row.unit ?? "")}`
+        : verdict;
+      const money = row.saved_usd != null && currency ? `  ${fmtMoney(Number(row.saved_usd), currency)}/day` : "";
+      out.push(`  ${badge} ${String(row.sink_id ?? "")}  ${saved}${money}`);
+      out.push(dim(`      ${String(row.attribution?.provenance ?? "")} · confidence ${String(row.attribution?.confidence ?? "")}`));
+      for (const confounder of (row.attribution?.confounders ?? []) as string[]) {
+        out.push(dim(`      · ${confounder}`));
+      }
+    }
+    out.push("");
+  }
+  for (const caveat of (raw.caveats ?? []) as string[]) out.push(dim(`· ${caveat}`));
+  return `${out.join("\n")}\n`;
+}
+
+// fmtMoney keeps sub-cent figures legible instead of rounding real spend to
+// $0.00, which reads as "nothing" when it is not.
+export function fmtMoney(value: number, currency: string): string {
+  const symbol = currency === "USD" ? "$" : `${currency} `;
+  if (!Number.isFinite(value)) return `${symbol}0`;
+  if (Math.abs(value) >= 1) return `${symbol}${value.toFixed(2)}`;
+  if (Math.abs(value) >= 0.01) return `${symbol}${value.toFixed(3)}`;
+  return `${symbol}${value.toFixed(5)}`;
+}
+
+
+// renderExperimentReport prints a holdout result. The design rule: the verdict
+// never appears without the arm sizes that produced it, and the confounders are
+// in the default view rather than behind a flag.
+export function renderExperimentReport(raw: Record<string, any>): string {
+  const arms = Array.isArray(raw.arms) ? (raw.arms as Record<string, any>[]) : [];
+  const out: string[] = [bold(`experiment ${String(raw.label ?? "")}`)];
+  if (raw.sink_id) out.push(dim(`sink ${String(raw.sink_id)} · ${String(raw.fix_kind ?? "")}`));
+  for (const arm of arms) {
+    out.push(`  ${String(arm.arm).padEnd(4)}  ${arm.sessions} sessions  median ${humanTokens(Number(arm.median_session_tokens ?? 0))} tok/session  ${Number(arm.error_turns_per_turn ?? 0).toFixed(2)} err/turn`);
+  }
+  const verdict = String(raw.verdict ?? "insufficient_data");
+  const badge = verdict === "improved" ? green("✓") : verdict === "regressed" ? red("✗") : yellow("~");
+  const delta = raw.median_session_tokens_delta_pct != null
+    ? `  ${Number(raw.median_session_tokens_delta_pct) > 0 ? "+" : ""}${Number(raw.median_session_tokens_delta_pct).toFixed(1)}%`
+    : "";
+  const money = raw.saved_usd_per_session != null && raw.currency
+    ? `  ${fmtMoney(Number(raw.saved_usd_per_session), String(raw.currency))}/session`
+    : "";
+  out.push(`  ${badge} ${verdict}${delta}${money}`);
+  if (raw.attribution?.method) {
+    out.push(dim(`  ${String(raw.attribution.method)} · confidence ${String(raw.attribution.confidence ?? "")}`));
+    for (const confounder of (raw.attribution.confounders ?? []) as string[]) out.push(dim(`  · ${confounder}`));
+  }
+  for (const caveat of (raw.caveats ?? []) as string[]) out.push(dim(`  · ${caveat}`));
+  return `${out.join("\n")}\n`;
+}
+
 function learnUsage(): void {
   console.log(`${invokedAs()} learn [--all|--plain|--json|--md] [--since 30d] [--sources claude,codex,gemini,opencode,aider]
   default       interactive setup score + grouped top moves
@@ -13339,6 +13652,14 @@ function learnUsage(): void {
   --json|--md   machine-readable or detailed Markdown output
   implement     open Claude Code or Codex to review and fix findings
   apply         prepare one finding for consent-gated editing
+
+  savings       what applied fixes returned, grouped by how it was measured
+  experiment    prove a change with an on/off holdout over your own sessions
+                start <label> [--sink <id>] · arm <label> on|off · report <label>
+                · list · stop <label>
+  export        privacy-safe digest of findings (identities and magnitudes only)
+  reconcile --usage-export <csv>
+                compare what was measured against what the provider billed
 
   advanced:
   applied <sink_id> [--fix-kind <kind>] [--note <text>]
@@ -13459,6 +13780,31 @@ async function learn(rest: string[]) {
   const sub = rest[0];
   if (sub === "--help" || sub === "-h" || sub === "help") return learnUsage();
   if (sub === "implement") return learnImplement(rest.slice(1));
+  if (sub === "export" || sub === "reconcile") {
+    // Both are inspect-before-you-act surfaces, so they stay machine-readable:
+    // the digest is a file the user reads before deciding to share it, and a
+    // reconciliation is a table, not a headline.
+    process.stdout.write(formatLearnProxyJSON(proxyExecLearn(["learn", ...rest], false)));
+    return;
+  }
+  if (sub === "experiment") {
+    const rawText = proxyExecLearn(["learn", ...rest], false);
+    if (rest.includes("--json") || !["report"].includes(String(rest[1] ?? ""))) {
+      process.stdout.write(formatLearnProxyJSON(rawText));
+      return;
+    }
+    process.stdout.write(renderExperimentReport(JSON.parse(rawText) as Record<string, any>));
+    return;
+  }
+  if (sub === "savings") {
+    const rawText = proxyExecLearn(["learn", ...rest], false);
+    if (rest.includes("--json")) {
+      process.stdout.write(formatLearnProxyJSON(rawText));
+      return;
+    }
+    process.stdout.write(renderLearnSavings(JSON.parse(rawText) as Record<string, any>));
+    return;
+  }
   if (sub === "applied" || sub === "simulate") {
     const rawText = proxyExecLearn(["learn", ...rest], false);
     process.stdout.write(formatLearnProxyJSON(rawText));
@@ -14238,7 +14584,7 @@ async function status(argv: string[]) {
   const mcpCompatibility = probeMcpBinary();
   if (mcpCompatibility && !mcpCompatibility.probe.current) {
     states.push(OFF_STATES.staleBinary("caveman-mcp", mcpCompatibility.probe.version, cliVersion()));
-  } else if (!startMcpRecoveryAvailable()) {
+  } else if (!anyMcpInstalled()) {
     states.push(fixedOffState(
       "mcp-missing",
       mcpSurfaceMode(resolution.values["execute.mcp"].value) === "marker-only"

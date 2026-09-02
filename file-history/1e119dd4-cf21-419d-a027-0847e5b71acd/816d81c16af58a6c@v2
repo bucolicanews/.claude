@@ -1,0 +1,123 @@
+# Restrição de módulos por tipo de estabelecimento + Entregador (veículo + MEI obrigatório)
+
+## Contexto
+
+Hoje o DeliveryHub deixa qualquer estabelecimento (independente do "Tipo de Estabelecimento" escolhido no onboarding) ativar o módulo Salão (mesas/comandas/garçons) — a coluna `restaurants.modulo_salao` é uma flag solta, sem nenhum vínculo real com `restaurants.type_id`. Também não existe hoje nenhum conceito de veículo do entregador nem exigência de MEI — o motoboy só anexa documento pessoal (RG/CNH) e comprovante de endereço.
+
+O dono do produto quer formalizar duas regras de negócio novas, a partir de agora (sem afetar cadastros já existentes):
+
+1. **Só estabelecimentos do tipo "Restaurante" podem ter Salão/comanda.** Qualquer outro tipo (Farmácia, Material de Construção, tipos futuros criados pelo admin) fica restrito a Delivery + Venda de Balcão.
+2. **Entregador = motoboy, mas precisa declarar o veículo que usa** (bicicleta, moto, carro, caminhão, carretinha) com foto do veículo + CRLV anexados, **e precisa ser MEI obrigatoriamente** (MEI caminhoneiro especificamente se o veículo for caminhão) — validado automaticamente via consulta a CNPJ numa API pública, com fallback pra revisão manual do admin quando a consulta não for conclusiva.
+
+Decisões já confirmadas com o usuário:
+- Restrição de módulo por tipo vale só pra ativações **novas** (transição false→true) — não mexe em restaurantes que já têm Salão ativo hoje, mesmo que o tipo deles não seja Restaurante.
+- MEI é validado por consulta automática a CNPJ (não é só campo de texto livre).
+- Documentação do veículo é um conjunto fixo (foto + CRLV) igual pra qualquer tipo de veículo, sem checklist condicional por tipo.
+- Motoboy cadastrado direto pelo restaurante (`restaurante-motoboys`) também precisa informar veículo/CNPJ/documentos já no cadastro — não fica pendente de completar depois.
+- Lista inicial de `veiculo_tipo`: `bicicleta`, `moto`, `carro`, `caminhao`, `carretinha`.
+
+Ambos os backends (`deliveryhub_white_label/server_delivery` submódulo e `serer_delivery/` standalone) são checkouts espelhados do mesmo remote — implementar num, testar, depois replicar/sincronizar no outro (padrão já estabelecido no projeto). Migrations ficam só em `deliveryhub_white_label/supabase/migrations/` (fonte única).
+
+---
+
+## Parte 1 — Restrição de módulo Salão por tipo de estabelecimento
+
+**Sem migration nova** — `restaurants.type_id` e `restaurants.modulo_salao` já existem (`20260713000001_establishment_types.sql`, `20260727000001_modulos_delivery_salao.sql`).
+
+### Backend — ponto único de enforcement: `onboarding.controller.ts`
+
+Arquivo: `deliveryhub_white_label/server_delivery/src/restaurante/onboarding.controller.ts`, método `finalizar()` (linha ~194-282) — é aqui, e só aqui, que `type_id` é gravado pela primeira vez (fase 2 do onboarding self-service). Nesse momento o restaurante já pode ter `modulo_salao = true` herdado do plano contratado (`PlanosService.atribuirAssinatura()`, chamado na fase 1 `registrarInicial`).
+
+Adicionar, logo após montar `campos.type_id` (linha 242):
+- Buscar o nome do tipo (`establishment_types.name` pelo `type_id` recebido — mesma query que `restaurante.service.ts buscarMinhaEmpresa()` já faz pra popular `tipo_restaurante`).
+- Se o nome resolvido for diferente de `'Restaurante'`, forçar `campos.modulo_salao = false` no mesmo `update()` que já vai rodar — sobrescrevendo o que o plano possa ter concedido.
+- Se for `'Restaurante'`, não mexe em `modulo_salao` (mantém o que o plano já definiu).
+
+Isso cobre 100% do caminho de cadastro novo, sem precisar de guard novo nem migration. Restaurantes existentes nunca passam de novo por `finalizar()`, então ficam intocados (retroatividade zero, como pedido).
+
+### Frontend — aviso informativo (opcional, baixo custo)
+
+Arquivo: `deliveryhub_white_label/src/pages/restaurant-registration-setup/components/BusinessInformationForm.jsx` — já calcula `isRestaurante` (linha 14) pra mostrar/esconder "Tipo de Cozinha". Adicionar, ao lado do campo "Tipo de Estabelecimento", uma nota curta quando `!isRestaurante` tipo "Este tipo de estabelecimento não terá acesso a Salão/comandas — só Delivery e Venda de Balcão", pra não surpreender o dono depois.
+
+### Fora de escopo desta rodada (mencionar, não implementar)
+
+- `empresas.service.ts` (`criar`/`atualizar`, usado por `/admin/empresas`) não recebe `type_id` nenhum hoje e é uma ferramenta manual do admin — não vou adicionar bloqueio de `modulo_salao` ali, porque o admin pode legitimamente precisar ativar módulos manualmente sem essa amarração, e criar essa trava arriscaria quebrar um fluxo administrativo existente sem pedido explícito pra isso. Se o usuário quiser essa trava também no painel admin depois, é um passo separado.
+- Não existe hoje nenhum guard de rota/backend pra `modulo_salao` (o único módulo com guard dedicado é GDOOR, via `ModuloGdoorGuard` em `src/auth/modulo-gdoor.guard.ts`) — hoje o controle é só "cosmético" (esconde link do menu). Deixar como está; endurecer isso é uma melhoria de segurança independente desta feature, não decorre diretamente do pedido.
+
+---
+
+## Parte 2 — Entregador: veículo obrigatório + MEI validado automaticamente
+
+### Migration nova
+
+Novo arquivo em `deliveryhub_white_label/supabase/migrations/`, ex. `20260901000001_motoboys_veiculo_mei.sql`, alterando `motoboys` (seguindo o padrão `TEXT ... CHECK (col IN (...))` já usado em `status_plataforma` na mesma tabela):
+
+```sql
+ALTER TABLE public.motoboys
+    ADD COLUMN IF NOT EXISTS veiculo_tipo TEXT CHECK (veiculo_tipo IN ('bicicleta','moto','carro','caminhao','carretinha')),
+    ADD COLUMN IF NOT EXISTS veiculo_foto_url TEXT,
+    ADD COLUMN IF NOT EXISTS veiculo_documento_url TEXT,
+    ADD COLUMN IF NOT EXISTS cnpj TEXT,
+    ADD COLUMN IF NOT EXISTS mei_situacao TEXT NOT NULL DEFAULT 'pendente'
+        CHECK (mei_situacao IN ('pendente','validado','invalido','revisao_manual')),
+    ADD COLUMN IF NOT EXISTS mei_cnae_principal TEXT,
+    ADD COLUMN IF NOT EXISTS mei_caminhoneiro BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS mei_verificado_em TIMESTAMPTZ;
+```
+
+`veiculo_foto_url`/`veiculo_documento_url` guardam **path** (não URL), mesmo padrão de `documento_frente_url` etc. — bucket privado `motoboy-documentos` já existe (`20260713000007_motoboy_documentos_bucket.sql`), sem migration de bucket nova necessária.
+
+### Backend — novo serviço de consulta CNPJ
+
+Novo arquivo `src/motoboy/cnpj.service.ts` (nos dois checkouts), seguindo o padrão de `geocoding.service.ts` (referência: `deliveryhub_white_label/server_delivery/src/motoboy/geocoding.service.ts`) — `@Injectable()`, `fetch` nativo, `ConfigService` injetado, falha vira `try/catch` que **nunca propaga erro** (consulta auxiliar, não pode derrubar o cadastro):
+
+- `consultarCnpj(cnpj: string): Promise<{ ehMei: boolean; cnae: string | null } | null>` — chama a API pública de CNPJ (ex. BrasilAPI `GET https://brasilapi.com.br/api/cnpj/v1/{cnpj}`, sem chave). **Verificar durante a implementação o nome exato dos campos da resposta ao vivo** (situação cadastral, indicador de opção pelo SIMEI, CNAE fiscal principal) — não tenho acesso a rodar a chamada real agora pra confirmar o schema, então tratar como algo a validar contra a API de verdade antes de fechar o parsing.
+- Cache best-effort via `RedisService` (`src/redis/redis.service.ts`, `getJSON`/`setJSON`) chave `cnpj:{cnpjNormalizado}`, TTL ~24h — evita bater de novo na API pública pro mesmo CNPJ e reduz risco de rate-limit externo.
+- Em caso de erro/timeout/resposta inconclusiva, retorna `null` (mesmo contrato do `geocodeEndereco`) — quem chama decide o que fazer (aqui: cair pra `mei_situacao = 'revisao_manual'`, nunca bloquear o cadastro).
+
+Regra de negócio (aplicada em quem chama `consultarCnpj`, não dentro do service):
+- Resultado `null` (API falhou/indisponível) → `mei_situacao = 'revisao_manual'`.
+- `ehMei === false` → `mei_situacao = 'invalido'`.
+- `ehMei === true` e `veiculo_tipo !== 'caminhao'` → `mei_situacao = 'validado'`.
+- `ehMei === true` e `veiculo_tipo === 'caminhao'`: checar se `cnae` começa com `4930` (transporte rodoviário de carga) → `mei_situacao = 'validado'`, `mei_caminhoneiro = true`; caso contrário (CNAE não bate com transporte de carga) → `mei_situacao = 'revisao_manual'` (heurística por CNAE é inconclusiva o bastante pra exigir olho humano em vez de rejeitar direto).
+
+Registrar `CnpjService` como provider em `src/motoboy/motoboy.module.ts` (mesmo módulo que já declara `GeocodingService`), disponível tanto pra `MotoboyAuthService` (self-signup) quanto `MotoboyService` (cadastro pelo restaurante).
+
+### Backend — estender os dois pontos de criação de motoboy
+
+**Self-signup** — `deliveryhub_white_label/server_delivery/src/motoboy/motoboy-auth.service.ts`:
+- `CompletarCadastroMotoboyBody` (linha 9) ganha: `veiculo_tipo: string`, `cnpj: string`, `veiculo_foto: string` (base64), `veiculo_documento: string` (base64).
+- `completarCadastro()` (linha 45): validar `veiculo_tipo` contra a lista permitida (mensagem amigável, defesa em profundidade além do CHECK do banco), normalizar `cnpj` (`replace(/\D/g, '')`, mesmo estilo de `normalizarDigitos` em `onboarding.controller.ts`), chamar `this.cnpj.consultarCnpj()` e montar os campos de `mei_*` conforme a regra acima, subir `veiculo_foto`/`veiculo_documento` reaproveitando o método privado `uploadDocumento()` (linha 25, já genérico o bastante — só precisa dos dois campos novos na chamada em paralelo com os demais, linha ~89).
+
+**Cadastro pelo restaurante** — `deliveryhub_white_label/server_delivery/src/motoboy/motoboy.service.ts`:
+- `MotoboyPeloRestauranteBody` (linha 9) ganha os mesmos 4 campos.
+- `validarDadosMotoboy()` (linha 152) passa a exigir `veiculo_tipo` (lista permitida) e `cnpj` (formato básico) também — hoje só valida nome/email/telefone/senha.
+- `criarPeloRestaurante()` (linha 103): depois de inserir a linha do motoboy, sobe os arquivos e chama `consultarCnpj()` do mesmo jeito que o self-signup, atualizando a linha recém-criada com os campos de veículo/MEI. **Upload de arquivo**: essa classe ainda não tem um helper de upload próprio (hoje `criarPeloRestaurante` não recebe nenhum arquivo) — extrair a lógica de `uploadDocumento()` de `motoboy-auth.service.ts` pra um local compartilhado (ex. método público reaproveitável, ou duplicar as ~12 linhas se não houver um lugar natural de compartilhar entre as duas classes — checar como o projeto já lida com isso, ex. `EMAIL_RE`/`PHONE_RE` hoje são exportados de `motoboy-auth.service.ts` e importados por `motoboy.service.ts`, mesmo padrão serve pra essa função).
+- `status_plataforma` continua nascendo `'aprovado'` nesse fluxo (não estou mudando essa regra) — `mei_situacao` é só registrado/exibido, não bloqueia a aprovação instantânea que já existe. Se `mei_situacao` vier `'revisao_manual'` ou `'invalido'`, isso fica visível pro admin na ficha (parte abaixo), mas o motoboy já pode operar — mesmo trade-off que o produto já aceita hoje pra outras validações fracas (ex. bloqueio por token expirado). Vale confirmar com o usuário se quiser endurecer isso depois.
+
+**Rate limit**: nenhum endpoint novo é criado — a consulta de CNPJ acontece dentro dos dois endpoints existentes (`POST /motoboy/auth/completar-cadastro`, já com `@Throttle` de 10/hora; `POST /restaurante/motoboys`, autenticado via `RestaurantOwnerGuard`) — sem superfície nova pra abusar.
+
+### Frontend
+
+- `deliveryhub_white_label/src/pages/motoboy-cadastro/index.jsx`: adicionar ao array `CAMPOS_ARQUIVO` (linha 7) duas entradas novas (`veiculo_foto`, `veiculo_documento` — CRLV, `accept: 'image/*,application/pdf'`) — o componente já itera esse array genericamente, não precisa de JSX novo pra isso. Adicionar campo `&lt;select&gt;` de `veiculo_tipo` (5 opções) e input de `cnpj` com máscara — reaproveitar a lógica de formatação já usada em `BusinessInformationForm.jsx`/`StepEndereco.jsx` (`formatCpfCnpj`). Passar os dois campos escalares junto no payload de `completarCadastroMotoboy` (`services/motoboyAuthService.js`).
+- `deliveryhub_white_label/src/pages/restaurante-motoboys/index.jsx`, `MotoboyFormModal` (linha 109): hoje só tem nome/telefone/email/senha — adicionar os mesmos 4 campos novos. Pro par foto+anexo do veículo, reaproveitar o padrão de dois botões "Fotografar/Anexar" com `capture="environment"` de `motoboy-portal/EntregaBarcode.jsx` (linhas 328-342, 379-384) em vez de reinventar; CRLV pode ser um input de arquivo simples (padrão de `documento_frente` no cadastro self-signup). Estender `services/restauranteService.js` (`criarMotoboy`) pra mandar os campos novos.
+- `deliveryhub_white_label/src/pages/admin-motoboys/index.jsx`, `DetalheModal` (linha 32): hoje mostra 3 documentos em grid (linha 103). Adicionar foto do veículo + CRLV nesse mesmo grid (reaproveitando o componente `Documento`, linha 17, e `ArquivoPreview`/`isPdfUrl` do `FichaModal` de `restaurante-motoboys` pra suportar PDF no CRLV) e um badge de status MEI (`mei_situacao` + `mei_caminhoneiro`), com destaque visual quando `revisao_manual` (é o caso que precisa de atenção humana).
+- `deliveryhub_white_label/src/pages/restaurante-motoboys/index.jsx`, `FichaModal` (linha 32, tela de avaliação de afiliação pelo restaurante): mesma adição espelhada.
+- Backend: `detalheMotoboyAdmin`/consulta equivalente do lado do restaurante precisam selecionar as colunas novas e gerar signed URL pros dois novos paths de arquivo, mesmo padrão do `signedUrl()` já usado pros 3 documentos existentes (`motoboy.service.ts`).
+
+### `.env` / config
+
+Se a API de CNPJ escolhida (BrasilAPI) não exigir chave, nenhuma env var nova é necessária. Se durante a implementação for preciso trocar por uma API que exige token (ex. ReceitaWS pago), adicionar a var nos dois `.env`/`.env.example` (`serer_delivery` e `deliveryhub_white_label/server_delivery`) — gotcha já conhecido do projeto de esquecer de sincronizar env var nova entre os dois checkouts.
+
+---
+
+## Verificação
+
+1. `npx supabase migration up` (local) pra aplicar a migration nova; depois `npm run build && node dist/src/main.js` (ou `npm run start:dev`) nos dois checkouts de backend pra confirmar boot limpo (`"Nest application successfully started"`, sem `UnknownDependenciesException` — gotcha já documentado do projeto ao adicionar provider novo a um módulo).
+2. `tsc --noEmit` nos dois backends e `vite build` no frontend, sem erros.
+3. Testes manuais (dev server rodando) — deixo pro usuário clicar-testar como de praxe:
+   - Onboarding: finalizar cadastro de um estabelecimento com tipo ≠ Restaurante num plano que inclui Salão → `modulo_salao` deve terminar `false`. Com tipo = Restaurante, comportamento igual a hoje.
+   - Cadastro de motoboy (self-signup): preencher veículo/CNPJ/foto/CRLV; testar um CNPJ que não é MEI (`mei_situacao = 'invalido'`), um caminhão com CNPJ MEI de CNAE não relacionado a transporte (`revisao_manual`), e um cenário de API fora do ar (`revisao_manual`, sem quebrar o cadastro).
+   - Cadastro de motoboy pelo restaurante: confirmar que os campos novos são obrigatórios e populam do mesmo jeito.
+   - Ficha do admin e ficha de afiliação do restaurante: conferir que foto do veículo, CRLV (inclusive PDF) e status MEI aparecem corretamente via signed URL.
+4. Depois de validado localmente, replicar as mudanças de backend no segundo checkout (`serer_delivery`) e aplicar a migration em produção via `npx supabase migration list --linked` / `db push --linked`, com confirmação prévia do usuário (mutação em banco de produção).

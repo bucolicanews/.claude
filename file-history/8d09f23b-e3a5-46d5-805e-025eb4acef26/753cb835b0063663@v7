@@ -1,0 +1,49 @@
+# Cardápio Impresso (menu pra imprimir/plastificar)
+
+## Contexto
+
+Feature nova, branch `cardapio-impresso`: o dono do restaurante quer gerar uma folha pra imprimir e plastificar, pra usar nas mesas do Salão — complementar ao cardápio digital via QR code que já existe. Entra como um terceiro botão ao lado de "Cartaz A4"/"Ticket térmico" em `/restaurante/cardapio-digital`.
+
+Decisões já fechadas com o usuário:
+- **Colunas:** distribuição automática (bin-packing por quantidade de linhas), sem controle manual de coluna/ordem.
+- **Imagens de produto:** não — só texto (nome, descrição curta se houver, preço). Mais compacto, cabe mais item por folha.
+- **Rodapé/preferências:** lembradas via `localStorage` (frase do rodapé, toggle "usar logo") — sem mudança de banco de dados pra isso.
+
+## O que já existe e vou reaproveitar (sem inventar nada novo)
+
+- **Botões de impressão existentes:** `src/pages/restaurante-cardapio-digital/index.jsx` linha ~92, bloco `<div className="flex gap-2 mt-4 w-full border-t">` com "Cartaz A4"/"Ticket térmico" via `imprimirComLogo()` (linhas 28-31, busca `getMinhaEmpresa()` fresco no clique). O botão novo "Gerar cardápio impresso" entra nesse mesmo bloco, mas abre modal em vez de imprimir direto.
+- **Padrão de impressão do projeto:** iframe escondido + `window.print()` (ver `src/utils/printComanda.js`, repetido em ~7 lugares) — **nunca** `jsPDF`/`react-to-print` (não tem no `package.json`, não vou introduzir). Todo texto dinâmico interpolado no HTML passa por `escapeHtml` (`src/utils/escapeHtml.js`, importado como `esc`) — obrigatório pra cada nome de produto/descrição/rodapé/endereço, mesma convenção já usada em todo o resto do código.
+- **Referência de layout A4 multi-seção:** `src/utils/relatorioPrint.js` (`reportBaseStyle`, `printIframe`, `printFooterScript`) — mais próximo do que preciso (página cheia, não recibo estreito de 300px) do que os templates de ticket térmico.
+- **Padrão de modal "selecionar itens":** `GdoorMapeamentoModal` em `src/pages/restaurante-config/index.jsx` (linhas 272-479) — overlay, header, checkbox "selecionar todos" + contador, lista scrollável com checkbox por item, botão de ação com contagem ao vivo, desabilitado em zero selecionados. Vou seguir essa mesma forma.
+- **Dados de produto/categoria:** `getMeusProdutos()`/`getMinhasCategorias()` (`src/services/restauranteService.js` linhas 63/96) — já trazem `name, description, price, preco_promo, category_id, categories.name` e a lista de categorias. Categorias não têm campo de ordem manual (só alfabética) — o algoritmo de distribuição por coluna não depende disso, agrupa por `category_id` na hora.
+- **Dados do restaurante:** `getMinhaEmpresa()`/`useMinhaEmpresaData()` já trazem `name, logo_url, address, city, state, neighborhood, cep`. **Falta `whatsapp`** no SELECT de `buscarMinhaEmpresa` (`server_delivery/src/restaurante/restaurante.service.ts` linha ~50) — coluna já existe em `restaurants` (migration `20260813000004_restaurants_contato_unico.sql`), só não está sendo selecionada. Vou adicionar `whatsapp` nessa lista — mudança de uma linha, sem migration nova.
+
+## Implementação
+
+### Backend (1 linha)
+`server_delivery/src/restaurante/restaurante.service.ts` — adicionar `whatsapp` ao `.select(...)` de `buscarMinhaEmpresa` (linha ~50), pra `data.empresa.whatsapp` chegar no frontend pelo caminho que já existe. Aplicar nos dois checkouts (`server_delivery` submódulo + `serer_delivery` standalone), mesmo padrão de sempre.
+
+### Frontend
+
+**Novo arquivo `src/utils/printCardapioImpresso.js`:**
+- `printCardapioImpresso({ categorias, restauranteNome, logoUrl, usarLogo, endereco, whatsapp, rodape })`, onde `categorias` já vem como `[{ nome, produtos: [{name, description, price, preco_promo}] }]` (agrupado no modal antes de chamar).
+- Algoritmo de distribuição: calcula "linhas" por categoria (1 linha de cabeçalho + 1 por produto), ordena categorias por linhas decrescente, distribui greedy — cada categoria vai pra coluna com menos linhas acumuladas até agora (bin-packing simples de 2 bins, determinístico).
+- HTML: `@page { size: A4; margin: ... }`, cabeçalho central (logo condicional + nome do restaurante), corpo com duas `<div>` lado a lado (`display:flex`) cada uma contendo os blocos de categoria atribuídos a ela (cada bloco com `break-inside: avoid` pra não cortar categoria ao meio na impressão), rodapé com frase editável + endereço + telefone (todos condicionais — só renderiza o que existir).
+- Todo texto dinâmico passa por `esc(...)` (import de `escapeHtml.js`), mesma convenção do resto do código.
+- Reaproveita o mecanismo de iframe + `window.print()` (mesmo padrão de `printComanda.js`/`relatorioPrint.js`, sem lib nova).
+
+**Novo componente `CardapioImpressoModal`** (dentro de `restaurante-cardapio-digital/index.jsx`, mesmo arquivo dos outros botões — não crio arquivo separado, mantém o padrão local do arquivo):
+- Ao abrir: busca `getMeusProdutos()` + `getMinhasCategorias()` + `getMinhaEmpresa()` (fresco, mesmo espírito do `imprimirComLogo` já existente).
+- Estado: `Set` de produtos selecionados (default: todos selecionados), toggle "usar logo" (default lido do `localStorage`), textarea de rodapé (default lido do `localStorage`).
+- Lista agrupada por categoria (igual `GdoorMapeamentoModal`), checkbox por categoria (seleciona/desmarca todos os produtos dela) + checkbox por produto, contador "N produtos selecionados".
+- Botão "Gerar cardápio impresso (N)" — desabilitado com 0 selecionados. Ao clicar: salva rodapé + toggle logo no `localStorage`, monta a estrutura agrupada só com os produtos selecionados, chama `printCardapioImpresso(...)`, fecha o modal.
+
+**Botão novo** no bloco de impressão existente (`restaurante-cardapio-digital/index.jsx` ~linha 92): "Cardápio impresso" abre o modal (`setMostrarModalCardapioImpresso(true)`), mesmo estilo visual dos outros dois botões do bloco.
+
+## Verificação
+
+1. `npx tsc --noEmit` (backend) — mudança de 1 linha, baixo risco, mas confere.
+2. `npx vite build` limpo.
+3. Manual: abrir `/restaurante/cardapio-digital`, clicar "Cardápio impresso", conferir que a lista de categorias/produtos carrega, testar seleção parcial e "selecionar todos" por categoria, gerar com e sem logo, conferir no preview de impressão do navegador que as duas colunas ficam equilibradas e nenhuma categoria corta no meio, conferir rodapé/endereço/telefone aparecendo condicionalmente (testar restaurante sem whatsapp cadastrado também).
+4. Conferir escaping: criar/usar um produto com `&`, `<` ou aspas no nome e confirmar que não quebra o HTML gerado.
+5. Fechar e reabrir o modal — frase do rodapé e toggle de logo devem vir preenchidos do `localStorage`.

@@ -1,0 +1,84 @@
+# Sincronização de clientes GDOOR ↔ DeliveryHub (mesmo padrão dos produtos)
+
+## Contexto
+
+Mesmo pedido feito pra produtos, agora pra clientes: modal bidirecional, importar do GDOOR pro Delivery, exportar do Delivery pro GDOOR, mapeados/não mapeados, "não sincronizar". Investiguei o schema real do GDOOR antes de planejar (mesmo cuidado de antes):
+
+- Tabela real de clientes é `CLIENTE` (não confundir com `PDV_CLIENTE`, que é só o registro por venda já usado no fluxo de pré-venda — esse continua igual, não muda). Sem gerador de `CODIGO` (mesmo caso do `ESTOQUE`, digitado manualmente hoje — `000000` é o único cadastro real, o cliente genérico "Consumidor"). Colunas relevantes: `CODIGO, NOME, CNPJ_CNPF, TELEFONE, CELULAR, EMAIL, ENDERECO, NUMERO, COMPLEMENTO, BAIRRO, CIDADE, UF, CEP, LAT, LON, SITUACAO, CADASTRO`.
+- **Diferença importante do lado DeliveryHub**: `customers` **não é** por restaurante como `products` — é global na plataforma, ligado por `customer_restaurants` (N:N, um cliente pode ter pedido em várias lojas). Isso muda a lógica de importar/exportar: preciso checar se já existe um cliente com o mesmo CPF/CNPJ **antes** de criar um novo, e nesse caso só vincular (`customer_restaurants`) em vez de duplicar — tanto na importação (GDOOR→Delivery) quanto, do lado GDOOR, antes de criar um novo `CLIENTE` só pra alguém que já tem código lá.
+
+## Modelo de dados (nova migration)
+
+```sql
+CREATE TABLE public.gdoor_cliente_cache (
+  restaurant_id BIGINT NOT NULL REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  codigo        TEXT NOT NULL,
+  nome          TEXT,
+  cnpj_cnpf     TEXT,
+  telefone      TEXT,
+  email         TEXT,
+  endereco      TEXT, numero TEXT, complemento TEXT, bairro TEXT, cidade TEXT, uf TEXT, cep TEXT,
+  lat NUMERIC, lon NUMERIC,
+  bloqueado_sync BOOLEAN NOT NULL DEFAULT false,
+  atualizado_em TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (restaurant_id, codigo)
+);
+
+CREATE TABLE public.gdoor_cliente_mapeamento (
+  restaurant_id BIGINT NOT NULL REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  customer_id   BIGINT NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+  codigo_gdoor  TEXT NOT NULL,
+  atualizado_em TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (restaurant_id, customer_id)
+);
+
+CREATE TABLE public.gdoor_criar_cliente_jobs (
+  id 	          BIGSERIAL PRIMARY KEY,
+  restaurant_id   BIGINT NOT NULL REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  customer_id     BIGINT NOT NULL,
+  payload         JSONB NOT NULL,  -- {nome, cnpj_cnpf, telefone, email, endereco...}
+  status          TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente','processado','erro')),
+  codigo_gdoor_criado TEXT,
+  erro_msg        TEXT,
+  criado_em       TIMESTAMPTZ DEFAULT NOW(),
+  processado_em   TIMESTAMPTZ
+);
+CREATE INDEX idx_gdoor_criar_cliente_pendente ON public.gdoor_criar_cliente_jobs (restaurant_id, status);
+```
+
+`telefone` no cache junta `CELULAR ?? TELEFONE` do GDOOR (celular é o dado mais útil pra comparar com `phone_e164`); `endereco/numero/...` viram um único `address_json` só quando importados pro Delivery (mesmo formato já usado em `customers.address_json`).
+
+## Agente (`api_gdoor`)
+
+- **`firebird_client.py`**:
+  - `listar_clientes()` — `SELECT CODIGO, NOME, CNPJ_CNPF, TELEFONE, CELULAR, EMAIL, ENDERECO, NUMERO, COMPLEMENTO, BAIRRO, CIDADE, UF, CEP, LAT, LON FROM CLIENTE WHERE CODIGO <> '000000'` (exclui o "Consumidor" genérico — não é cliente de verdade).
+  - `proximo_codigo_cliente()` — mesmo padrão de `proximo_codigo_estoque()` (sem gerador, sequencial calculado).
+  - `criar_cliente(nome, cnpj_cnpf, telefone, email, endereco, numero, complemento, bairro, cidade, uf, cep) -> str` — `INSERT INTO CLIENTE` só com esses campos + `SITUACAO='Ativo'`, `CADASTRO=hoje`. Mesmo espírito de `criar_produto_estoque`: cadastro mínimo, sem os campos de crédito/fiscal (`LIMITE_CREDITO`, etc.) — ficam em branco, dono completa no GDOOR se precisar.
+- **`poller.py`**: `_reportar_clientes()` (mesmo ciclo de `_reportar_estoque`, a cada `_CICLOS_POR_REPORT_ESTOQUE`) + par `_criar_cliente_pendentes()`/`_processar_criacao_cliente(job)`, mesmo formato do par de produto.
+
+## Backend (`server_delivery`, aplicar nos dois checkouts)
+
+Novo arquivo `gdoor-clientes.service.ts` (ou métodos a mais no `GdoorService` — vou manter tudo junto no `GdoorService` mesmo, já que os dois domínios (produto/cliente) compartilham a mesma infra de guard/módulo, só separar por comentário de seção como já é feito hoje):
+
+- **`registrarClientes`** — upsert (mesmo padrão de `registrarEstoque`, preserva `bloqueado_sync`).
+- **`catalogoClientes(restaurantId)`** — busca clientes do restaurante via `customer_restaurants` join, cache de `gdoor_cliente_cache`, e `gdoor_cliente_mapeamento`; monta `clientes_delivery`/`clientes_gdoor` com `mapeado`/`diverge` (nome, telefone, email — CPF/CNPJ não entra na comparação de divergência, é a própria chave de identidade).
+- **`bloquearSyncCliente`**.
+- **`importarClientesDeGdoor(restaurantId, codigos)`** — pra cada código: normaliza `CNPJ_CNPF` (reusa `normalizarCnpj` já existente no arquivo) e busca em `customers` (global, sem filtro de restaurante) por CPF/CNPJ igual. Se achar: só vincula (`customer_restaurants` upsert) + mapeia. Se não achar: cria `customers` novo (nome, email, telefone, `cpf_cnpj`, `address_json` montado dos campos separados do GDOOR) + vincula + mapeia.
+- **`exportarClientesParaGdoor(restaurantId, customerIds)`** — pra cada cliente ainda não mapeado: checa se já existe item no `gdoor_cliente_cache` com o mesmo CPF/CNPJ normalizado (evita pedir pro agente criar duplicado no GDOOR) — se achar, só mapeia direto (sem job); senão enfileira em `gdoor_criar_cliente_jobs`.
+- **`statusExportacaoClientes`**, **`marcarClienteCriado`** (marca job + mapeia automático, mesmo padrão), **`marcarClienteErro`**.
+
+Controllers: adicionar em `restaurante-gdoor.controller.ts` (`GET catalogo-clientes`, `PATCH clientes/:codigo/bloquear`, `POST importar-clientes-de-gdoor`, `POST exportar-clientes-para-gdoor`, `GET exportar-clientes-para-gdoor/status`) e em `agente-gdoor.controller.ts` (`POST clientes`, `GET criar-cliente/pendentes`, `POST criar-cliente/:id/concluido`, `POST criar-cliente/:id/erro`) — mesmo shape dos endpoints de produto já existentes.
+
+## Frontend
+
+Componente novo `GdoorClientesPanel`/`GdoorClientesModal` em `restaurante-config/index.jsx`, ao lado do `GdoorMapeamentoPanel` — **mesma estrutura** (duas abas, filtro, seleção em massa, bloquear sync), reaproveitando o componente `LinhaMapeamento` já genérico o suficiente (recebe título/subtítulo/mapeado/diverge via props). Não vou tentar unificar os dois modais num só componente parametrizado agora — o ganho de DRY não compensa o risco de mexer no modal de produtos que acabou de ser testado a fundo; são dois componentes irmãos com a mesma forma, como pedido.
+
+`restauranteService.js`: `getCatalogoClientesGdoor`, `bloquearSyncClienteGdoor`, `importarClientesDeGdoor`, `exportarClientesParaGdoor`, `getStatusExportacaoClientesGdoor`.
+
+## Verificação
+
+1. `nest build` + boot real nos dois checkouts.
+2. Testar `proximo_codigo_cliente()`/`criar_cliente()` direto contra o Firebird real antes de plugar no poller (mesmo smoke test já feito pra produto).
+3. Ponta a ponta: exportar cliente de teste (sem CPF ainda cadastrado em `customers` global) → job → agente cria em `CLIENTE` → mapeamento automático. Importar `000000`... não, esse é excluído — importar um cliente de teste cadastrado no GDOOR local → produto novo em `customers` + `customer_restaurants` + mapeamento.
+4. Testar o caso de dedup: criar um cliente no GDOOR com CPF que já existe em `customers` (de outro restaurante) → importar → confirmar que **vincula** em vez de duplicar.
+5. `vite build` limpo.

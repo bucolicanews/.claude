@@ -1,0 +1,94 @@
+# Integração GDOOR — pareamento tipo "agente" (mesmo padrão do print-agent)
+
+## Contexto
+
+A primeira versão desta branch (já implementada, testada contra o Firebird real do GDOOR) fazia `server_delivery` **empurrar** (`POST`) o pedido pro `api_gdoor` local via `API_GDOOR_URL`. Isso só funciona quando os dois estão na mesma rede local — em produção, `server_delivery` roda na nuvem (VPS/EasyPanel) e **não consegue alcançar** uma máquina de restaurante atrás de NAT/roteador doméstico sem port-forward. É exatamente o mesmo problema que o `print-agent` já resolveu: em vez do servidor "empurrar" pro agente, o **agente puxa** (polling) — conexão sempre de dentro pra fora, funciona atrás de qualquer NAT sem configuração de rede.
+
+O usuário pediu explicitamente pra replicar esse padrão: `api_gdoor` passa a se comportar como o `DeliveryHubAgente.exe` do print-agent — token de pareamento gerado no painel, colado na configuração do agente, agente autentica em toda chamada via header, heartbeat automático. **Camada extra de segurança pedida**: além do token, o agente lê o **CNPJ cadastrado no GDOOR local** (tabela `EMITENTE.CNPJ`, confirmado nesta sessão — não existe campo "SERIAL" dedicado no banco nem em arquivo de config; usuário autorizou usar CNPJ como esse identificador) e o backend confere contra o CNPJ que o dono cadastrou no painel — pareamento só é considerado íntegro se os dois baterem.
+
+**Padrão de referência (replicar 1:1, adaptando nomes)**: `server_delivery/src/agente-impressao/` — módulo já existente, backend gera `crypto.randomUUID()` em `restaurants.agente_impressao_token` via endpoint autenticado pelo dono; agente autentica em toda chamada via header `x-agente-token` (`AgenteImpressaoGuard`, que também atualiza `agente_impressao_ultimo_ping` como efeito colateral — isso *é* o heartbeat, sem endpoint dedicado); frontend (`AgenteImpressaoPanel` em `src/pages/restaurante-impressoras/index.jsx:9-78`, reusado em `restaurante-config`) mostra badge pareado/online/offline (poll a cada 15s) + botão "Gerar token" com caixa de copiar. Fila de trabalho pendente: `impressoras_detectadas`/`impressao_jobs`, consumida via `GET jobs/pendentes` → `POST jobs/:id/concluido|erro`.
+
+## O que muda do que já foi feito nesta branch
+
+- **Reverte** a chamada push em `pedidos.service.ts` (`this.apiGdoor.enviarPedido(...).catch(...)`) — vira um **INSERT numa fila** (`gdoor_jobs`), não mais uma chamada HTTP direta pro `api_gdoor`.
+- **Reaproveita** o resto: contrato `product_id` (já corrigido em `api_gdoor`), migration `customers.cpf_cnpj`, campo CPF no checkout, `/mapeamento` do `api_gdoor` continua igual (endpoint local, sem mudança de modelo de auth).
+- `ApiGdoorService`/`ApiGdoorModule` já criados viram a base do serviço de **criação de job** (renomeio o método, mantenho o arquivo).
+
+## Implementação
+
+### 1. Migrations (uma leva só, `deliveryhub_white_label/supabase/migrations/`)
+
+```sql
+-- restaurants: pareamento do agente GDOOR (mesmo padrão de agente_impressao_token)
+ALTER TABLE public.restaurants
+  ADD COLUMN IF NOT EXISTS gdoor_agente_token UUID,
+  ADD COLUMN IF NOT EXISTS gdoor_agente_ultimo_ping TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS gdoor_cnpj_esperado TEXT,      -- digitado pelo dono no painel
+  ADD COLUMN IF NOT EXISTS gdoor_cnpj_confirmado TEXT;    -- último CNPJ que o agente reportou (EMITENTE.CNPJ local)
+
+-- Fila de pedidos pra sincronizar — mesmo padrão de impressao_jobs
+CREATE TABLE IF NOT EXISTS public.gdoor_jobs (
+  id            BIGSERIAL PRIMARY KEY,
+  restaurant_id BIGINT NOT NULL REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  pedido_id     BIGINT NOT NULL,
+  payload       JSONB NOT NULL,     -- cliente + itens já resolvidos, montado no momento do INSERT
+  status        TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente','processado','erro')),
+  erro_msg      TEXT,
+  venda_id_gdoor TEXT,              -- devolvido pelo agente ao concluir, pra auditoria
+  criado_em     TIMESTAMPTZ DEFAULT NOW(),
+  processado_em TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_gdoor_jobs_restaurant_pendente ON public.gdoor_jobs (restaurant_id, status);
+```
+
+### 2. `server_delivery` (backend, aplicar nos dois checkouts)
+
+**Guard novo** `src/auth/agente-gdoor.guard.ts` — cópia direta de `agente-impressao.guard.ts`: lê header `x-gdoor-agente-token`, resolve `restaurants` por `gdoor_agente_token`, seta `request.agenteRestaurantId`, atualiza `gdoor_agente_ultimo_ping = now()` como efeito colateral (heartbeat automático, mesmo mecanismo).
+
+**Módulo novo** `src/gdoor/` (renomeio `src/api-gdoor/` já criado pra cá, mesma ideia de módulo isolado):
+- `gdoor.service.ts`:
+  - `gerarToken(restaurantId)` — igual `AgenteImpressaoService.gerarToken`, `UPDATE restaurants SET gdoor_agente_token = randomUUID()`.
+  - `statusAgente(restaurantId)` — retorna `{ pareado, online, ultimo_ping, cnpj_esperado, cnpj_confirmado, cnpj_confere }` (`cnpj_confere` = comparação simples normalizada, ignorando pontuação).
+  - `salvarCnpjEsperado(restaurantId, cnpj)` — dono digita no painel.
+  - `criarJob(restaurantId, pedidoId, payload)` — substitui o antigo `ApiGdoorService.enviarPedido`: só faz `INSERT` em `gdoor_jobs`, nunca chama HTTP nenhum.
+  - `listarJobsPendentes(restaurantId)`, `marcarProcessado(jobId, restaurantId, vendaIdGdoor)`, `marcarErro(jobId, restaurantId, mensagem)` — usados pelo lado agente.
+  - `registrarCnpjAgente(restaurantId, cnpj)` — chamado pelo agente a cada poll (barato, é só um UPDATE), atualiza `gdoor_cnpj_confirmado`.
+- `restaurante-gdoor.controller.ts` (dono, `RestaurantOwnerGuard`, espelha `restaurante-agente-impressao.controller.ts`): `POST gerar-token`, `GET status`, `PATCH cnpj-esperado`.
+- `agente-gdoor.controller.ts` (agente, `AgenteGdoorGuard`, espelha `agente-impressao.controller.ts`): `GET jobs/pendentes` (só devolve jobs se `cnpj_confere` — se não confere, devolve lista vazia + um campo `bloqueado: true` pro agente logar o motivo), `POST jobs/:id/concluido`, `POST jobs/:id/erro`, `POST cnpj` (agente reporta o CNPJ lido do Firebird).
+
+**`pedidos.service.ts`, `atualizarStatus`**: troca o bloco `this.apiGdoor.enviarPedido(...)` por `this.gdoor.criarJob(data.restaurant_id, id, { cliente: detalhe.cliente, itens: detalhe.itens })` — o `buscarBruto(id)` continua sendo chamado do mesmo jeito, só muda o que se faz com o resultado (grava em vez de fazer fetch).
+
+**Wiring de módulo**: `pedidos.module.ts` troca o `import` de `ApiGdoorModule` (`../api-gdoor/api-gdoor.module`) por `GdoorModule` (`../gdoor/gdoor.module`) na lista de `imports`; `PedidosService` troca o construtor de `private apiGdoor: ApiGdoorService` pra `private gdoor: GdoorService`. `LicencaModule` deixa de ser necessário aqui (a checagem de licença não faz mais parte do fluxo de envio — o pareamento token+CNPJ já é a autorização; se quiser reintroduzir a checagem de licença mais pra frente, plugar em `gerarToken`/`statusAgente` em vez do envio do job).
+
+### 3. `api_gdoor` (Python) — vira poller, não mais webhook receiver
+
+- **`app/firebird_client.py`**: nova função `ler_cnpj_emitente() -> str | None` — `SELECT CNPJ FROM EMITENTE` (tabela de linha única, já confirmado nesta sessão).
+- **`app/poller.py`** (novo): loop assíncrono (`asyncio` + `httpx`, ou thread simples com `requests` + `time.sleep`) que a cada N segundos (configurável, ex: 5s):
+  1. `POST {SERVER_DELIVERY_URL}/agente-gdoor/cnpj` com o CNPJ lido do Firebird (barato, manda sempre — deixa o backend sempre com o valor atual).
+  2. `GET {SERVER_DELIVERY_URL}/agente-gdoor/jobs/pendentes`, header `x-gdoor-agente-token: {GDOOR_AGENTE_TOKEN}`.
+  3. Pra cada job: monta `ItemParaGravar` a partir do `payload` (mesmo mapeamento `product_id → codigo_gdoor` via `mapping.get_codigo_gdoor`, mesma checagem de não-mapeado), chama `firebird_client.criar_pre_venda(...)`, e reporta `POST jobs/:id/concluido` (ou `/erro` com a mensagem, sem derrubar o loop).
+- **`app/main.py`**: dispara o poller no `@app.on_event("startup")` como task em background (junto do `mapping.init_db()` que já existe). Mantém `/mapeamento`, `/saude` como estão. O antigo `POST /pedidos` (webhook manual) pode continuar existindo só pra teste manual via curl, documentado como tal — não é mais o caminho principal.
+- **`app/config.py`**: novas vars `SERVER_DELIVERY_URL` (ex: `http://localhost:3002` em dev, URL pública em produção), `GDOOR_AGENTE_TOKEN` (colado do painel, substitui o papel do `WEBHOOK_TOKEN` no fluxo principal — `WEBHOOK_TOKEN` continua existindo só pro endpoint manual `/pedidos`).
+- **`requirements.txt`**: adicionar `httpx` (ou usar só `requests`, mais simples pra polling síncrono — decidir na hora, `requests` evita puxar mais uma dependência assíncrona já que o polling não precisa ser concorrente com o FastAPI em si, pode rodar numa thread separada).
+
+### 4. Frontend — painel "Integração GDOOR" em `/restaurante/config`
+
+Novo componente `GdoorAgentePanel` (mesmo arquivo/padrão de `AgenteImpressaoPanel`, pode viver em `restaurante-config/index.jsx` direto já que é específico dessa tela, sem reuso em outra página como o de impressão tem):
+- Campo "CNPJ esperado no GDOOR" — input controlado, salva via `PATCH restaurante/gdoor/cnpj-esperado` (debounce ou botão "Salvar" explícito).
+- Badge de status (poll `GET restaurante/gdoor/status` a cada 15s, mesmo padrão): "Pareado e online" / "Pareado, offline" / "Não pareado" — e se `cnpj_confere === false`, badge extra vermelho "⚠️ CNPJ não confere" mostrando `cnpj_confirmado` vs `cnpj_esperado` lado a lado.
+- Botão "Gerar token de conexão" → `POST restaurante/gdoor/gerar-token`, mostra o UUID numa caixa monoespaçada com "Copiar" (`navigator.clipboard`), instrução curta: "cole esse token no arquivo `.env` do agente GDOOR, campo `GDOOR_AGENTE_TOKEN`, e reinicie o agente".
+- `src/services/restauranteService.js`: `gerarTokenGdoor()`, `getStatusGdoor()`, `salvarCnpjEsperadoGdoor(cnpj)` — mesmo padrão das 2 funções de agente de impressão já existentes ali.
+
+### 5. Não fazer agora
+
+- Download/instalador do `api_gdoor` como `.exe` empacotado (como o print-agent tem) — por enquanto continua rodando via `uvicorn` manual/script, documentado. Empacotar (PyInstaller, ex.) fica pra depois de validar o fluxo.
+- Revogação/expiração de token — mesmo nível do print-agent hoje (regenerar sobrescreve, sem TTL).
+
+## Verificação
+
+1. `tsc --noEmit` + boot real (`node dist/src/main.js`) nos dois checkouts — grafo de DI novo (`GdoorModule`, guard novo).
+2. Gerar token no painel (ou via `curl` autenticado como dono, já que não vou dirigir o browser) → colar no `.env` do `api_gdoor` → reiniciar o agente.
+3. Confirmar `ler_cnpj_emitente()` lê `51.274.858/0001-85` (CNPJ real já visto no `EMITENTE` desta máquina) e chega em `gdoor_cnpj_confirmado` via `POST /agente-gdoor/cnpj`.
+4. Cadastrar `gdoor_cnpj_esperado` igual → `GET status` deve retornar `cnpj_confere: true`.
+5. Criar pedido de teste → marcar `delivered` → conferir linha nova em `gdoor_jobs` (`status='pendente'`) → esperar o poller (até N segundos) → conferir `status='processado'` + `venda_id_gdoor` preenchido → conferir no GDOOR SLIM (F5→F3) que a pré-venda apareceu.
+6. Testar o caso CNPJ não confere: mudar `gdoor_cnpj_esperado` pra um valor errado → `GET jobs/pendentes` deve devolver vazio/bloqueado, mesmo com job pendente na fila — nenhuma pré-venda deve ser criada.

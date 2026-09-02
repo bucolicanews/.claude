@@ -1,0 +1,28 @@
+import { IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+
+export class CriarPacoteDto {
+  @IsString()
+  @MaxLength(100)
+  nome: string;
+
+  @IsIn(['combos', 'mais_vendidos', 'promocao', 'lancamentos'])
+  carrossel: 'combos' | 'mais_vendidos' | 'promocao' | 'lancamentos';
+
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  qtd_produtos: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  dias: number;
+
+  @IsNumber()
+  @Min(0)
+  preco: number;
+
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
+}

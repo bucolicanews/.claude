@@ -1,0 +1,110 @@
+# Integração api_gdoor ↔ server_delivery ↔ GDOOR SLIM
+
+## Contexto
+
+O dono de um dos restaurantes usa o GDOOR SLIM (PDV/ERP fiscal local, Firebird) pra emitir nota. Hoje um pedido de delivery fechado não vira nota nenhuma lá — o dono teria que digitar tudo de novo no PDV. `api_gdoor/` (pasta já existente, criada numa sessão anterior, ainda não versionada no git) é um serviço Python/FastAPI que recebe um webhook de pedido e grava direto no Firebird do GDOOR como pré-venda (`VENDAS.MODELO='PV'`), que aparece pronta pra importar na tela do PDV NFC-e (F5 → F3). O mecanismo já foi validado ponta a ponta contra o banco de teste local (`C:\GDOOR Sistemas\GDOOR SLIM\DATAGES.FDB`, confirmado presente nesta máquina) — a parte que falta é plugar o lado `server_delivery` (que hoje não chama nada) e ajustar 3 pontos que o hand-off anterior (`api_gdoor/INTEGRACAO.md`) identificou como desalinhados com o schema real.
+
+**Verificado nesta sessão, antes de planejar:**
+- `C:\GDOOR Sistemas\GDOOR SLIM\DATAGES.FDB` existe (banco real de teste desta máquina).
+- `fbclient.dll` usado pelo GDOOR é **32-bit** (confirmado lendo o header PE) — existe uma instalação Python 32-bit nesta máquina (`py -3.13-32`), separada da Python 64-bit padrão. `api_gdoor` **precisa rodar com essa Python 32-bit**, não com o `python`/`py` padrão do PATH.
+- Há um `fbclient.dll` 32-bit registrado em `C:\Windows\SysWOW64` — deve ser resolvido automaticamente por um processo 32-bit sem precisar configurar `FB_CLIENT_LIBRARY`, mas confirmar na prática.
+- `server_delivery/src/licenca/licenca.service.ts` já expõe `LicencaService.getStatus()` (`{ativo, bloqueado, revogado, ...}`) — `ativo` só é `true` quando `LICENCA_SERIAL` está setado no `.env` (essa instalação/máquina de dev não tem, então fica sempre `false`).
+- Local de plugue confirmado: `server_delivery/src/pedidos/pedidos.service.ts`, método `atualizarStatus` (hoje ~linha 464), já tem dois blocos irmãos no mesmo padrão (~linha 491-503: `salaoService.registrarEntradaCaixa` e `comissao.registrarComissaoEntrega`, ambos disparados só quando `status === 'delivered' && statusAnterior !== 'delivered'`).
+
+**Decisões confirmadas com o usuário:**
+1. **CPF/CNPJ do cliente**: adicionar campo novo (`customers.cpf_cnpj`), mas **opcional** — obrigatório só pra NFe, não pra NFC-e (que é o modelo usado aqui via pré-venda `PV`).
+2. **Mapeamento produto → código GDOOR**: por enquanto via API direta do `api_gdoor` (`POST /mapeamento`, já existe), sem tela de admin nova — evita construir UI antes de validar o fluxo fim a fim.
+3. **Gate de licença em dev**: sem `LICENCA_SERIAL` configurado (caso desta máquina), libera o envio via um `WEBHOOK_TOKEN` fixo de dev, pra dar pra testar o fluxo completo contra o GDOOR real local antes de ir pra produção.
+
+**Branches já criados** (antes deste plano, a pedido do usuário): `feature/integracao-gdoor` nos três repos (`deliveryhub_white_label`, `server_delivery` submódulo, `serer_delivery` standalone), todos limpos/sincronizados no momento da criação. `api_gdoor/` não tem `.git` próprio — é uma pasta solta que ainda não foi commitada, vai entrar no primeiro commit desta branch no `deliveryhub_white_label`.
+
+## Implementação
+
+### 1. `api_gdoor/` — ajustes no serviço Python (3 arquivos)
+
+- **`app/models.py`**: `ItemWebhook.sku: str` → `ItemWebhook.product_id: int` (é o id numérico do Supabase, não existe SKU/código próprio em `products` hoje). Adicionar `ClienteWebhook.cpf_cnpj` já existe (mantém `Optional`).
+- **`app/mapping.py`**: tabela `produto_mapa` passa a ter chave `product_id INTEGER PRIMARY KEY` em vez de `sku TEXT PRIMARY KEY`. Funções `get_codigo_gdoor`/`upsert_mapeamento` trocam o parâmetro `sku` por `product_id`.
+- **`app/main.py`**: endpoint `POST /pedidos` usa `item.product_id` em vez de `item.sku` na checagem de mapeamento não encontrado e na montagem de `itens_para_gravar`. Endpoint `POST /mapeamento` (`MapeamentoIn`) troca `sku: str` por `product_id: int`.
+- Sem mudança em `firebird_client.py` (já usa `codigo_gdoor` genérico) nem `config.py`.
+
+### 2. Setup local pra rodar de verdade (não só planejar)
+
+- `py -3.13-32 -m venv api_gdoor/.venv` (venv 32-bit dedicado, dentro da pasta — já tem `.gitignore` que provavelmente já ignora isso, conferir).
+- Instalar `requirements.txt` nesse venv.
+- Copiar `.env.example` → `.env`, `FB_PASSWORD` do GDOOR local (mesma senha usada no `smoke_test.py`: `masterkey` — confirmar se é a real ou só placeholder de teste), `WEBHOOK_TOKEN` fixo de dev.
+- Rodar `smoke_test.py` primeiro pra confirmar que o ambiente 32-bit + Firebird ainda funciona igual ao hand-off relatou (grava e some da tela do PDV corretamente).
+- Subir com `uvicorn app.main:app --reload --port 8000` (porta a definir, `8000` como padrão FastAPI) e testar `GET /saude`.
+
+### 3. `server_delivery` — novo `ApiGdoorService` (aplicar nos dois checkouts, `server_delivery` submódulo e `serer_delivery` standalone)
+
+Novo arquivo `server_delivery/src/pedidos/api-gdoor.service.ts` (ou módulo próprio `src/api-gdoor/` se preferir isolar — like `motoboy/`), injetando `LicencaService` (mesmo processo, sem HTTP) e `HttpService`/`fetch` nativo:
+
+```ts
+@Injectable()
+export class ApiGdoorService {
+  constructor(private licenca: LicencaService, private config: ConfigService) {}
+
+  async enviarPedido(pedido: { id: number; itens: ItemComNome[]; cliente: { name; cpf_cnpj } }) {
+    const url = this.config.get('API_GDOOR_URL');
+    if (!url) return; // integração não configurada nesta instalação — no-op silencioso
+
+    const status = this.licenca.getStatus();
+    const devToken = this.config.get('API_GDOOR_DEV_TOKEN');
+    const habilitado = (status.ativo && !status.bloqueado && !status.revogado) || !!devToken;
+    if (!habilitado) return;
+
+    const token = status.ativo ? this.config.get('LICENCA_SERIAL') : devToken;
+    try {
+      await fetch(`${url}/pedidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-webhook-token': token },
+        body: JSON.stringify({
+          pedido_id: String(pedido.id),
+          cliente: { nome: pedido.cliente.name, cpf_cnpj: pedido.cliente.cpf_cnpj ?? null },
+          itens: pedido.itens.map(i => ({
+            product_id: i.product_id, descricao: i.product_name,
+            quantidade: i.quantity, valor_unitario: i.unit_price,
+          })),
+        }),
+      });
+    } catch (e) {
+      this.logger.warn(`Falha ao enviar pedido ${pedido.id} pro GDOOR: ${e.message}`); // nunca propaga — mesmo padrão dos outros 2 blocos
+    }
+  }
+}
+```
+
+Em `pedidos.service.ts`, `atualizarStatus`, terceiro bloco igual aos dois existentes:
+```ts
+if (status === 'delivered' && statusAnterior !== 'delivered') {
+  const detalhe = await this.buscarBruto(id); // itens com product_name já resolvido
+  this.apiGdoor.enviarPedido({ id, itens: detalhe.itens, cliente: detalhe.cliente }).catch(() => {});
+}
+```
+Injetar `ApiGdoorService` no constructor de `PedidosService` (mesmo padrão de `comissao`/`salaoService`).
+
+**Wiring de módulo (verificado nesta sessão, não é chute):** `LicencaModule` (`src/licenca/licenca.module.ts`) hoje **não exporta** `LicencaService` (só `providers`, sem `exports`) — só é usado dentro do próprio módulo pelo `LicencaController`. Pra `ApiGdoorService` conseguir injetar `LicencaService`, precisa: (1) adicionar `exports: [LicencaService]` em `LicencaModule`; (2) declarar `ApiGdoorService` como `provider` em `PedidosModule` (`src/pedidos/pedidos.module.ts`), que já importa `AuthModule`/`MotoboyModule`/`SalaoModule` — adicionar `LicencaModule` a esse `imports`. **Testar o boot** (`node dist/src/main.js`, não só `tsc --noEmit`) depois dessa mudança — já tivemos uma regressão real neste projeto por dependência nova em serviço compartilhado que não propagou o grafo de DI corretamente (ver memória do projeto).
+
+Novas env vars (`.env` dos dois checkouts + `.env.example` se existir): `API_GDOOR_URL` (ex: `http://localhost:8000`, vazio = integração desligada nessa instalação), `API_GDOOR_DEV_TOKEN` (só setado em dev).
+
+### 4. Campo CPF/CNPJ do cliente
+
+- Migration `customers.cpf_cnpj TEXT` (nullable, sem constraint de formato por enquanto).
+- Backend: incluir `cpf_cnpj` no `SELECT_PERFIL`/`updateMeuPerfil` (`perfil.service.ts`) e no select de `cliente` em `buscarBruto` (`pedidos.service.ts`).
+- Frontend: campo opcional "CPF/CNPJ (opcional)" em `StepEndereco.jsx`, mesma seção "Seus dados" (ao lado de nome/telefone), sem validação de dígito verificador por enquanto (só formatação leve, mesmo nível do CEP).
+
+### 5. Não fazer agora (adiado, registrado pra não esquecer)
+
+- Tela de admin pra mapeamento produto↔código GDOOR — usar `POST /mapeamento` via curl/Postman por enquanto.
+- Homologação formal com suporte GDOOR (mecanismo é engenharia reversa do SQL do `GDOOR.exe`, não documentação oficial) — necessária antes de qualquer cliente real em produção, fora do escopo desta branch.
+- Deploy do `api_gdoor` como serviço permanente (Windows Service / tarefa agendada) na máquina do restaurante — por enquanto roda manual via `uvicorn` pra validar.
+
+## Verificação
+
+1. `smoke_test.py` (venv 32-bit) passa igual reportado no hand-off.
+2. Subir `api_gdoor` local (`uvicorn`, porta 8000) + `GET /saude` responde `{status: ok}`.
+3. Cadastrar mapeamento de 1-2 produtos reais via `POST /mapeamento` (usando `product_id` de um produto de teste do restaurante local).
+4. Subir `server_delivery` local com `API_GDOOR_URL=http://localhost:8000` e `API_GDOOR_DEV_TOKEN` setados.
+5. Fluxo fim a fim: criar pedido de teste → avançar status até `delivered` → conferir log do `api_gdoor` recebendo o webhook → conferir no GDOOR SLIM (tela do PDV, F5→F3) que a pré-venda aparece com nome/CPF/itens corretos.
+6. Testar idempotência: repetir a chamada pro mesmo pedido (ex: marcar `delivered` de novo não deveria disparar de novo, já que `atualizarStatus` só chama quando `statusAnterior !== 'delivered'` — mas testar também o endpoint do `api_gdoor` sozinho pra confirmar que `venda_id_do_pedido` bloqueia duplicata).
+7. `tsc --noEmit` **e** boot real (`npm run build && node dist/src/main.js`, confirmar log "Nest application successfully started") nos dois checkouts de backend depois das mudanças — o `tsc` sozinho não pega erro de grafo de DI (dependência não exportada/importada entre módulos).

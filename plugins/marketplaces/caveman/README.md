@@ -82,13 +82,13 @@ npx skills add JuliusBrussee/caveman
 The full installer also wires the Claude Code hooks and statusline, finds every supported agent on your machine, and is safe to rerun (Node.js 18+):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/v2.2.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/v2.4.0/install.sh | bash
 ```
 
 Windows (PowerShell 5.1+):
 
 ```powershell
-irm https://raw.githubusercontent.com/JuliusBrussee/caveman/v2.2.0/install.ps1 | iex
+irm https://raw.githubusercontent.com/JuliusBrussee/caveman/v2.4.0/install.ps1 | iex
 ```
 
 One agent only:
@@ -144,7 +144,7 @@ caveman claude             # Claude Code + Codex + Gemini CLI + opencode; aider 
 
 **What the engine does to a payload** — `detect()` types each payload, then routes it to a compressor that keeps what answers depend on:
 
-| Detected type | Keeps | Target |
+| Detected type | Keeps | Target Savings|
 |---|---|---|
 | `json` | keys, structure, error/message subtrees; collapses repetitive arrays | 70–90% |
 | `log` | errors, stack traces, first/last lines; drops INFO and progress noise | 85–95% |
@@ -228,7 +228,7 @@ One install also brings the small tools:
 
 ## Wrap any agent
 
-`caveman <agent>` wraps eight agents natively. Adding one is a data change, a single JSON profile in [`agents/profiles/`](./agents/profiles/), no code.
+`caveman <agent>` persistently enables supported native integration, then launches agent. `caveman wrap <agent>` runs ephemeral session. Adding one is a data change, a single JSON profile in [`agents/profiles/`](./agents/profiles/), no code.
 
 | Agent | Vendor | How it's wrapped |
 |---|---|---|
@@ -241,7 +241,7 @@ One install also brings the small tools:
 | **OpenClaw** | OpenClaw | ephemeral merged config, your config read-only |
 | **Pi** | pi.dev | bundled native extension, your `~/.pi` config untouched |
 
-Wrap never edits your own config files. Real sessions round-trip in record mode, tested against **Hermes v0.18.0**, **OpenClaw 2026.6.11**, and **Pi 0.84.2**.
+`caveman wrap` never edits host config files. Persistent shortcut writes are journaled and reversible with `caveman disable <agent>`. Real sessions round-trip in record mode, tested against **Hermes v0.18.0**, **OpenClaw 2026.6.11**, and **Pi 0.84.2**.
 
 Not on the list? Point any provider SDK or framework (Vercel AI SDK, LangChain, LiteLLM, OpenAI Agents, CrewAI, PydanticAI) at the local proxy with a `baseURL` swap: [`integrations/recipes/`](./integrations/recipes/).
 
@@ -277,7 +277,7 @@ Your agent still talks to the provider you chose. Local compression needs no Cav
 
 Split license. Skill and adoption surfaces are [MIT](./LICENSE). Engine-linked runtime is BSL-1.1 source-available, not OSI Open Source before Change Date.
 
-**MIT** — the skill, Agent SDK and initializer, the CLI, both client SDKs (TS + Python), kit, evals/graders, contracts, provider catalog, the extension shell, and the thin cavemem clients.
+**MIT** — the skill, Agent SDK and initializer, the CLI, both client SDKs (TS + Python), contracts, provider catalog, the extension shell, and the thin cavemem clients.
 
 **BSL-1.1** — Engine, Proxy, Cache Engine, rewriter, Browse, MCP server, `shrink`, cavemem Go core, and shared Go platform. New Engine-linked runtime modules default to BSL-1.1. Source-available: read it, fork it, self-host it for your own first-party traffic free, production included. Every BSL version auto-converts to **Apache-2.0** on the earlier of `2030-06-21` or four years after that version first ships. Third-party hosted, managed, or embedded service use needs commercial license. BSL text and per-directory map ship with source.
 

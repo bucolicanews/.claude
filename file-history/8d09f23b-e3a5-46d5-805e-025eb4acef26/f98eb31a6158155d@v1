@@ -1,0 +1,106 @@
+# Handoff — Integração api_gdoor ↔ server_delivery ↔ GDOOR SLIM
+
+Resumo do que foi validado até agora, pra continuar codando a partir daqui.
+
+## O que já está pronto e testado (nesta pasta)
+
+`app/` é um serviço Python (FastAPI) que recebe um pedido via webhook e grava
+no Firebird do GDOOR SLIM como pré-venda importável pelo PDV NFC-e
+(`F5 → F3`). **Testado de ponta a ponta contra o banco real de teste**:
+pedido chega → vira `VENDAS(MODELO='PV')` + `ITEVENDAS` + `PDV_CLIENTE` →
+aparece na tela do PDV com nome/CPF corretos.
+
+Mecanismo GDOOR (descoberto lendo o SQL literal embutido no `GDOOR.exe`,
+não documentação oficial — validar com suporte GDOOR antes de produção):
+- Pré-venda pro PDV NFC-e = linha em `VENDAS` com `MODELO='PV'`,
+  `PROCESSADA=1`, `CANCELADA=0`, `IMPORTADO=0` (os 3 últimos não são
+  `NOT NULL` no schema, mas sem eles a tela não lista o pedido).
+- Itens em `ITEVENDAS` (mesma tabela das notas de verdade), FK `ID_VENDAS`.
+- Cliente via `PDV_CLIENTE` (`ID_VENDA`, `CPFCNPJ`, `NOME`) — leve, sem
+  precisar de cadastro completo em `CLIENTE`.
+- Numeração: `NOTA` = `GEN_ID(GEN_VENDAS_ID,1)` convertido pra texto (único
+  por `NOTA+MODELO+SERIE+DATA_EMISSAO+LOJA+CAIXA`). `SERIE` vem de
+  `PDV_CONFIG.NM_SERIE` (`'001'` neste ambiente). `LOJA`/`CAIXA` fixos
+  (`'0001'`) — instalação de loja única, sem tabela de filial.
+- Produto: `ESTOQUE.CODIGO` precisa existir previamente (cadastro fiscal
+  feito pela tela do GDOOR, não por SQL — testamos e um produto criado só
+  via SQL fica com `SITUACAO=NULL` e some da listagem padrão).
+
+Arquitetura local: **todo o Firebird desta máquina é 32-bit**. Rodar
+`firebird-driver` em Python exige Python 32-bit (ou uma `fbclient.dll`
+64-bit, que não existe aqui). Confirmar isso no servidor de destino real.
+
+## O que mudou depois de ler o código de vocês (agente investigou agora)
+
+O contrato do webhook em `app/models.py` foi escrito **antes** de eu ver o
+schema real de `server_delivery`. Não bate 100%:
+
+| Assumi antes | Realidade em `server_delivery` |
+|---|---|
+| item tem `sku` (string) | `order_items.product_id` (id do Supabase) — **sem SKU/código próprio** em `products` |
+| cliente tem `cpf_cnpj` | `customers` **não tem campo de CPF/CNPJ** hoje (só `name, email, phone_e164, address_json`) |
+| pedido "fechado" = status genérico | status real é enum `pending/confirmed/preparing/ready/motoboy_collecting/out_for_delivery/delivered/canceled`. O evento de fechamento operacional usado hoje pra outros efeitos colaterais (caixa, comissão) é **`status === 'delivered'`** |
+
+**Ação pendente**: ajustar `app/models.py` (`ItemWebhook.sku` →
+`product_id`) e o mapeamento em `app/mapping.py`/`app/main.py` (chave de
+mapa passa a ser `product_id` do Supabase, não SKU). CPF/CNPJ continua
+opcional (campo já é `Optional` no modelo) — a nota sai sem CPF do
+consumidor se vocês não coletarem isso ainda.
+
+## Onde plugar a chamada (lado NestJS, ainda não feito)
+
+Arquivo: `server_delivery/src/pedidos/pedidos.service.ts`, método
+`atualizarStatus(id, status)` (linha ~325). Já existem dois efeitos
+colaterais no mesmo padrão, linha ~354-364:
+
+```ts
+if (status === 'delivered' && statusAnterior !== 'delivered' && data.payment_method === 'cash') {
+  await this.salaoService.registrarEntradaCaixa(...)
+}
+if (status === 'delivered' && statusAnterior !== 'delivered' && data.motoboy_id) {
+  await this.comissao.registrarComissaoEntrega(data as any, data.motoboy_id);
+}
+```
+
+Adicionar um terceiro bloco igual, chamando um novo serviço (`ApiGdoorService`,
+injetado no construtor como os outros) que:
+1. Busca os dados completos do pedido via `this.buscarBruto(id)` (itens +
+   nomes de produto resolvidos — o `atualizarStatus` sozinho não tem isso).
+2. Faz `POST` pro `api_gdoor` (`/pedidos`) com o payload montado.
+3. Não deve travar o fluxo principal se falhar (mesmo padrão dos outros
+   dois blocos — usar try/catch e logar, não propagar erro pro cliente).
+
+## Licenciamento = "serial do sistema" (confirmado)
+
+O "serial do sistema" que foi pedido pra usar como chave de conexão é o
+**`LICENCA_SERIAL`** que já existe em `server_delivery/src/licenca/`
+(serial por instalação local vendida, checkin com servidor central,
+`ativo/bloqueado/revogado`). Hoje, no `.env` de dev, **`LICENCA_SERIAL` está
+vazio** (então `LicencaService.getStatus().ativo` fica sempre `false` nesse
+ambiente — comportamento esperado, é o modo "central multi-tenant").
+
+Endpoint já existe: `GET /licenca/status` (sem autenticação), retorna
+`{ativo, bloqueado, revogado, ...}`.
+
+**Desenho recomendado**: no novo `ApiGdoorService` (NestJS), antes de
+chamar o `api_gdoor`, injetar `LicencaService` (mesmo processo, sem HTTP) e
+checar `ativo && !bloqueado && !revogado`. Se não estiver habilitado, não
+envia o pedido (loga e segue). Usar o valor de `LICENCA_SERIAL` como o
+header `x-webhook-token` que o `api_gdoor` já valida (`app/main.py`,
+`_checar_token`) — assim a chave de conexão é literalmente o serial da
+instalação, e só funciona se a licença estiver ativa.
+
+Em ambiente de dev sem `LICENCA_SERIAL` configurado, decidir: bloquear o
+envio (mais correto) ou liberar com um `WEBHOOK_TOKEN` fixo de dev (mais
+prático pra testar) — hoje `app/config.py` já suporta ambos via
+`WEBHOOK_TOKEN`.
+
+## Checklist do que falta
+
+- [ ] Trocar `sku` por `product_id` em `app/models.py` + `app/mapping.py` + `app/main.py`
+- [ ] Decidir se CPF/CNPJ do cliente fica opcional pra sempre ou se vai virar campo novo em `customers`
+- [ ] Criar `ApiGdoorService` no NestJS (novo módulo ou dentro de `pedidos/`), injetando `LicencaService`
+- [ ] Plugar chamada em `atualizarStatus` (bloco `status === 'delivered'`)
+- [ ] Definir o mapeamento produto Supabase (`product_id`) ↔ `ESTOQUE.CODIGO` do GDOOR (tabela/tela de administração?)
+- [ ] Confirmar arquitetura 32/64-bit do Firebird no servidor de produção antes de escolher o Python
+- [ ] Homologar com suporte GDOOR antes de produção (mecanismo via `VENDAS.MODELO='PV'` foi engenharia reversa, não documentação oficial)

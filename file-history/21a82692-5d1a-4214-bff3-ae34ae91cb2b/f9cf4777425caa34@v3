@@ -1,0 +1,227 @@
+# Integração Delivery → GDOOR SLIM (Pré-Venda)
+
+## Objetivo
+
+Permitir que, ao fechar um pedido no sistema de delivery, o pedido seja
+automaticamente lançado no GDOOR SLIM como **Pré-Venda**, caindo na fila do
+Caixa/PDV para que o operador finalize e emita a NFC-e/NFe.
+
+> **Importante:** esse fluxo **não emite a nota fiscal sozinho**. Ele apenas
+> entrega o pedido pronto na fila do caixa. A emissão da NFC-e/NFe continua
+> dependendo de um operador finalizar a venda pela tela do GDOOR (é o único
+> ponto que aciona o módulo fiscal / comunicação com a SEFAZ). Isso foi uma
+> decisão consciente pedida pelo time — "por enquanto é isso que queremos".
+
+## Como foi validado
+
+Testado em ambiente local (banco de teste `DATAGES.FDB`, Firebird), via
+`isql`, usando a sequência abaixo. Resultado: `PREVENDA` nº 1 criada com
+sucesso, com 1 item vinculado, e visível na consulta às tabelas
+`PREVENDA`/`PREVENDA_ITENS`.
+
+```
+NUMERO=1  STATUS=NOVO  CLI_NOME=CLIENTE DELIVERY TESTE  VALOR_TOTAL=45.90
+NUMERO=1  ITEM=1  CODIGO=000001  DESCRICAO=PRODUTO TESTE  QTD=1  VALOR_UNIT=45.90
+```
+
+Também foi necessário cadastrar um produto de teste (`ESTOQUE.CODIGO =
+'000001'`) porque a base de testes estava totalmente zerada — sem produto
+cadastrado, o `INSERT` em `PREVENDA_ITENS` falha (existe FK obrigatória).
+
+## Arquitetura do fluxo
+
+```
+[Sistema de Delivery]
+      | pedido fechado / pago
+      v
+[Serviço de integração]  --(driver Firebird)-->  [DATAGES.FDB - GDOOR SLIM]
+      |                                                 |
+      | grava PREVENDA + PREVENDA_ITENS                 | fila de Pré-Venda
+      v                                                 v
+                                              [Operador no Caixa/PDV do GDOOR]
+                                                         |
+                                                         v
+                                          Finaliza a venda -> Emite NFC-e/NFe (SEFAZ)
+```
+
+O "Serviço de integração" é uma peça que **ainda precisa ser construída** por
+vocês (não existe pronta) — um pequeno worker/rotina que escuta o evento de
+"pedido fechado" do sistema de delivery e grava direto no Firebird do GDOOR.
+
+## Conexão com o banco
+
+- Motor: Firebird (o mesmo usado pelo GDOOR SLIM).
+- Banco: `C:\GDOOR Sistemas\GDOOR SLIM\DATAGES.FDB`.
+- Host local: `127.0.0.1`, porta padrão Firebird `3050`.
+- Drivers possíveis, conforme a stack do sistema de delivery:
+  - Python: `firebird-driver` ou `fdb`.
+  - .NET: `FirebirdSql.Data.FirebirdClient`.
+  - Node.js: `node-firebird`.
+  - Delphi: `FireDAC`/`IBX` (o próprio GDOOR usa essa stack).
+- **Usuário/senha:** usar as credenciais reais de operação, não `SYSDBA`. Se
+  não houver um usuário de aplicação dedicado, pedir ao suporte GDOOR para
+  criar um específico para essa integração (facilita auditoria e limita
+  permissões ao necessário).
+
+## Tabelas envolvidas
+
+### `PREVENDA` (cabeçalho do pedido)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `NUMERO` | INTEGER | Sim | **Sempre gerar com `GEN_ID(GEN_PREVENDA, 1)`.** Nunca inventar o número manualmente — é o mesmo gerador que a tela do GDOOR usa, evita colisão. |
+| `STATUS` | VARCHAR(10) | Não (default nulo) | Usar `'NOVO'` — é o valor que o próprio GDOOR grava para pré-venda recém-criada e ainda não finalizada. |
+| `CLI_COD` | VARCHAR(10) | Não (default `'000000'`) | Código do cliente no GDOOR. Se o cliente do delivery não tiver cadastro correspondente no GDOOR, usar `'000000'` — é o mesmo fallback que a lógica interna do GDOOR usa para "cliente não encontrado". |
+| `CLI_NOME` | VARCHAR(60) | Não | Nome do cliente (pode vir direto do delivery). |
+| `CLI_CPF` | VARCHAR(20) | Não | CPF/CNPJ do cliente, se disponível — importante para a nota. |
+| `VENDEDOR` | VARCHAR(35) | Não | Sugestão: usar um valor fixo tipo `'DELIVERY'` para identificar a origem visualmente na fila do caixa. |
+| `VALOR_PROD` / `VALOR_DESC` / `VALOR_TOTAL` | NUMERIC(15,4) | Não (default 0) | Totais do pedido. `VALOR_TOTAL` deve bater com a soma dos itens. |
+| `DATA_CAD` / `HORA_CAD` | DATE / TIME | Não (default `current_date`/`current_time`) | Pode deixar o próprio banco preencher. |
+
+### `PREVENDA_ITENS` (itens do pedido)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| `NUMERO` | INTEGER | Sim | Mesmo número gerado para o cabeçalho em `PREVENDA`. |
+| `ITEM` | INTEGER | Sim | Sequencial do item dentro do pedido (1, 2, 3...). |
+| `CODIGO` | VARCHAR(6) | — | **Tem FK para `ESTOQUE.CODIGO`.** O produto precisa existir previamente cadastrado no GDOOR. |
+| `DESCRICAO` | VARCHAR(120) | Não | Descrição do item (pode vir do delivery, mas o ideal é usar a descrição oficial do produto no GDOOR). |
+| `QTD` | NUMERIC(15,4) | Não (default 0) | Quantidade. |
+| `UND` | VARCHAR(3) | Não | Unidade (ex.: `UN`, `KG`). |
+| `VALOR_UNIT` / `VALOR_LISTA` / `VALOR_TOTAL` | NUMERIC(15,4) | Não (default 0) | Valores do item. |
+
+## Pontos principais a observar na implantação
+
+0. **Cuidado com conexão local sem servidor: use sempre TCP explícito.**
+   Ao testar/depurar com `isql`, conectar só pelo caminho do arquivo
+   (`C:\...\DATAGES.FDB`) pode abrir o banco em modo **embarcado** (engine
+   local, à parte do serviço Firebird real que o GDOOR usa), em vez de ir
+   pelo servidor que está de pé na porta 3050. Os dados ficam gravados no
+   mesmo arquivo físico (não há corrupção, o Firebird coordena o lock por
+   arquivo), mas para evitar qualquer ambiguidade ao testar, conecte sempre
+   explicitando host/porta: `localhost/3050:C:\GDOOR Sistemas\GDOOR
+   SLIM\DATAGES.FDB`. Isso garante que você está enxergando exatamente o que
+   o GDOOR enxerga.
+
+0.1. **Produto criado via SQL cru não aparece na tela se faltar `SITUACAO`.**
+   Testamos isso na prática: um produto inserido em `ESTOQUE` só com
+   `CODIGO`/`DESCRICAO` fica com `SITUACAO = NULL` e some da consulta padrão
+   de produtos do GDOOR (a tela filtra por produto ativo). Se algum dia for
+   necessário criar produto via integração (não recomendado — ver seção "O
+   que NÃO fazer"), é obrigatório também gravar `SITUACAO = 'A'` e revisar
+   os demais campos que a tela de cadastro preenche automaticamente
+   (unidade, preço, tributação). O caminho seguro continua sendo cadastrar
+   o produto pela tela do GDOOR e só mapear o código.
+
+0.2. **A fila de Pré-Venda pode depender de haver um caixa aberto.** No
+   ambiente de teste, a tabela `CAIXA` estava totalmente vazia (nenhuma
+   abertura de caixa já feita) e a pré-venda gravada via SQL não aparecia na
+   tela até isso ser investigado. Antes de validar visualmente qualquer
+   pré-venda importada, garanta que existe um caixa aberto na sessão do
+   operador — senão a tela pode simplesmente não listar nada, mesmo com o
+   dado correto no banco.
+
+1. **Mapeamento de produtos é o ponto crítico.** O `CODIGO` em
+   `PREVENDA_ITENS` precisa bater com um produto já cadastrado em `ESTOQUE`
+   no GDOOR. O SKU do sistema de delivery **não é o mesmo código** do GDOOR
+   — é obrigatório manter uma tabela de mapeamento (delivery SKU ↔ GDOOR
+   `ESTOQUE.CODIGO`), cadastrada e mantida por quem administra o catálogo.
+   Pedido com produto sem mapeamento deve ser barrado *antes* de tentar o
+   `INSERT` (senão a transação falha por violação de FK).
+
+2. **Nunca gerar o número da pré-venda manualmente.** Sempre usar
+   `GEN_ID(GEN_PREVENDA, 1)` dentro da mesma transação do `INSERT`, para não
+   colidir com pré-vendas criadas direto na tela do GDOOR por um operador.
+
+3. **Idempotência / evitar duplicidade.** Se o serviço de integração tentar
+   reenviar um pedido (timeout, retry de webhook, etc.), ele não pode criar
+   uma pré-venda duplicada. Recomendação: guardar o ID do pedido do delivery
+   em algum campo de correlação (ex.: aproveitar `CHAVE` em
+   `PREVENDA_ITENS` ou manter uma tabela própria de log de importação com
+   `id_pedido_delivery -> numero_prevenda`) e checar antes de inserir de
+   novo.
+
+4. **Transação única por pedido.** O `INSERT` em `PREVENDA` e todos os
+   `INSERT` em `PREVENDA_ITENS` do mesmo pedido devem ocorrer na mesma
+   transação, com `COMMIT` só ao final. Isso evita pré-venda "pela metade"
+   (cabeçalho sem item, ou item órfão) aparecendo na fila do caixa.
+
+5. **Erros devem ser logados e alertados, não engolidos.** Casos esperados
+   de falha: produto sem mapeamento, cliente com CPF inválido, banco fora do
+   ar. O time do delivery precisa saber quando um pedido **não** entrou no
+   GDOOR, senão a venda "some" sem gerar nota.
+
+6. **Este caminho não é um canal oficial documentado pelo fabricante.** O
+   schema foi obtido por engenharia reversa do banco (leitura direta das
+   tabelas/constraints), não por documentação oficial da GDOOR. Antes de ir
+   para produção:
+   - Validar esse fluxo com o suporte técnico da GDOOR.
+   - Perguntar especificamente sobre `Api.exe` e as tabelas `GHUB_*`
+     (`GHUB_PEDVENDA_SYNC`, `GHUB_VENDAS_SYNC`, `GHUB_CLIENTES_SYNC`,
+     `GHUB_DEVICES`) — parecem ser um canal de sincronização oficial já
+     pensado para esse cenário, e seria a alternativa mais robusta a este
+     `INSERT` direto.
+   - Se o delivery já roda por iFood, existe módulo nativo (`CONFIG_IFOOD`)
+     — vale confirmar se cobre o caso de uso antes de manter uma integração
+     própria.
+
+7. **Backup antes de aplicar em produção.** Mesmo sendo um fluxo testado no
+   banco de teste, qualquer primeira aplicação em produção deve ser
+   precedida de backup do `DATAGES.FDB` (via `GBackup.exe`, já presente na
+   instalação).
+
+8. **Fila visível para o operador.** Vale combinar com quem opera o caixa
+   como identificar visualmente os pedidos vindos do delivery na tela de
+   Pré-Venda (por isso a sugestão de usar `VENDEDOR = 'DELIVERY'` — mas isso
+   pode ser ajustado para o padrão que fizer mais sentido operacionalmente).
+
+## Script de referência (usado no teste)
+
+```sql
+SET TERM ^ ;
+EXECUTE BLOCK AS
+DECLARE VARIABLE V_NUMERO INTEGER;
+BEGIN
+  V_NUMERO = GEN_ID(GEN_PREVENDA, 1);
+
+  INSERT INTO PREVENDA (NUMERO, STATUS, CLI_COD, CLI_NOME, CLI_CPF, VENDEDOR,
+                         VALOR_PROD, VALOR_DESC, VALOR_TOTAL)
+  VALUES (:V_NUMERO, 'NOVO', '000000', 'CLIENTE DELIVERY TESTE', NULL, 'DELIVERY',
+          45.90, 0, 45.90);
+
+  INSERT INTO PREVENDA_ITENS (NUMERO, ITEM, CODIGO, DESCRICAO, QTD, UND,
+                               VALOR_UNIT, VALOR_LISTA, VALOR_TOTAL)
+  VALUES (:V_NUMERO, 1, '000001', 'PRODUTO TESTE', 1, 'UN', 45.90, 45.90, 45.90);
+END^
+SET TERM ; ^
+COMMIT;
+```
+
+Na implementação real, isso deve ser feito via driver Firebird na linguagem
+do serviço de integração (não via `isql` manual), parametrizando os valores
+por pedido e rodando em loop para múltiplos itens.
+
+## O que NÃO fazer
+
+- **Não inserir diretamente na tabela `VENDAS`/`ITEVENDAS`.** Essas tabelas
+  representam o documento fiscal já emitido (ligadas a ICMS/PIS/COFINS,
+  dezenas de constraints). Não existe rotina pronta para popular isso a
+  partir de um pedido externo, e um registro ali sem emissão real na SEFAZ é
+  inconsistente.
+- **Não gerar `NUMERO` manualmente** (sempre pelo gerador `GEN_PREVENDA`).
+- **Não cadastrar produto novo direto na tabela `ESTOQUE` via SQL** em
+  produção — cadastrar pela tela do GDOOR, que aplica as regras fiscais
+  (NCM, CST, CFOP) necessárias para a nota sair correta.
+
+## Próximos passos sugeridos
+
+1. Levantar com o suporte GDOOR a documentação de `Api.exe`/`GHUB` como
+   alternativa mais robusta a este `INSERT` direto.
+2. Definir e implementar a tabela de mapeamento de produtos (delivery SKU ↔
+   GDOOR `ESTOQUE.CODIGO`).
+3. Construir o serviço de integração (linguagem da stack do delivery) com:
+   idempotência, log de erros, alerta em caso de falha de importação.
+4. Testar o ciclo completo em ambiente de teste: pedido no delivery → pré-
+   venda no GDOOR → finalização manual no caixa → nota emitida.
+5. Só depois disso, homologar com o suporte GDOOR antes de ligar em
+   produção.

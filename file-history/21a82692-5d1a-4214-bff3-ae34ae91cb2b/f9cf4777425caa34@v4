@@ -1,0 +1,202 @@
+# Integração Delivery → GDOOR SLIM (Pré-Venda via PDV NFC-e)
+
+## Objetivo
+
+Ao fechar um pedido no sistema de delivery, gravar automaticamente uma
+"pré-venda" no GDOOR SLIM, para que o operador finalize pela tela
+**PDV NFC-e → F5 (Importar) → F3 (Pré-Venda)** e emita a NFC-e/NFe.
+
+> Esse fluxo **não emite a nota fiscal sozinho**. Ele entrega o pedido pronto
+> na fila de importação do PDV. A emissão continua dependendo de um operador
+> puxar o pedido (F3) e finalizar a venda — único ponto que aciona o módulo
+> fiscal / SEFAZ. Decisão consciente do time: "por enquanto é isso que
+> queremos".
+
+## Mecanismo real (descoberto por engenharia reversa validada)
+
+A primeira tentativa deste projeto usou a tabela `PREVENDA`/`PREVENDA_ITENS`
+— **estava errada**. Essa tabela alimenta um recurso diferente ("Pré-venda
+Gerencial", outro menu). A tela que vocês usam (PDV NFC-e, F3) lê outra
+estrutura, confirmada lendo o SQL literal embutido no `GDOOR.exe`:
+
+```sql
+Select ..., V.ID, V.NOTA, V.SERIE, V.CLIENTE, V.DATA_EMISSAO, V.VALOR_TOT_NOTA, ...
+  from VENDAS V
+  left join CLIENTE C on C.CODIGO = V.CLIENTE
+  left join PDV_CLIENTE on PDV_CLIENTE.ID_VENDA = V.ID
+  left join PREVENDA_VENDA on PREVENDA_VENDA.ID_PREVENDA = V.ID
+  left join VENDAS as VENDAS_PRE_VENDA on VENDAS_PRE_VENDA.ID = PREVENDA_VENDA.ID_VENDA
+ where V.MODELO = 'PV'
+   and V.PROCESSADA = 1
+   and V.CANCELADA = 0
+   and VENDAS_PRE_VENDA.ID is null
+   and V.IMPORTADO = 0
+ order by V.DATA_EMISSAO
+```
+
+**Ou seja: uma "pré-venda" pro PDV NFC-e é uma linha na própria tabela
+`VENDAS`, com `MODELO = 'PV'`** (um "modelo" de documento que representa
+rascunho, ao lado de `'65'`=NFC-e, `'55'`=NFe, `'2D'`=ECF antigo). Os itens
+vêm de `ITEVENDAS` (mesma tabela usada pelas notas de verdade). Quando o
+operador importa (F3), o GDOOR grava em `PREVENDA_VENDA` e marca
+`VENDAS.IMPORTADO = 1` na origem.
+
+Isso foi **validado ao vivo** nesta conversa: inserido, consultado com a
+mesma query acima, e confirmado aparecendo na tela real do PDV do usuário.
+
+### Tabelas e campos usados
+
+**`VENDAS`** (cabeçalho) — campos obrigatórios (`NOT NULL`): `ID`, `NOTA`,
+`MODELO`, `SERIE`, `DATA_EMISSAO`, `LOJA`, `CAIXA` (mais `DENEGADA` e
+`SUBTRAIR_DESONERADO`, ambos com default `0`). Existe uma constraint
+`UNIQUE` composta em `(NOTA, MODELO, SERIE, DATA_EMISSAO, LOJA, CAIXA)`.
+Campos que a *query* de importação exige estarem com valor exato (não são
+`NOT NULL` no schema, mas sem eles a pré-venda não aparece na tela):
+- `PROCESSADA = 1`
+- `CANCELADA = 0`
+- `IMPORTADO = 0`
+
+**`ITEVENDAS`** (itens) — repete os campos de identificação do cabeçalho
+(`NOTA`, `MODELO`, `SERIE`, `DATA_EMISSAO`, `LOJA`, `CAIXA`) mais
+`ID_VENDAS` (FK para `VENDAS.ID`), `ITEM` (sequencial), `CODIGO`,
+`DESCRICAO`, `UND`, `QTD`, `VALOR_UNITA`, `VALOR_LISTA`, `TOTAL_DESCONTO`,
+`VALOR_TOTAL`, `CANCELADA = 0`.
+
+**`PDV_CLIENTE`** — tabela leve (`ID_VENDA`, `CPFCNPJ`, `NOME`), sem FK pra
+`CLIENTE`. É o que preenche nome/CPF na tela de importação **sem precisar
+de cadastro de cliente completo**. Confirmado ao vivo: sem essa linha, a
+pré-venda aparecia sem cliente/CPF.
+
+### Numeração
+
+`NOTA` é único por `(MODELO, SERIE, DATA_EMISSAO, LOJA, CAIXA)`. Usamos o
+próprio `ID` (gerado por `GEN_ID(GEN_VENDAS_ID, 1)`) convertido pra texto
+como `NOTA` — garante unicidade sem depender de outros campos. `SERIE` usa
+o valor configurado em `PDV_CONFIG.NM_SERIE` (neste ambiente: `'001'`).
+`LOJA`/`CAIXA` não têm tabela de referência neste GDOOR SLIM (instalação de
+loja única) — usamos `'0001'` fixo, validado funcionando.
+
+## Divisão de responsabilidades (o plano)
+
+**Produto — fonte da verdade tributária fica no GDOOR.**
+O SKU do delivery não é o `ESTOQUE.CODIGO` do GDOOR. Fluxo: produto novo no
+delivery → alguém cadastra/ajusta no GDOOR primeiro (tela de produtos, pra
+aplicar NCM/CST/CFOP/situação corretos) → só depois é liberado o mapeamento
+`SKU delivery ↔ ESTOQUE.CODIGO`. **Não dá pra automatizar o cadastro fiscal
+em si com segurança** — isso é decisão consciente, não limitação técnica
+implementada às pressas.
+
+**Cliente — não precisa de cadastro completo.**
+`PDV_CLIENTE` (nome + CPF/CNPJ, por venda) é suficiente pra nota sair. O
+delivery só precisa mandar o que já coleta no checkout — não precisa
+replicar a estrutura da tabela `CLIENTE` do GDOOR nem sincronizar uma base
+de clientes inteira.
+
+**Pedido → pré-venda — 1 transação por pedido.**
+`INSERT` em `VENDAS` (`MODELO='PV'`) + N `INSERT` em `ITEVENDAS` + 1
+`INSERT` em `PDV_CLIENTE`, tudo commitado junto.
+
+## Serviço de sincronização (Python)
+
+Implementado como serviço FastAPI que recebe webhook do delivery (decisão
+confirmada com o time: o delivery empurra o pedido via HTTP POST quando
+fecha, sistema desenvolvido internamente).
+
+Estrutura entregue (pasta `gdoor-delivery-sync/`):
+
+```
+app/
+  config.py          # config via variaveis de ambiente
+  models.py          # schema (Pydantic) do payload do webhook
+  mapping.py         # mapeamento SKU->codigo GDOOR + deduplicacao (SQLite local)
+  firebird_client.py # grava VENDAS(PV)+ITEVENDAS+PDV_CLIENTE no Firebird
+  main.py            # endpoints: POST /pedidos, POST/GET /mapeamento, GET /saude
+requirements.txt
+.env.example
+smoke_test.py        # teste de ponta a ponta usado na validacao
+```
+
+**Testado de ponta a ponta nesta conversa**, incluindo o servidor HTTP real
+(`uvicorn`), contra o banco de teste do GDOOR:
+- Pedido válido → grava e aparece na tela do PDV com cliente/CPF corretos.
+- Reenvio do mesmo `pedido_id` → idempotente, não duplica (retorna a venda
+  já criada).
+- Produto sem mapeamento → rejeitado com HTTP 422 e lista dos SKUs faltando
+  (nunca grava pedido parcial).
+- Requisição sem token / com token errado → HTTP 401.
+
+### Contrato do webhook (`POST /pedidos`)
+
+```json
+{
+  "pedido_id": "id-unico-do-pedido-no-delivery",
+  "cliente": { "nome": "Fulano", "cpf_cnpj": "12345678909" },
+  "itens": [
+    { "sku": "SKU-INTERNO", "descricao": "Pizza Calabresa", "quantidade": 1, "valor_unitario": 45.90, "unidade": "UN" }
+  ]
+}
+```
+Header obrigatório: `x-webhook-token: <token>`.
+
+## Ponto pendente levantado pelo time: autenticação por serial do sistema
+
+**Decisão registrada nesta conversa (ainda não implementada no código):** a
+chave de autenticação usada pelo delivery para chamar esse webhook deve ser
+o **serial/licença do próprio sistema GDOOR**, e esse serial precisa estar
+**habilitado** para a integração funcionar. Isso é consistente com o que já
+sabíamos: o `Api.exe`/`GHUB` (canal "oficial" mencionado antes) provavelmente
+é um recurso licenciado por serial, não liberado por padrão.
+
+Antes de trocar o `WEBHOOK_TOKEN` genérico do `.env.example` pelo serial
+real:
+1. Confirmar com o suporte GDOOR **onde esse serial fica exposto**
+   (arquivo de licença, `Habilita.exe`, registro do Windows — não achei um
+   campo de serial de sistema/licença dentro do banco `DATAGES.FDB`; só
+   existe `NFE_SERIAL`, que é o serial do certificado digital, outra coisa).
+2. Confirmar com o suporte GDOOR **como habilitar** esse serial para uso em
+   integração externa (provavelmente depende do plano contratado).
+3. Só então ajustar `config.py`/`.env` do serviço Python pra usar esse
+   valor como `WEBHOOK_TOKEN` (ou como credencial adicional, se o formato
+   exigido for diferente de um simples header).
+
+## Ponto técnico importante: arquitetura 32-bit
+
+**Toda a instalação Firebird desta máquina é 32-bit** (mesmo Firebird 5.0 —
+constatado lendo o cabeçalho PE da `fbclient.dll`). Um Python 64-bit não
+consegue carregar essa DLL (`OSError: %1 não é um aplicativo Win32 válido`).
+Para rodar o serviço `firebird-driver` em Python, é necessário:
+- Um Python **32-bit** (usamos isso na validação: instalado isolado, sem
+  afetar o Python 64-bit já existente na máquina), **ou**
+- Uma `fbclient.dll` 64-bit oficial, se decidirem obter uma.
+
+No servidor onde este serviço for implantado de verdade, confirmem a
+arquitetura do Firebird lá antes de escolher o interpretador Python.
+
+## O que NÃO fazer
+
+- **Não inserir em `PREVENDA`/`PREVENDA_ITENS`** pensando que alimenta o PDV
+  NFC-e — não alimenta (é outro recurso, "Pré-venda Gerencial").
+- **Não gerar `NOTA`/`ID` manualmente** — sempre via `GEN_ID(GEN_VENDAS_ID,
+  1)` / `GEN_ID(GEN_ITEVENDAS_ID, 1)`.
+- **Não esquecer `PROCESSADA=1`, `CANCELADA=0`, `IMPORTADO=0`** explícitos —
+  como não são `NOT NULL`, ficam `NULL` por padrão e a pré-venda não aparece
+  na tela (comparação `NULL = 1` nunca é verdadeira em SQL).
+- **Não cadastrar produto novo direto em `ESTOQUE` via SQL** em produção —
+  cadastrar pela tela do GDOOR (regras fiscais como NCM/CST/CFOP não são
+  reproduzidas só com `NOT NULL` do banco; testamos e um produto criado só
+  por SQL nem aparecia na consulta padrão por faltar `SITUACAO`).
+- **Não usar o token genérico do `.env.example` em produção** — trocar pelo
+  serial do sistema assim que o suporte GDOOR confirmar como obtê-lo e
+  habilitá-lo (ver seção acima).
+
+## Próximos passos
+
+1. Levantar com o suporte GDOOR onde obter/habilitar o serial do sistema
+   para autenticação da integração.
+2. Definir processo operacional de cadastro de produto (delivery → GDOOR →
+   mapeamento) — pode ser uma fila de pendências revisada por alguém.
+3. Confirmar a arquitetura (32/64-bit) do Firebird no ambiente onde o
+   serviço Python será realmente implantado.
+4. Rodar o ciclo completo em ambiente de teste: pedido no delivery → webhook
+   → pré-venda no GDOOR → operador finaliza no PDV → nota emitida.
+5. Homologar com o suporte GDOOR antes de ligar em produção.

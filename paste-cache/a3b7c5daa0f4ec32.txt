@@ -1,0 +1,98 @@
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/relatorio/garcom, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/relatorio/garcom/:garcomId/repasse, POST} route +2ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/relatorio/garcom/repasse/:repasseId, DELETE} route +0ms[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/relatorio/produtos, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/combos, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/combos/:id, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/combos, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/combos/:id, PATCH} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/combos/:id, DELETE} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] OnboardingController {/restaurante}: +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/planos-disponiveis, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/verificar-disponibilidade, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/registrar-inicial, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/finalizar, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] CatalogoController {/r}: +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r/branding, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r/acesso, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r/filtros, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r/produtos, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r/combos, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r/by-domain/:host, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/r/:slug, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] CozinhaPortalController {/cozinha-portal}: +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/cozinha-portal/me, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/cozinha-portal/resgatar-token, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/cozinha-portal/pedidos, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/cozinha-portal/pedidos/:id/status, PATCH} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] KdsPortalController {/kds-portal}: +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/kds-portal/impressoras, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/kds-portal/itens, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/pronto, PATCH} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/iniciar-preparo, PATCH} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/voltar, PATCH} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/kds-portal/itens/:id/reimprimir, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] PlanosAdminController {/planos}: +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/assinaturas, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/assinaturas/:restaurantId, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/assinaturas/:restaurantId, PUT} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/assinaturas/:restaurantId/cancelar, PATCH} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/assinaturas/:restaurantId/gerar-fatura, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/faturas, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/faturas/:id/marcar-paga, PATCH} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/:id, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/:id, PATCH} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/:id, DELETE} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] PlanosRestauranteController {/restaurante/plano}: +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/status, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/disponiveis, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/assinar, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/faturas, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/faturas/:id, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/faturas/:id/pagar, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/pagbank-chave-publica, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/restaurante/plano/renovar, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] PlanosWebhookController {/planos}: +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/planos/webhook, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] PerfilController {/perfil}: +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/perfil, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/perfil/e-motoboy, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/perfil, PATCH} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/perfil/foto, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] TagsPublicoController {/tags}: +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/tags, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/tags/carrosseis/:restaurantId, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] TagsAdminController {/admin/tags}: +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/admin/tags, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/admin/tags, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/admin/tags/:id, PATCH} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/admin/tags/:id, DELETE} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] InstalacoesAdminController {/instalacoes}: +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/instalacoes, GET} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/instalacoes/:id, GET} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/instalacoes, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/instalacoes/:id, PATCH} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/instalacoes/:id/plano, POST} route +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/instalacoes/:id/gerar-fatura, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] InstalacoesCheckinController {/instalacoes}: +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/instalacoes/checkin, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RoutesResolver] LicencaController {/licenca}: +0ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/licenca/status, GET} route +2ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/licenca/checkin-agora, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [NestApplication] Nest application successfully started +12ms
+Delivery Backend rodando na porta 3002
+[Nest] 14572  - 23/08/2026, 10:02:03 pm   ERROR [ExceptionsHandler] Error: PagBank: Invalid credential. Review AUTHORIZATION header
+    at PagBankClient.request (C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\src\pagamentos\pagbank.client.ts:33:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async PagamentosService.criarPix (C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\src\pagamentos\pagamentos.service.ts:131:22)
+    at async C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\node_modules\@nestjs\core\router\router-execution-context.js:47:62
+    at async C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\node_modules\@nestjs\core\router\router-proxy.js:9:17
+[Nest] 14572  - 23/08/2026, 10:05:48 pm   ERROR [ExceptionsHandler] Error: PagBank: Invalid credential. Review AUTHORIZATION header
+    at PagBankClient.request (C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\src\pagamentos\pagbank.client.ts:33:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async PagamentosService.criarPix (C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\src\pagamentos\pagamentos.service.ts:131:22)
+    at async C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\node_modules\@nestjs\core\router\router-execution-context.js:47:62
+    at async C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\node_modules\@nestjs\core\router\router-proxy.js:9:17

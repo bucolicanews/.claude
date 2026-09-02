@@ -1,0 +1,92 @@
+# Mapeamento de produtos GDOOR — modal completo com importação bidirecional
+
+## Contexto
+
+O mapeamento hoje (`GdoorMapeamentoPanel`, painel colapsável inline em `/restaurante/config`) só permite escolher, produto a produto do DeliveryHub, qual código do `ESTOQUE` do GDOOR corresponde a ele — sem lista dos itens do GDOOR ainda não mapeados, sem ação em massa, e sem jeito de criar produto de um lado a partir do outro. Pedido do usuário: um **modal próprio, grande**, listando os catálogos dos dois lados (GDOOR e DeliveryHub), com:
+
+1. Importar em massa (todos ou selecionados) produtos do GDOOR **para** o DeliveryHub — cria o produto no DeliveryHub e já mapeia.
+2. Importar em massa (todos ou selecionados) produtos do DeliveryHub **para** o GDOOR — cria o item no `ESTOQUE` do GDOOR e já mapeia.
+3. Separar visualmente mapeados vs não mapeados.
+4. Sinalizar quando um par mapeado **diverge** (nome, preço de venda ou quantidade diferentes dos dois lados).
+5. Permitir marcar um item do GDOOR como "não sincronizar" — some da lista de pendências, não é oferecido pra importação em massa (ex.: insumo interno, item de serviço que nunca vira produto vendável no delivery).
+
+**Peça nova e de maior risco:** hoje o agente (`api_gdoor`) só **lê** o `ESTOQUE` do GDOOR, nunca escreve. Criar produto no GDOOR a partir do Delivery exige a primeira escrita nessa tabela. `ESTOQUE` tem 150+ colunas (a maioria fiscal: NCM, ICMS, PIS/COFINS, IPI...) — confirmei no banco real que **não existe gerador de código** pra ela (`CODIGO` é digitado manualmente hoje, ex. `000001`, `000002`) nem exigência de preencher os campos fiscais pra um cadastro mínimo funcionar (testei: os 3 itens reais do ESTOQUE têm todos esses campos em branco/zero). A criação vai preencher só o essencial (código calculado, descrição, unidade, preço de venda, quantidade, situação='Ativo') — os campos fiscais ficam em branco, exatamente como um cadastro manual rápido pela tela do GDOOR ficaria, e o dono completa depois lá se for preciso pra emitir nota. Isso está sendo comunicado aqui porque é uma escrita nova num sistema fiscal de terceiro — se preferir que essa direção específica (Delivery→GDOOR) fique de fora da primeira versão, me avisa antes de eu implementar.
+
+## Modelo de dados (nova migration)
+
+```sql
+-- gdoor_estoque_cache ganha os campos que faltavam pra comparação de divergência
+-- e a flag de "não sincronizar" (precisa sobreviver ao refresh do cache — hoje
+-- é delete+insert total, vai virar upsert preservando bloqueado_sync)
+ALTER TABLE public.gdoor_estoque_cache
+  ADD COLUMN IF NOT EXISTS preco_venda NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS qtd NUMERIC(10,3),
+  ADD COLUMN IF NOT EXISTS unidade TEXT,
+  ADD COLUMN IF NOT EXISTS bloqueado_sync BOOLEAN NOT NULL DEFAULT false;
+
+-- Fila de criação de produto no GDOOR — mesmo padrão de gdoor_jobs (agente puxa,
+-- nunca o backend empurra), mas separada por ser um domínio diferente (cadastro
+-- de item no ESTOQUE, não pré-venda).
+CREATE TABLE IF NOT EXISTS public.gdoor_criar_produto_jobs (
+  id              BIGSERIAL PRIMARY KEY,
+  restaurant_id   BIGINT NOT NULL REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  product_id      BIGINT NOT NULL,
+  payload         JSONB NOT NULL,   -- {descricao, preco_venda, qtd, unidade}
+  status          TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente','processado','erro')),
+  codigo_gdoor_criado TEXT,
+  erro_msg        TEXT,
+  criado_em       TIMESTAMPTZ DEFAULT NOW(),
+  processado_em   TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_gdoor_criar_produto_pendente ON public.gdoor_criar_produto_jobs (restaurant_id, status);
+```
+
+## Backend (`server_delivery`, aplicar nos dois checkouts)
+
+### `gdoor.service.ts`
+
+- **`registrarEstoque`**: trocar delete+insert total por `upsert` (`onConflict: 'restaurant_id,codigo'`, atualiza `descricao/preco_venda/qtd/unidade/atualizado_em`, nunca toca `bloqueado_sync`) + `DELETE` só dos códigos que sumiram do relatório do agente (item removido/desativado no GDOOR).
+- **`catalogoCompleto(restaurantId)`** (substitui `listarMapeamento`+`listarEstoque` separados): busca `products` (do restaurante) + `gdoor_estoque_cache` + `gdoor_produto_mapeamento` de uma vez, monta e retorna:
+  - `produtos_delivery`: cada produto com `codigo_gdoor`/`descricao_gdoor` (se mapeado) + `diverge` (bool — nome/preço/qtd do par não batem, tolerância de centavos pra preço).
+  - `estoque_gdoor`: cada item do ESTOQUE com `product_id`/`nome_delivery` (se mapeado), `bloqueado_sync`, `diverge`.
+- **`bloquearSync(restaurantId, codigo, bloqueado)`** — toggle simples no `gdoor_estoque_cache`.
+- **`importarDeGdoor(restaurantId, codigos: string[])`** — pra cada código não mapeado (ignora já mapeado e `bloqueado_sync=true`): resolve categoria (mesmo padrão de `RestauranteService.importarProdutos` — busca por nome, cria se não existir; usa `GRUPO`/`FAMILIA` do item do GDOOR se vier preenchido, senão categoria fixa "Importado do GDOOR"), checa `PlanosService.verificarLimiteProdutos` (injetar `PlanosModule`), insere em `products` (nome/preço/qtd do GDOOR), e grava o mapeamento na mesma chamada. Retorna `{importados: [...], ignorados: [{codigo, motivo}]}`.
+- **`exportarParaGdoor(restaurantId, productIds: number[])`** — pra cada produto do Delivery ainda não mapeado: `INSERT` em `gdoor_criar_produto_jobs` (`payload: {descricao: name, preco_venda: price, qtd: quantidade_estoque, unidade: 'UN'}`). Não mapeia ainda — só quando o agente confirmar a criação (assíncrono, precisa do código que o GDOOR local vai gerar).
+- **`statusExportacao(restaurantId)`** — lista jobs de `gdoor_criar_produto_jobs` recentes (pendente/processado/erro) pro modal mostrar progresso.
+- Lado agente: **`marcarProdutoCriado(jobId, restaurantId, codigoGdoor)`** — marca job `processado` **e** já grava a linha em `gdoor_produto_mapeamento` (mapeamento automático, é o "podendo ser mapeado com o referencial" que o usuário pediu). **`marcarProdutoErro(jobId, restaurantId, mensagem)`**.
+
+### Controllers
+
+- `restaurante-gdoor.controller.ts`: troca `GET estoque` + `GET mapeamento` por `GET catalogo` (chama `catalogoCompleto`); adiciona `PATCH estoque/:codigo/bloquear`, `POST importar-de-gdoor`, `POST exportar-para-gdoor`, `GET exportar-para-gdoor/status`.
+- `agente-gdoor.controller.ts`: adiciona `GET criar-produto/pendentes`, `POST criar-produto/:id/concluido`, `POST criar-produto/:id/erro` (mesmo shape dos endpoints de `jobs/pendentes` já existentes).
+
+## Agente (`api_gdoor`)
+
+- **`firebird_client.py`**:
+  - `listar_produtos_estoque()` — adicionar `PRECO_VENDA, QTD, UND, SITUACAO` na query, incluir no dict retornado.
+  - `proximo_codigo_estoque()` — lê todos os `CODIGO`, filtra os puramente numéricos, pega o maior, soma 1, zero-preenche pro mesmo tamanho (6 dígitos, mesmo padrão observado: `000001`). Sequencial simples — seguro porque o poller processa um job por vez (nunca em paralelo).
+  - `criar_produto_estoque(descricao, preco_venda, qtd, unidade) -> str` — calcula o próximo código, `INSERT INTO ESTOQUE (CODIGO, DESCRICAO, UND, PRECO_VENDA, QTD, SITUACAO, DATA_CADASTRO) VALUES (...)`, retorna o código criado. Mesmo padrão de `criar_pre_venda` (conecta, insere, commit, fecha).
+- **`poller.py`**: novo par `_criar_produto_pendentes()`/`_processar_criacao_produto(job)` no mesmo `_ciclo()` (busca `GET criar-produto/pendentes`, cria no Firebird, reporta `concluido`/`erro`) — mesmo padrão dos jobs de pré-venda, arquivo separado de handler pra não misturar os dois domínios.
+
+## Frontend
+
+- Remove o corpo do `GdoorMapeamentoPanel` atual (mantém só um resumo: badge de pendências + botão "Abrir mapeamento de produtos").
+- Novo modal `GdoorMapeamentoModal` (mesmo shell de modal grande já usado em `restaurante-produtos/index.jsx`: `fixed inset-0 bg-black/50 ... z-50`, painel `max-w-5xl max-h-[90vh] overflow-y-auto`), com:
+  - Duas abas/colunas: **"Produtos GDOOR"** (lista `estoque_gdoor`, com filtro Não mapeados / Mapeados / Todos) e **"Produtos DeliveryHub"** (lista `produtos_delivery`, mesmo filtro).
+  - Cada linha: checkbox de seleção, nome, preço, indicador de status (✓ mapeado / ⚠ mapeado mas diverge / — não mapeado), e pro lado GDOOR um botão "Não sincronizar" por item.
+  - Barra de ação: "Selecionar todos (não mapeados)" + botão de importar em massa (some pro lado apropriado: "Importar N do GDOOR" na aba GDOOR, "Enviar N pro GDOOR" na aba DeliveryHub) — chama `importarDeGdoor`/`exportarParaGdoor` com os ids/códigos selecionados.
+  - Depois de "Enviar pro GDOOR", polling leve (mesmo padrão de 15s do `GdoorAgentePanel`) em `exportar-para-gdoor/status` até os jobs saírem de pendente, mostrando progresso.
+- `restauranteService.js`: `getCatalogoGdoor`, `bloquearSyncGdoor`, `importarDeGdoor`, `exportarParaGdoor`, `getStatusExportacaoGdoor` — remove `getEstoqueGdoor`/`getMapeamentoGdoor` (substituídos por `getCatalogoGdoor`).
+
+## Semântica de "divergência" (escopo explícito)
+
+`diverge` é só um **aviso visual** no modal (nome/preço/qtd diferentes entre os dois cadastros) — não bloqueia nem altera o envio de pré-venda, que já manda o nome/preço reais do pedido no momento da venda, independente do que está cacheado. Não implementa sincronização contínua de preço/estoque nesta rodada (fora de escopo — o pedido foi "cadastrar" em massa, não "manter sincronizado" depois).
+
+## Verificação
+
+1. `nest build` + boot real (`node dist/src/main.js`) nos dois checkouts depois de trocar `registrarEstoque` pra upsert e adicionar os módulos/controllers novos.
+2. Testar `proximo_codigo_estoque()`/`criar_produto_estoque()` direto contra o Firebird real de dev (mesmo padrão de smoke test já usado nesta sessão) antes de plugar no poller.
+3. Fluxo completo ponta a ponta: marcar produtos de teste pra exportar → confirmar job em `gdoor_criar_produto_jobs` → esperar o agente (rodando local) processar → conferir no Firebird que o item novo existe em `ESTOQUE` com os campos certos → conferir que `gdoor_produto_mapeamento` foi criado automaticamente → conferir no modal que o produto aparece como mapeado.
+4. Fluxo inverso: importar item de teste do GDOOR pro Delivery → conferir produto novo em `products` (categoria certa) + mapeamento automático.
+5. Testar `bloqueado_sync`: marcar um item, confirmar que some da lista de pendências e que um novo relatório de estoque do agente (delete+insert antigo virando upsert) não reseta a flag.
+6. `vite build` limpo no frontend.

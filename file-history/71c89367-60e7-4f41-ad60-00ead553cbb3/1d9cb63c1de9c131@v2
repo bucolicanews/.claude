@@ -1,0 +1,16 @@
+# Memória — sempre consultar antes de trabalhar
+
+Antes de responder ou implementar qualquer coisa nesta pasta (`DEV`, incluindo `deliveryhub_white_label`, `serer_delivery`, `may_memory`), **consulte primeiro a memória persistente** em:
+
+`C:\Users\jotac\.claude\projects\C--Users-jotac-OneDrive-Documents-DEV\memory\MEMORY.md`
+
+Esse `MEMORY.md` é o índice — cada linha aponta para um arquivo de memória (`user_*.md`, `feedback_*.md`, `project_*.md`, `reference_*.md`) com o contexto completo. Releia o índice e abra o(s) arquivo(s) relevante(s) antes de:
+
+- Qualquer tarefa de **UX/UI/design** (nova tela, formulário, modal, fluxo, styleguide) → abrir [reference_may_memory_vault.md](file://C:/Users/jotac/.claude/projects/C--Users-jotac-OneDrive-Documents-DEV/memory/reference_may_memory_vault.md) e, através dele, `may_memory/26-DESIGNER/DIRETRIZES-UX-UI.md` (framework canônico: HCD, ISO 9241, 5 Planos de Garrett, heurísticas de Nielsen, acessibilidade WCAG, Lean UX) — rodar o checklist mentalmente antes de considerar a UI "pronta", não improvisar.
+- Qualquer decisão de **segurança ou arquitetura** → mesmo `reference_may_memory_vault.md`, seção `21-SEGURANCA/`.
+- Trabalho no projeto **DeliveryHub** → `project_deliveryhub.md`.
+- Qualquer padrão de UI já validado (mobile forms, layout com scroll quebrado, carrossel auto-scroll, tamanho de modal) → as memórias `feedback_*` correspondentes, que já linkam de volta para o framework de UX/UI acima.
+
+O vault Obsidian `may_memory` (`C:\Users\jotac\OneDrive\Documents\DEV\may_memory`, `INDEX.md` como MOC raiz) é a fonte cross-project de mais alta autoridade — checar antes de improvisar um padrão do zero.
+
+Se uma memória citar um arquivo/função específico, confirme que ainda existe antes de agir sobre ela — memórias são fotografias no tempo, não estado ao vivo.

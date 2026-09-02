@@ -1,0 +1,116 @@
+# Favicon personalizado por loja (recurso pago)
+
+## Contexto
+
+O usuário pediu pra restringir "favicon da loja" a um recurso pago do plano —
+só que a investigação mostrou que essa troca de favicon **não existe ainda no
+código**: o `<link rel="icon">` do `index.html` é estático, sempre o do
+DeliveryHub, em qualquer loja. Não tem nada pra gatear — é feature nova.
+
+Confirmado com o usuário: a troca de favicon deve valer tanto no domínio
+próprio da loja (White Label) quanto no `/r/:slug` da plataforma principal
+(mesmo componente `restaurante-catalogo` atende os dois casos, então um único
+ponto de aplicação cobre ambos). Loja sem o recurso no plano mantém o favicon
+padrão do DeliveryHub e vê um aviso de upgrade no painel (Aparência).
+
+Investigação achou o padrão exato a seguir — é idêntico ao de `inclui_gdoor`/
+`modulo_gdoor`, que já percorre plano → assinatura → `restaurants` → resposta
+pública → hook do frontend:
+- `serer_delivery/src/planos/dto/criar-plano.dto.ts`/`atualizar-plano.dto.ts`:
+  campo `inclui_gdoor?: boolean` no mesmo bloco de `inclui_delivery`/`inclui_salao`.
+- `planos.service.ts`: whitelist em `criarPlano`/`atualizarPlano`, e o sync
+  pra `restaurants.modulo_gdoor` dentro de `atribuirAssinatura()` (linhas
+  ~264-271) — é isso que materializa o flag na loja quando ela assina/troca
+  de plano.
+- `empresas.service.ts`/`empresas.controller.ts`: admin de `/admin/empresas`
+  pode sobrescrever o módulo por loja individualmente (linhas 19, 32, 69, 82,
+  101, 121) — mesmo padrão, pra manter consistência com os outros módulos.
+- `restaurante.service.ts` (linha 60): select da "minha empresa" (painel do
+  dono) já traz `modulo_gdoor` — precisa do novo campo também.
+- `catalogo.controller.ts`: **crítico** — os selects públicos de
+  `GET /r/by-domain/:host` (linha ~320) e `GET /r/:slug` (linha ~338) só
+  trazem `modulo_delivery` hoje, não `modulo_gdoor`/`modulo_salao`. Preciso
+  adicionar o novo campo explicitamente nos dois, senão a vitrine pública
+  nunca vê o flag.
+- `useModulosEmpresa.js` (linhas 5-14): hook do painel do dono expõe
+  `moduloGdoor: !!data?.empresa?.modulo_gdoor` — mesmo padrão pro novo flag.
+
+Nome do flag: `inclui_favicon_personalizado` (plano) → `modulo_favicon_personalizado`
+(restaurants / respostas).
+
+## Banco de dados (nova migration em `deliveryhub_white_label/supabase/migrations/`)
+
+```sql
+ALTER TABLE public.planos
+  ADD COLUMN IF NOT EXISTS inclui_favicon_personalizado BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE public.restaurants
+  ADD COLUMN IF NOT EXISTS modulo_favicon_personalizado BOOLEAN NOT NULL DEFAULT false;
+```
+
+## Backend (`serer_delivery`, sincronizado no submódulo depois)
+
+Replicar o padrão de `inclui_gdoor`/`modulo_gdoor` ponto a ponto, nos mesmos
+arquivos listados no Contexto:
+1. DTOs — novo campo opcional booleano.
+2. `planos.service.ts` — `criarPlano`/`atualizarPlano` (whitelist) e
+   `atribuirAssinatura` (sync pra `restaurants.modulo_favicon_personalizado`
+   junto dos outros `modulo_*`).
+3. `empresas.service.ts`/`empresas.controller.ts` — override manual por loja
+   no admin, mesmo padrão de `modulo_gdoor`.
+4. `restaurante.service.ts` — adicionar ao select da "minha empresa".
+5. `catalogo.controller.ts` — adicionar `modulo_favicon_personalizado` aos
+   dois selects públicos (`by-domain/:host` e `:slug`). Sem isso a loja nunca
+   recebe o flag no front e a feature não funciona de jeito nenhum.
+
+## Frontend
+
+**Hook** (`src/hooks/useModulosEmpresa.js`): expor
+`moduloFaviconPersonalizado: !!data?.empresa?.modulo_favicon_personalizado`.
+
+**Aplicar o favicon** — novo utilitário `src/utils/faviconLoja.js`:
+```js
+export const aplicarFaviconLoja = (url) => {
+  let link = document.querySelector('link[rel="icon"]');
+  if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+  link.href = url;
+};
+export const restaurarFaviconPadrao = () => {
+  const link = document.querySelector('link[rel="icon"]');
+  if (link) link.href = '/favicon.ico';
+};
+```
+Chamado de dentro de `src/pages/restaurante-catalogo/index.jsx` (o mesmo
+componente atende domínio próprio via `home-router` E `/r/:slug` via
+`Routes.jsx` — um único `useEffect` cobre os dois casos): quando os dados da
+loja carregam, se `restaurante.modulo_favicon_personalizado && restaurante.logo_url`,
+aplica; a função de cleanup do `useEffect` chama `restaurarFaviconPadrao()`
+(evita o favicon da loja "vazar" se o cliente navegar de volta pra vitrine
+principal numa navegação SPA sem reload).
+
+**Admin — `admin-planos/index.jsx`**: novo checkbox "Favicon personalizado"
+no bloco "Módulos incluídos" (mesmo padrão dos 3 checkboxes que já existem
+ali — `EMPTY`, form-init, submit body, JSX do checkbox, badge na listagem).
+
+**Painel do dono — `restaurante-aparencia/index.jsx`**: perto de onde a logo
+é configurada, uma caixa de aviso (mesmo estilo amber-50/950 já usado nessa
+sessão pro aviso de comissão em `admin-planos`) mostrada só quando
+`!moduloFaviconPersonalizado`: explica que favicon personalizado é recurso
+pago, com link pra `/restaurante/plano` (tela de upgrade já existente). Se o
+módulo estiver ativo, mostra confirmação simples em vez do aviso.
+
+## Verificação
+
+- `npx tsc --noEmit -p .` no backend depois de cada arquivo mexido.
+- Aplicar a migration local (`npx supabase migration up`).
+- Testar: criar/editar um plano com "Favicon personalizado" marcado, assinar
+  a loja seed com ele (dispara `atribuirAssinatura` → `modulo_favicon_personalizado`
+  vira true em `restaurants`), acessar a loja via `/r/<slug>` e conferir que a
+  aba do navegador troca pra logo da loja; acessar outra loja sem o módulo e
+  conferir que o favicon continua o padrão; conferir o aviso em
+  `/restaurante/aparencia` nos dois casos (com e sem o módulo).
+- Sincronizar backend nos dois checkouts (arquivo por arquivo, `cp` individual
+  — **não usar loop `for` com `$f` interpolado em path Windows**, ver gotcha
+  memorizado — e conferir `ls -la`/mtime antes de confiar no `diff`), só
+  aplicar a migration em produção (`db push --linked`) depois de confirmar
+  com o usuário, como sempre.

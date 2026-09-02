@@ -1,0 +1,17 @@
+---
+name: feedback-modal-sizing
+description: "DeliveryHub modal width convention — max-w-md on mobile, md:max-w-[85%] on desktop, not a fixed small max-w-md/max-w-lg on all sizes"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 8d09f23b-e3a5-46d5-805e-025eb4acef26
+  modified: 2026-09-02T12:43:34.373Z
+---
+
+Padrão de largura pra modais no `deliveryhub_white_label` (frontend): `w-full max-w-md md:max-w-[85%]` no container do modal — compacto no celular (mantém `max-w-md`), largo (85% da viewport) no desktop.
+
+**Why:** o modal de cadastro/edição de produto (`restaurante-produtos/index.jsx`) ganhou um 4º campo (Grupo, ver [[project_deliveryhub]] seção "grupo x categoria") e ficou espremido com o `max-w-md` fixo de antes — usuário pediu explicitamente "deixe mais largo 85% da tela" e depois "no modo pc" (só desktop, não empurrar isso pro mobile) e "mantenha como padrão o tamanho dos modais" (vira convenção, não é caso único).
+
+**How to apply:** ao criar um modal novo, ou se um modal existente for revisado/expandido (mais campos, mais colunas), usar `max-w-md md:max-w-[85%]` em vez de um `max-w-md`/`max-w-lg`/`max-w-2xl` fixo — a menos que o conteúdo seja claramente estreito por natureza (ex.: um confirm dialog de sim/não), onde o tamanho pequeno fixo ainda faz sentido. Já aplicado em `restaurante-produtos/index.jsx` (modal de produto) e `restaurante-cardapio-digital/index.jsx` (`CardapioImpressoModal`) nesta sessão — não retroagi em outros modais do app que não foram tocados, só nos dois que estavam sendo trabalhados.
+
+Ver também [[reference_may_memory_vault]], `DIRETRIZES-UX-UI.md` — instância de "Consistência e padronização" (heurística de Nielsen #4): mesma convenção visual em todas as telas.

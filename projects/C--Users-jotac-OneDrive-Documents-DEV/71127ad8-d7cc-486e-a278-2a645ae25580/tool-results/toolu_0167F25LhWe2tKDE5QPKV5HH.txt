@@ -1,0 +1,172 @@
+src\components\restaurante\PedidoDeliveryCard.jsx:9:  aguardando: { label: 'Aguardando Preparo', border: 'border-blue-300 bg-blue-50', badge: 'bg-blue-100 text-blue-800' },
+src\components\restaurante\PedidoDeliveryCard.jsx:10:  preparando: { label: 'Em Preparo', border: 'border-orange-300 bg-orange-50', badge: 'bg-orange-100 text-orange-800' },
+src\components\restaurante\PedidoDeliveryCard.jsx:11:  pronto: { label: 'Pronto', border: 'border-emerald-300 bg-emerald-50', badge: 'bg-emerald-100 text-emerald-800' },
+src\components\restaurante\PedidoDeliveryCard.jsx:18:// backend (marcarItemPronto) decide quando TODAS já terminaram pra liberar pro motoboy.
+src\components\restaurante\PedidoDeliveryCard.jsx:19:const PedidoDeliveryCard = ({ pedido, itens, posicao, now, bucket, onIniciarPreparo, onMarcarPronto, onVoltar, atualizando, highlighted = false, codigoBarras = null, cardId = null }) => {
+src\components\restaurante\PedidoDeliveryCard.jsx:130:            onClick={bucket === 'aguardando' ? onIniciarPreparo : onMarcarPronto}
+src\components\restaurante\PedidoDeliveryCard.jsx:140:                {bucket === 'aguardando' ? 'Iniciar Preparo' : 'Marcar Pronto'}
+src\components\restaurante\PagamentoFaturaModal.jsx:11:  const [pronto, setPronto] = useState(!!window.PagSeguro);
+src\components\restaurante\PagamentoFaturaModal.jsx:14:    if (!ativo || window.PagSeguro) { if (window.PagSeguro) setPronto(true); return; }
+src\components\restaurante\PagamentoFaturaModal.jsx:22:    const onLoad = () => setPronto(!!window.PagSeguro);
+src\components\restaurante\PagamentoFaturaModal.jsx:24:    if (window.PagSeguro) setPronto(true);
+src\components\restaurante\PagamentoFaturaModal.jsx:53:  const sdkPronto = usePagBankSdk(metodo !== 'pix');
+src\components\restaurante\PagamentoFaturaModal.jsx:216:                  {!sdkPronto && <p className="text-xs text-[#71717A] dark:text-[#A1A1AA]">Carregando PagBank...</p>}
+src\components\restaurante\PagamentoFaturaModal.jsx:226:                <button type="submit" disabled={enviando || (metodo !== 'pix' && !sdkPronto)}
+src\components\restaurante\SalaoItemCard.jsx:41:// já marcaram seus itens (ver marcarItemPronto no backend).
+src\components\restaurante\SalaoItemCard.jsx:43:  item, posicao, now, onReimprimir, onIniciarPreparo, onMarcarPronto, onVoltar, onCancelar,
+src\components\restaurante\SalaoItemCard.jsx:78:            <Icon name="ChefHat" size={13} /> Iniciar Preparo
+src\components\restaurante\SalaoItemCard.jsx:83:          <Icon name="Check" size={13} /> {item.entregue_garcom ? 'Entregue pelo garçom' : 'Pronto'}
+src\components\restaurante\SalaoItemCard.jsx:86:        <button onClick={() => onMarcarPronto(item.id)}
+src\components\restaurante\SalaoItemCard.jsx:88:          <Icon name="Check" size={13} /> Pronto
+src\utils\agruparPedidosDelivery.js:18:    const tsPronto = item.pronto_em ? new Date(item.pronto_em).getTime() : tsEnvio;
+src\utils\agruparPedidosDelivery.js:24:        tsPronto,
+src\utils\agruparPedidosDelivery.js:39:      if (tsPronto > grupo.tsPronto) grupo.tsPronto = tsPronto;
+src\utils\agruparPedidosDelivery.js:46:    ? todas.sort((a, b) => (b.ts ?? b.tsPronto) - (a.ts ?? a.tsPronto))
+src\services\cozinhaPortalService.js:66:export const marcarItemPronto = (itemId) => kdsFetch(`/itens/${itemId}/pronto`, { method: 'PATCH' });
+src\services\restauranteService.js:185:export const marcarItemProntoRestaurante = (itemId) => apiFetch(`/kds/itens/${itemId}/pronto`, { method: 'PATCH' });
+src\services\garcomService.js:58:export const getItensProntos = () => garcomFetch('/itens-prontos');
+src\pages\customer-account-order-history\index.jsx:15:  ready:              { label: 'Pronto',            color: 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400' },
+src\pages\auto-atendimento\index.jsx:12:const STATUS_ITEM_LABEL = { pendente: 'No carrinho', enviado: 'Enviado — aguardando preparo', preparando: 'Em preparo', pronto: 'Pronto!' };
+src\pages\customer-account-order-history\components\OrderHistory.jsx:27:    preparing: 'Preparando',
+src\pages\customer-account-order-history\components\OrderHistory.jsx:98:          <option value="preparing">Preparando</option>
+src\pages\restaurante-clientes\index.jsx:22:  ready:             { label: 'Pronto',             cor: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400' },
+src\pages\order-tracking-status\index.jsx:17:  ready:              { label: 'Pronto',                icon: 'Package',      color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
+src\pages\restaurante-chamada\index.jsx:11:// Esquerda (silenciosa, ordem de chegada): "Aguardando Preparo" assim que o pedido é
+src\pages\restaurante-chamada\index.jsx:146:            <h2 className="text-xs font-black text-white uppercase tracking-wide mb-2">Aguardando Preparo ({aguardandoPreparo.length})</h2>
+src\pages\order-tracking-status\components\OrderStatusTimeline.jsx:21:      label: 'Preparando',
+src\pages\order-tracking-status\components\OrderStatusTimeline.jsx:24:      description: 'Preparando seus pratos'
+src\pages\motoboy-portal\index.jsx:89:  ready: 'Pronto p/ entrega',
+src\pages\restaurante-bar\index.jsx:3:import { listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, getMinhaEmpresa } from '../../services/restauranteService';
+src\pages\restaurante-bar\index.jsx:74:  const marcarPronto = async (itemId) => {
+src\pages\restaurante-bar\index.jsx:75:    await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-bar\index.jsx:107:  const marcarProntoGrupo = async (pedidoId, itemIds) => {
+src\pages\restaurante-bar\index.jsx:110:      await Promise.all(itemIds.map((id) => marcarItemProntoRestaurante(id)));
+src\pages\restaurante-bar\index.jsx:286:                    <SalaoItemCard key={`s-${entry.item.id}`} item={entry.item} posicao={idx + 1} now={now} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar}
+src\pages\restaurante-bar\index.jsx:313:                      onMarcarPronto={() => marcarProntoGrupo(entry.pedido.id, entry.itemIds)}
+src\pages\restaurante-bar\index.jsx:316:                    <SalaoItemCard key={`s-${entry.item.id}`} item={entry.item} posicao={idx + 1} now={now} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar}
+src\pages\restaurante-bar\index.jsx:338:                    <SalaoItemCard key={`s-${entry.item.id}`} item={entry.item} posicao={idx + 1} now={now} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar}
+src\pages\mesa-acompanhar\index.jsx:10:const STATUS_ITEM_LABEL = { pendente: 'Anotado', enviado: 'Em preparo', pronto: 'Pronto' };
+src\pages\garcom-portal\index.jsx:5:  getMesas, getProdutos, getCombos, getMinhasComandas, getComanda, getItensProntos, getFilaCozinha,
+src\pages\garcom-portal\index.jsx:846:            {item.status === 'pronto' ? 'Pronto' : 'Em preparo'}
+src\pages\garcom-portal\index.jsx:1562:  const [avisoPronto, setAvisoPronto] = useState(null);
+src\pages\garcom-portal\index.jsx:1565:  const tocarAlarmePronto = useNotificacaoSonora('motoboy');
+src\pages\garcom-portal\index.jsx:1566:  const idsProntosVistos = useRef(new Set());
+src\pages\garcom-portal\index.jsx:1592:        setAvisoPronto({ texto: `${nc.cliente_mesa_nome} pediu conferência — #${nc.numero_comanda ?? nc.id}`, comandaId: nc.id });
+src\pages\garcom-portal\index.jsx:1612:          setAvisoPronto({ texto: `Novo pedido do cliente — Mesa/Comanda #${np.numero_comanda ?? np.id}` });
+src\pages\garcom-portal\index.jsx:1633:        const itens = await getItensProntos();
+src\pages\garcom-portal\index.jsx:1634:        const novos = itens.filter((i) => !idsProntosVistos.current.has(i.item_id));
+src\pages\garcom-portal\index.jsx:1635:        idsProntosVistos.current = new Set(itens.map((i) => i.item_id));
+src\pages\garcom-portal\index.jsx:1637:          tocarAlarmePronto();
+src\pages\garcom-portal\index.jsx:1640:          setAvisoPronto({
+src\pages\garcom-portal\index.jsx:1654:  }, [bloqueado, tocarAlarmePronto, carregar]);
+src\pages\garcom-portal\index.jsx:1666:    const item = avisoPronto?.item;
+src\pages\garcom-portal\index.jsx:1667:    setAvisoPronto(null);
+src\pages\garcom-portal\index.jsx:1673:    const item = avisoPronto?.item;
+src\pages\garcom-portal\index.jsx:1674:    setAvisoPronto(null);
+src\pages\garcom-portal\index.jsx:1680:    const comandaId = avisoPronto?.comandaId;
+src\pages\garcom-portal\index.jsx:1681:    setAvisoPronto(null);
+src\pages\garcom-portal\index.jsx:1688:  const avisoProntoToast = avisoPronto && (
+src\pages\garcom-portal\index.jsx:1692:        <p className="text-base font-bold text-[#18181B] dark:text-[#F4F4F5] mb-5">{avisoPronto.texto}</p>
+src\pages\garcom-portal\index.jsx:1693:        {avisoPronto.item ? (
+src\pages\garcom-portal\index.jsx:1717:        {avisoProntoToast}
+src\pages\garcom-portal\index.jsx:1729:      {avisoProntoToast}
+src\pages\shopping-cart-checkout\components\OrderSummary.jsx:148:              {deliveryMethod === 'delivery' ? 'Entrega no seu endereço' : 'Pronto para retirada'}
+src\pages\reset-password\index.jsx:15:  const [prontoParaTrocar, setProntoParaTrocar] = useState(false);
+src\pages\reset-password\index.jsx:25:        setProntoParaTrocar(true);
+src\pages\reset-password\index.jsx:32:      if (session) setProntoParaTrocar(true);
+src\pages\restaurante-kds-setor\index.jsx:5:  getKdsItens, marcarItemPronto, reimprimirItem, iniciarPreparoItem, voltarStatusItem,
+src\pages\restaurante-kds-setor\index.jsx:86:  const [verTodosProntos, setVerTodosProntos] = useState(false);
+src\pages\restaurante-kds-setor\index.jsx:113:  const marcarPronto = async (itemId) => {
+src\pages\restaurante-kds-setor\index.jsx:114:    await marcarItemPronto(itemId);
+src\pages\restaurante-kds-setor\index.jsx:157:            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Aguardando Preparo</h2>
+src\pages\restaurante-kds-setor\index.jsx:171:                  onReimprimir={reimprimir} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar} />
+src\pages\restaurante-kds-setor\index.jsx:180:            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Em Preparo</h2>
+src\pages\restaurante-kds-setor\index.jsx:194:                  onReimprimir={reimprimir} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar} />
+src\pages\restaurante-kds-setor\index.jsx:205:            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Prontos hoje (clicou errado? desfaz aqui)</h2>
+src\pages\restaurante-kds-setor\index.jsx:209:            {(verTodosProntos ? prontos : prontos.slice(0, 5)).map((item, idx) => (
+src\pages\restaurante-kds-setor\index.jsx:211:                onReimprimir={reimprimir} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar} />
+src\pages\restaurante-kds-setor\index.jsx:215:            <button onClick={() => setVerTodosProntos((v) => !v)}
+src\pages\restaurante-kds-setor\index.jsx:217:              {verTodosProntos ? 'Mostrar menos' : `Ver todos (${prontos.length})`}
+src\pages\restaurante-sessao\index.jsx:12:  pending: 'Recebido', confirmed: 'Confirmado', preparing: 'Em preparo', ready: 'Pronto',
+src\pages\restaurante-delivery\index.jsx:18:  confirmed:        { label: 'Aguardando Preparo', color: 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-400' },
+src\pages\restaurante-delivery\index.jsx:19:  preparing:        { label: 'Em Preparo', color: 'bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-400' },
+src\pages\restaurante-delivery\index.jsx:20:  ready:            { label: 'Pronto',     color: 'bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-400' },
+src\pages\restaurante-delivery\index.jsx:32:  { value: 'ready',            label: 'Pronto',     activeColor: 'border-purple-400 dark:border-purple-800 bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-400' },
+src\pages\restaurante-salao\index.jsx:629:            {item.status === 'pronto' ? 'Pronto — aguardando entrega' : 'Em preparo'}
+src\pages\restaurante-financeiro\index.jsx:22:const STATUS_LABELS  = { pending: 'Recebido', confirmed: 'Confirmado', preparing: 'Em Preparo', ready: 'Pronto', motoboy_collecting: 'Motoboy', out_for_delivery: 'Em Entrega', delivered: 'Entregue', canceled: 'Cancelado' };
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:3:import { adicionarSaida, adicionarEntrada, estornarSaida, fecharCaixa, atualizarStatusPedido, marcarItemProntoRestaurante, cancelarComandaSalao } from '../../services/restauranteService';
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:94:  const [marcandoProntos, setMarcandoProntos] = useState(false);
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:132:  const handleMarcarProntos = async ({ pedidoIds = [], itemIds = [] }) => {
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:133:    setMarcandoProntos(true);
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:137:        ...itemIds.map((id) => marcarItemProntoRestaurante(id)),
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:146:    finally { setMarcandoProntos(false); }
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:331:          onMarcarProntos={handleMarcarProntos}
+src\pages\restaurante-financeiro\CaixaAtualPanel.jsx:332:          marcandoProntos={marcandoProntos}
+src\pages\restaurante-dashboard\RelatorioPanel.jsx:8:const STATUS_LABELS = { pending: 'Recebido', confirmed: 'Confirmado', preparing: 'Em Preparo', ready: 'Pronto', motoboy_collecting: 'Motoboy a caminho', out_for_delivery: 'Em Entrega', delivered: 'Entregue', canceled: 'Cancelado' };
+src\pages\restaurante-dashboard\PedidoTimeline.jsx:7:  { key: 'ready',              color: 'bg-purple-400', label: 'Pronto' },
+src\pages\restaurante-dashboard\PedidoDetalhe.jsx:29:  pending: 'Recebido', confirmed: 'Aguardando Preparo', preparing: 'Em Preparo',
+src\pages\restaurante-dashboard\PedidoDetalhe.jsx:30:  ready: 'Pronto', motoboy_collecting: 'Motoboy coletando',
+src\pages\restaurante-entregas\index.jsx:9:  ready: 'Pronto — aguardando entrega',
+src\pages\restaurante-dashboard\index.jsx:7:  atualizarStatusPedido, marcarItemProntoRestaurante, cancelarComandaSalao,
+src\pages\restaurante-dashboard\index.jsx:57:  const [marcandoProntos, setMarcandoProntos] = useState(false);
+src\pages\restaurante-dashboard\index.jsx:290:  const handleMarcarProntos = async ({ pedidoIds = [], itemIds = [] }) => {
+src\pages\restaurante-dashboard\index.jsx:291:    setMarcandoProntos(true);
+src\pages\restaurante-dashboard\index.jsx:295:        ...itemIds.map((id) => marcarItemProntoRestaurante(id)),
+src\pages\restaurante-dashboard\index.jsx:300:    finally { setMarcandoProntos(false); }
+src\pages\restaurante-dashboard\index.jsx:724:          onMarcarProntos={handleMarcarProntos}
+src\pages\restaurante-dashboard\index.jsx:725:          marcandoProntos={marcandoProntos}
+src\pages\restaurante-dashboard\FecharCaixaModal.jsx:8:const PEDIDO_STATUS_LABEL = { confirmed: 'Aguardando Preparo', preparing: 'Em preparo' };
+src\pages\restaurante-dashboard\FecharCaixaModal.jsx:72:const PreparoEmAndamentoView = ({ pedidosEmPreparo, itensEmPreparo, onMarcarProntos, marcando, onContinuar, onCancelar }) => {
+src\pages\restaurante-dashboard\FecharCaixaModal.jsx:111:    await onMarcarProntos({ pedidoIds: [...pedidosSel], itemIds: [...itensSel] });
+src\pages\restaurante-dashboard\FecharCaixaModal.jsx:518:  pedidosEmPreparo = [], itensEmPreparo = [], onMarcarProntos, marcandoProntos,
+src\pages\restaurante-dashboard\FecharCaixaModal.jsx:537:              onMarcarProntos={onMarcarProntos}
+src\pages\restaurante-dashboard\FecharCaixaModal.jsx:538:              marcando={marcandoProntos}
+src\pages\restaurante-relatorios\Financeiro.jsx:9:const STATUS_LABELS = { pending: 'Pendente', confirmed: 'Confirmado', preparing: 'Preparando', out_for_delivery: 'Em Entrega', delivered: 'Entregue', paga: 'Paga', canceled: 'Cancelado' };
+src\pages\restaurante-cozinha\index.jsx:5:  listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante,
+src\pages\restaurante-cozinha\index.jsx:10:  getKdsImpressoras, getKdsItens, marcarItemPronto, iniciarPreparoItem, voltarStatusItem,
+src\pages\restaurante-cozinha\index.jsx:119:  const [verTodosProntos, setVerTodosProntos] = useState(false);
+src\pages\restaurante-cozinha\index.jsx:342:  const marcarProntoGrupoDelivery = async (pedidoId, itemIds) => {
+src\pages\restaurante-cozinha\index.jsx:345:      await Promise.all(itemIds.map((id) => (modoToken ? marcarItemPronto(id) : marcarItemProntoRestaurante(id))));
+src\pages\restaurante-cozinha\index.jsx:366:  const marcarProntoSalao = async (itemId) => {
+src\pages\restaurante-cozinha\index.jsx:368:      if (modoToken) await marcarItemPronto(itemId);
+src\pages\restaurante-cozinha\index.jsx:369:      else await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-cozinha\index.jsx:399:  // pedido inteiro só libera pro motoboy quando marcarItemPronto confirma que todas já
+src\pages\restaurante-cozinha\index.jsx:401:  const itensSalaoProntos = itensSalao
+src\pages\restaurante-cozinha\index.jsx:428:  const prontosSalao = filtroCanal === 'delivery' ? [] : itensSalaoProntos.filter(passaBuscaItem);
+src\pages\restaurante-cozinha\index.jsx:592:            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Aguardando Preparo</h2>
+src\pages\restaurante-cozinha\index.jsx:612:                    onIniciarPreparo={iniciarPreparoSalao} onMarcarPronto={marcarProntoSalao} onVoltar={voltarSalao}
+src\pages\restaurante-cozinha\index.jsx:623:            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Em Preparo</h2>
+src\pages\restaurante-cozinha\index.jsx:640:                    onMarcarPronto={() => marcarProntoGrupoDelivery(entry.pedido.id, entry.itemIds)}
+src\pages\restaurante-cozinha\index.jsx:644:                    onIniciarPreparo={iniciarPreparoSalao} onMarcarPronto={marcarProntoSalao} onVoltar={voltarSalao}
+src\pages\restaurante-cozinha\index.jsx:657:            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Prontos hoje (clicou errado? desfaz aqui)</h2>
+src\pages\restaurante-cozinha\index.jsx:661:            {(verTodosProntos ? prontosSalao : prontosSalao.slice(0, 5)).map((item, idx) => (
+src\pages\restaurante-cozinha\index.jsx:663:                onIniciarPreparo={iniciarPreparoSalao} onMarcarPronto={marcarProntoSalao} onVoltar={voltarSalao}
+src\pages\restaurante-cozinha\index.jsx:668:            <button onClick={() => setVerTodosProntos((v) => !v)}
+src\pages\restaurante-cozinha\index.jsx:670:              {verTodosProntos ? 'Mostrar menos' : `Ver todos (${prontosSalao.length})`}
+src\pages\restaurante-producao\index.jsx:3:import { listarImpressoras, getKdsItensRestaurante, getKdsSemImpressora, reenviarItemKds, marcarItemProntoRestaurante, reimprimirItemRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, cancelarItemRestaurante, moverItemRestaurante, getMinhaEmpresa, getSalaoComandaDetalhe, editarItemComandaSalao } from '../../services/restauranteService';
+src\pages\restaurante-producao\index.jsx:231:  const marcarPronto = async (itemId) => {
+src\pages\restaurante-producao\index.jsx:232:    await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-producao\index.jsx:261:  const marcarProntoGrupo = async (pedidoId, itemIds) => {
+src\pages\restaurante-producao\index.jsx:264:      await Promise.all(itemIds.map((id) => marcarItemProntoRestaurante(id)));
+src\pages\restaurante-producao\index.jsx:498:                      <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Aguardando Preparo</p>
+src\pages\restaurante-producao\index.jsx:511:                                onReimprimir={(it) => reimprimir(it, imp.setor)} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltarItem} onCancelar={cancelarItem} onAbrirComanda={setComandaAbertaId} onSalvarObservacao={salvarObservacao}
+src\pages\restaurante-producao\index.jsx:519:                      <p className="text-xs font-bold text-orange-400 uppercase tracking-wider mb-2">Em Preparo</p>
+src\pages\restaurante-producao\index.jsx:528:                                onMarcarPronto={() => marcarProntoGrupo(entry.pedido.id, entry.itemIds)}
+src\pages\restaurante-producao\index.jsx:532:                                onReimprimir={(it) => reimprimir(it, imp.setor)} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltarItem} onAbrirComanda={setComandaAbertaId} onSalvarObservacao={salvarObservacao}
+src\pages\restaurante-producao\index.jsx:553:                                  onReimprimir={(it) => reimprimir(it, imp.setor)} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltarItem} onAbrirComanda={setComandaAbertaId} onSalvarObservacao={salvarObservacao}
+src\pages\restaurante-pedidos\index.jsx:15:  ready:              { label: 'Pronto',         color: 'bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-400' },
+src\pages\restaurante-ponto-preparo\index.jsx:3:import { listarImpressoras, getKdsItensRestaurante, marcarItemProntoRestaurante, iniciarPreparoItemRestaurante, voltarStatusItemRestaurante, getMinhaEmpresa } from '../../services/restauranteService';
+src\pages\restaurante-ponto-preparo\index.jsx:27:  const [verTodosProntos, setVerTodosProntos] = useState(false);
+src\pages\restaurante-ponto-preparo\index.jsx:74:  const marcarPronto = async (itemId) => {
+src\pages\restaurante-ponto-preparo\index.jsx:75:    await marcarItemProntoRestaurante(itemId);
+src\pages\restaurante-ponto-preparo\index.jsx:107:  const marcarProntoGrupo = async (pedidoId, itemIds) => {
+src\pages\restaurante-ponto-preparo\index.jsx:110:      await Promise.all(itemIds.map((id) => marcarItemProntoRestaurante(id)));
+src\pages\restaurante-ponto-preparo\index.jsx:289:                  <SalaoItemCard key={`s-${entry.item.id}`} item={entry.item} posicao={idx + 1} now={now} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar}
+src\pages\restaurante-ponto-preparo\index.jsx:300:            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Em Preparo</h2>
+src\pages\restaurante-ponto-preparo\index.jsx:316:                    onMarcarPronto={() => marcarProntoGrupo(entry.pedido.id, entry.itemIds)}
+src\pages\restaurante-ponto-preparo\index.jsx:319:                  <SalaoItemCard key={`s-${entry.item.id}`} item={entry.item} posicao={idx + 1} now={now} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar}
+src\pages\restaurante-ponto-preparo\index.jsx:331:              <h2 className="text-white font-bold text-sm uppercase tracking-wider">Prontos hoje (clicou errado? desfaz aqui)</h2>
+src\pages\restaurante-ponto-preparo\index.jsx:335:              {(verTodosProntos ? prontos : prontos.slice(0, 5)).map((entry, idx) => (
+src\pages\restaurante-ponto-preparo\index.jsx:341:                  <SalaoItemCard key={`s-${entry.item.id}`} item={entry.item} posicao={idx + 1} now={now} onIniciarPreparo={iniciarPreparo} onMarcarPronto={marcarPronto} onVoltar={voltar}
+src\pages\restaurante-ponto-preparo\index.jsx:347:              <button onClick={() => setVerTodosProntos((v) => !v)}
+src\pages\restaurante-ponto-preparo\index.jsx:349:                {verTodosProntos ? 'Mostrar menos' : `Ver todos (${prontos.length})`}

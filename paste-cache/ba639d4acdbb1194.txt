@@ -1,0 +1,10 @@
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/licenca/status, GET} route +2ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [RouterExplorer] Mapped {/licenca/checkin-agora, POST} route +1ms
+[Nest] 14572  - 23/08/2026, 10:00:27 pm     LOG [NestApplication] Nest application successfully started +12ms
+Delivery Backend rodando na porta 3002
+[Nest] 14572  - 23/08/2026, 10:02:03 pm   ERROR [ExceptionsHandler] Error: PagBank: Invalid credential. Review AUTHORIZATION header
+    at PagBankClient.request (C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\src\pagamentos\pagbank.client.ts:33:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async PagamentosService.criarPix (C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\src\pagamentos\pagamentos.service.ts:131:22)
+    at async C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\node_modules\@nestjs\core\router\router-execution-context.js:47:62
+    at async C:\Users\jotac\OneDrive\Documents\DEV\deliveryhub_white_label\server_delivery\node_modules\@nestjs\core\router\router-proxy.js:9:17

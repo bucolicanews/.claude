@@ -1,0 +1,64 @@
+# Cobrança de excedente de distância (KM acima do frete)
+
+## Contexto
+
+Hoje o cliente paga: pedido (subtotal) + `frete_motoboy` (taxa fixa configurada por restaurante). O dono quer poder cobrar um adicional quando a distância de entrega passar de um limite incluso no frete — ex: pedido R$10 + frete R$5, 1º km incluso, distância real 3km → excedente de 2km × R$5/km = R$10 a mais → total R$25. Fração de km é proporcional (1,3km de excedente = 1,3 × valor/km, nunca arredonda pra cima). Isso precisa: (1) ser configurável por restaurante, (2) aparecer pro cliente no checkout antes de fechar o pedido, (3) entrar no total realmente cobrado, e (4) sair impresso na ficha que o motoboy entrega ao cliente (`printFichaMotoboy`, hoje só mostra um TOTAL sem detalhamento).
+
+**Decisão de produto já confirmada:** se não der pra geocodificar o endereço do cliente (ou o restaurante não tem lat/lng), cobra excedente **zero** — nunca estima/arrisca cobrar a mais. E a ação existente "Frete grátis" (que zera `frete_cobrado` num pedido específico) passa a zerar **frete + excedente de km juntos**.
+
+## Descoberta importante durante a investigação
+
+O checkout **não envia endereço bruto** pro backend — `StepEndereco.jsx` já salva o endereço via `PATCH /api/perfil`, que já geocodifica de forma síncrona e grava `customers.lat/lng`. `POST /pedidos` (`PedidosService.criar`) resolve tudo a partir de `customer_id`. Ou seja: na maioria dos casos as coordenadas já estão prontas em `customers.lat/lng` antes mesmo do pedido ser criado — nenhuma geocodificação nova é necessária na hora do pedido, só um fallback com timeout curto pra quando `lat/lng` ainda for nulo.
+
+Também existe `ComissaoService.calcularDistanciaPedido` (hoje `private`), que já faz exatamente geocodificar-se-necessário + haversine a partir de um `customerId` — é a rotina certa pra reaproveitar (só precisa virar pública), evitando duplicar essa lógica pela terceira vez no código.
+
+## Implementação
+
+### 1. Migrations (`deliveryhub_white_label/supabase/migrations/`, local único — backend não tem pasta `supabase/`)
+
+`20260827000001_restaurants_frete_excedente_km.sql`:
+```sql
+ALTER TABLE public.restaurants
+  ADD COLUMN IF NOT EXISTS km_incluso_frete NUMERIC(10,2) NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS valor_km_excedente NUMERIC(10,2) NOT NULL DEFAULT 0;
+```
+
+`20260827000002_orders_frete_excedente_km.sql`:
+```sql
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS distancia_entrega_km NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS frete_excedente_cobrado NUMERIC(10,2) NOT NULL DEFAULT 0;
+```
+
+### 2. Backend — aplicar em **ambos** os checkouts (`deliveryhub_white_label/server_delivery` e `serer_delivery`, hoje idênticos nesses arquivos)
+
+- `motoboy/comissao.service.ts`: `calcularDistanciaPedido` deixa de ser `private` (única mudança nesse arquivo).
+- `pedidos/pedidos.service.ts`:
+  - Novo helper privado `calcularExcedenteDistancia(customerId, restaurantId)`: busca `lat/lng/km_incluso_frete/valor_km_excedente` do restaurante; se faltar lat/lng ou `valor_km_excedente <= 0`, retorna excedente 0. Senão chama `comissao.calcularDistanciaPedido(...)` com timeout de 3s (via `Promise.race`) — timeout ou falha também retorna excedente 0. Calcula `excedenteKm = max(0, distancia - kmIncluso)` e `valorExcedente = round2(excedenteKm * valorPorKm)`.
+  - Novo método público `estimarFrete(userId, restaurantId)`: resolve `customer_id` a partir do `userId` e chama o helper acima — usado pelo endpoint de preview.
+  - Em `criar()`: mover a resolução de `customer_id` (hoje depois do cálculo de frete) pra **antes** do bloco que calcula `frete`/`total`, já que o cálculo de excedente precisa do `customerId`. Somar `valorExcedente` ao `total`. Persistir `distancia_entrega_km`/`frete_excedente_cobrado` no insert do pedido. Incluir essas duas colunas no `select` que já busca o pedido (usado depois pra montar a ficha do motoboy).
+  - `pedidos.controller.ts`: novo `GET /pedidos/estimativa-frete?restaurant_id=X` (protegido por `JwtGuard`) — **precisa vir antes** da rota `@Get(':id')` já existente, senão o Nest tenta casar `estimativa-frete` como `:id`.
+- `restaurante/restaurante.service.ts`:
+  - `getConfig`/`updateConfig`: incluir `km_incluso_frete`/`valor_km_excedente` no select, na resposta normalizada, e no whitelist de campos patcháveis (mesmo padrão campo-a-campo já usado ali — nunca `.update({...body})`).
+  - `setFreteGratis`: também zera `frete_excedente_cobrado` e subtrai do `novoTotal`, junto com o `frete_cobrado` que já zera hoje.
+
+### 3. Frontend — `restaurante-config/index.jsx`
+
+Dois campos novos logo depois do campo "Frete Motoboy" existente, mesmo estilo visual (input R$ com prefixo, texto de ajuda): "KM incluso no frete" (padrão 1) e "Valor por KM excedente" (padrão R$0 = desligado). Uma linha de exemplo ao vivo abaixo, no mesmo padrão da seção de comissão do motoboy ("Exemplo: 3km de distância, 1km incluso → 2km × R$X = R$Y de excedente").
+
+### 4. Frontend — `shopping-cart-checkout/index.jsx`
+
+Depois que o endereço é salvo (StepEndereco concluído), chama `GET /api/pedidos/estimativa-frete?restaurant_id=...` e guarda `{ distanciaKm, valorExcedente }`. Soma `valorExcedente` no total exibido. Nova linha "Excedente distância (Xkm)" no resumo do pedido (`StepPagamento`/`StepConfirmar`), só aparece se `valorExcedente > 0`. O `POST /pedidos` continua sem mandar valores de preço — o backend recalcula tudo sozinho na hora de criar o pedido (nunca confia em valor vindo do cliente).
+
+### 5. Frontend — `src/utils/printComanda.js`, `printFichaMotoboy`
+
+Itemizar antes do `TOTAL` atual: Subtotal (somado a partir de `itens`), Frete, e Excedente (só se `frete_excedente_cobrado > 0`, mostrando o km usado) — reaproveitando a classe `.linha` (mesmo padrão flex já usado em `printReciboCliente`, só precisa ser adicionada ao `<style>` desta função) e sempre passando texto interpolado por `esc()`, seguindo a convenção já estabelecida nesse arquivo.
+
+## Verificação
+
+- `tsc --noEmit` e `nest build` nos dois checkouts de backend depois das mudanças.
+- Reset local do Supabase + aplicar as migrations (`npx supabase migration up`), configurar `km_incluso_frete`/`valor_km_excedente` num restaurante de teste em `/restaurante/config`.
+- Fazer um pedido de teste com endereço a alguns km do restaurante (endereço real, pra geocodificação funcionar) e conferir: valor do excedente aparece no checkout antes de confirmar, bate com o total cobrado, e sai correto na ficha impressa (F12 → simular impressão ou abrir o preview do iframe).
+- Testar o caso de fallback: restaurante sem lat/lng ou endereço não geocodificável → excedente deve ser 0, pedido segue normalmente sem travar.
+- Testar "Frete grátis" num pedido com excedente > 0 → confirmar que zera os dois.
+- Usuário confirma testado manualmente (preferência já estabelecida — não dirijo navegador pra testar por ele).

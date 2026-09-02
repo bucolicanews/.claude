@@ -1,0 +1,279 @@
+import datetime
+import uuid
+from decimal import Decimal
+
+from app import firebird_client as fb
+
+
+def gerar_blob_pdv_arqbin(cur, venda_id: int) -> bytes:
+    cur.execute(
+        "SELECT NOTA, DATA_EMISSAO, HORA_SAIDA, OPERADOR, VALOR_TOT_NOTA FROM VENDAS WHERE ID = ?",
+        (venda_id,),
+    )
+    nota, data_emissao, hora_saida, operador, valor_total_nota = cur.fetchone()
+    hora = hora_saida.replace(microsecond=0) if hora_saida else datetime.time(0, 0, 0)
+    dt_emissao = datetime.datetime.combine(data_emissao, hora)
+    fmt_dt = dt_emissao.strftime("%d/%m/%Y %I:%M:%S %p").lower()
+
+    cur.execute(
+        "SELECT ID, CODIGO, DESCRICAO, UND, QTD, VALOR_UNITA, VALOR_LISTA "
+        "FROM ITEVENDAS WHERE ID_VENDAS = ? ORDER BY ITEM",
+        (venda_id,),
+    )
+    itens_db = cur.fetchall()
+
+    linhas: list[str] = []
+
+    def add(k, v):
+        linhas.append(f"{k}={v}")
+
+    add("VENDA.FID_VENDA", venda_id)
+    add("VENDA.FNUMERO", nota)
+    add("VENDA.FMODELO", "PV")
+    add("VENDA.FSERIE", "001")
+    add("VENDA.FCAIXA", "001")
+    add("VENDA.FLOJA", "001")
+    add("VENDA.FDATA_EMISSAO", fmt_dt)
+    add("VENDA.FCANCELADA", "N")
+    add("VENDA.FOBS", f"Operador: {operador} |#13#10|")
+    add("VENDA.FMSGPROMOCIONAL", f"Operador: {operador} |#13#10|")
+    add("VENDA.FVAL_DESC_NoTOT", 0)
+    add("VENDA.FVAL_ACRE_NoTOT", 0)
+    add("VENDA.FDESCONTO_TEF", 0)
+    add("VENDA.FCFOP", "5.102")
+    add("VENDA.FOPERACAO", "Venda a Vista")
+    add("VENDA.FBASE_CAL_ICMS", 0)
+    add("VENDA.FVALOR_ICMS", 0)
+    add("VENDA.FBASE_CAL_ICMS_SUB", 0)
+    add("VENDA.FVALOR_ICMS_SUB", 0)
+    add("VENDA.FVAL_TOT_TRIB", 0)
+
+    trib_est_total = Decimal("0")
+    trib_mun_total = Decimal("0")
+    trib_fed_total = Decimal("0")
+    item_blocos: list[list[str]] = []
+
+    for idx, (item_id, codigo, descricao, und, qtd, valor_unita, valor_lista) in enumerate(itens_db):
+        cur.execute(
+            "SELECT OST, ST, COD_NCM, COD_CEST, ID_NCM, TIPO_ITEM, IPPT FROM ESTOQUE WHERE CODIGO = ?",
+            (codigo,),
+        )
+        ost, st, cod_ncm, cod_cest, id_ncm, tipo_item, ippt = cur.fetchone()
+        st_item = (ost or "").strip() + (st or "").strip()
+
+        cest_codigo = ""
+        if cod_cest:
+            cur.execute("SELECT CODIGO FROM CEST WHERE ID = ?", (cod_cest,))
+            r = cur.fetchone()
+            cest_codigo = r[0] if r else ""
+
+        aliq_fed = aliq_est = aliq_mun = Decimal("0")
+        if id_ncm is not None:
+            cur.execute("SELECT ALIQ_FED_NAC, ALIQ_EST, ALIQ_MUN FROM NCM_TAB WHERE ID = ?", (id_ncm,))
+            ncm_row = cur.fetchone()
+            if ncm_row:
+                aliq_fed, aliq_est, aliq_mun = (Decimal(str(v or 0)) for v in ncm_row)
+
+        base = Decimal(str(valor_lista))
+        trib_fed = base * aliq_fed / 100
+        trib_est = base * aliq_est / 100
+        trib_mun = base * aliq_mun / 100
+        trib_tot = trib_fed + trib_est + trib_mun
+        trib_fed_total += trib_fed
+        trib_est_total += trib_est
+        trib_mun_total += trib_mun
+
+        p = f"ITEM_{idx}"
+        b = [
+            f"{p}.FNroITEM={idx + 1}",
+            f"{p}.FCODIGO={codigo}",
+            f"{p}.FDESCRICAO={descricao}",
+            f"{p}.FBARRAS=",
+            f"{p}.FUND={(und or 'UN').strip()}",
+            f"{p}.FQTD={qtd}",
+            f"{p}.FQTD_RESERVADA=0",
+            f"{p}.FVALOR_LISTA={valor_lista}",
+            f"{p}.FVALOR_CUSTO=0",
+            f"{p}.FDESC_ITEM=0",
+            f"{p}.FDESC_RATEIO_TOT=0",
+            f"{p}.FDESC_RATEIO_PROMO=0",
+            f"{p}.FACRE_ITEM=0",
+            f"{p}.FACRE_RATEIO=0",
+            f"{p}.FTOT_PARCIAL=F1",
+            f"{p}.FECF_IND_TRIB=F1",
+            f"{p}.FCOD_NCM={(cod_ncm or '').strip()}",
+            f"{p}.FCEST={cest_codigo}",
+            f"{p}.FFEM=0",
+            f"{p}.FIPPT={(ippt or 'T').strip()}",
+            f"{p}.FAT=A",
+            f"{p}.FiCasasQTD=2",
+            f"{p}.FiCasasPreco=2",
+            f"{p}.FAT=A",
+            f"{p}.FCOD_ANP=",
+            f"{p}.FGRADE=",
+            f"{p}.FGRADE_SALDO=",
+            f"{p}.FNUM_SERIE=",
+            f"{p}.FCOMISSAO_PROD=0",
+            f"{p}.FPER_COMISSAO=0",
+            f"{p}.FVALOR_COMISSAO=0",
+            f"{p}.FVALOR_FRETE=0",
+            f"{p}.FDATAHORA_LANC={fmt_dt}",
+            f"{p}.FCANCELADO=N",
+            f"{p}.FIMPRESSO=S",
+            f"{p}.FMOSTROU_TELA=S",
+            f"{p}.FECF_ERRO=N",
+            f"{p}.FPRONTO=S",
+            f"{p}.FTIPO_ITEM={(tipo_item or '00 Mercadoria para Revenda').strip()}",
+            f"{p}.FCOD_CFOP=001",
+            f"{p}.FCFOP=5.102",
+            f"{p}.FCF=",
+            f"{p}.FST={st_item}",
+            f"{p}.FALIQUOTA=0",
+            f"{p}.FBASE_CAL_ICMS=0",
+            f"{p}.FRED_BASE_CAL_ICMS=0",
+            f"{p}.FVALOR_ICMS=0",
+            f"{p}.FBASE_CAL_ICMS_SUB=0",
+            f"{p}.FVALOR_ICMS_SUB=0",
+            f"{p}.FPIS_ST=",
+            f"{p}.FPIS_BASE=0",
+            f"{p}.FPIS_ALIQ=0",
+            f"{p}.FPIS_SUB_BASE=0",
+            f"{p}.FPIS_SUB_ALIQ=0",
+            f"{p}.FCOFINS_ST=",
+            f"{p}.FCOFINS_BASE=0",
+            f"{p}.FCOFINS_ALIQ=0",
+            f"{p}.FCOFINS_SUB_BASE=0",
+            f"{p}.FCOFINS_SUB_ALIQ=0",
+            f"{p}.FTRIB_FEDERAL={trib_fed}",
+            f"{p}.FTRIB_ESTADUAL={trib_est}",
+            f"{p}.FTRIB_MUNICIPAL={trib_mun}",
+            f"{p}.FVALOR_TOT_TRI={trib_tot}",
+            f"{p}.FBC_FCP=0",
+            f"{p}.FP_FCP=0",
+            f"{p}.FVL_FCP=0",
+            f"{p}.FALIQ_DESONERADO=0",
+            f"{p}.FICMS_DESONERADO=0",
+            f"{p}.FMOTIVO_DESONERADO=0",
+            f"{p}.FLancadoNoDav=N",
+            f"{p}.FDataHoraLancDav=30/12/1899",
+            f"{p}.PROMO.ID_PROMO=0",
+            f"{p}.PROMO.QTD_SALDO={qtd}",
+            f"{p}.PROMO.VALOR_DESC=0",
+            f"{p}.PROMO.PROMO_MAGIC=0",
+            f"{p}.Vendedor.Id=0",
+            f"{p}.Vendedor.Nome=",
+            f"{p}.Vendedor.Per_Vista=0",
+            f"{p}.Vendedor.Per_Prazo=0",
+            f"{p}.Vendedor.Per_Servico_Vista=0",
+            f"{p}.Vendedor.Cnpj_Cpf=",
+            f"{p}.ID_KIT=0",
+            f"{p}.FidTabelaPreco=0",
+            f"{p}.ICMSMONO_BASE_QBCRET=0",
+            f"{p}.ICMSMONO_ALIQ_ADREMICMSRET=0",
+            f"{p}.ICMSMONO_VALOR_VICMSRET=0",
+            f"{p}.IdTributacao=0",
+        ]
+        item_blocos.append(b)
+
+    add("VENDA.fVAL_TRIB_EST", trib_est_total)
+    add("VENDA.fVAL_TRIB_MUN", trib_mun_total)
+    add("VENDA.fVAL_TRIB_FED", trib_fed_total)
+    add("VENDA.FValorFrete", 0)
+    add("VENDA.FMOVESTOQUE", 0)
+    add("VENDA.FMOVFINANCEIRO", 0)
+    add("VENDA.FMOVESTOQUEAUTO", 0)
+    add("VENDA.FIDPREVENDA", 0)
+    add("VENDA.FINDINTERMED", 0)
+    add("VENDA.FINFINTERMEDCNPJ", "")
+    add("VENDA.FINFINTERMEDIDCADINTTRAN", "")
+    add("VENDA.INDPRESENCA", 0)
+    add("VENDA.fVAL_FEM", 0)
+    add("VENDA.fOPERADOR", operador)
+    add("VENDA.FID_OPERADOR", 1)
+    add("CLIENTE.CODIGO", "")
+    add("CLIENTE.NOME", "")
+    add("CLIENTE.CPF_CNPJ", "")
+    add("CLIENTE.ENDERECO", "")
+    add("CLIENTE.Perc_Convenio", 0)
+    add("CLIENTE.Fidelidade", 0)
+    add("Vendedor.Id", 0)
+    add("Vendedor.Nome", "")
+    add("Vendedor.Per_Vista", 0)
+    add("Vendedor.Per_Prazo", 0)
+    add("Vendedor.Per_Servico_Vista", 0)
+    add("Vendedor.Cnpj_Cpf", "")
+    add("DOC_importado.IdDav", 0)
+    add("DOC_importado.TIPO", "")
+    add("DOC_importado.NUMERO", 0)
+    add("DOC_importado.MSG", "")
+    add("DOC_importado.Consumacao", 0)
+    add("DOC_importado.Comissao", 0)
+    add("DOC_importado.DataHora_Emissao", "30/12/1899")
+    add("DavsImportados.Tipo", 0)
+    add("DavsImportados.Comissao_Inicial", 0)
+    add("DavsImportados.Comissao", 0)
+    add("DavsImportados.AlterouComissao", 0)
+    add("DavsImportados.NaoSomarGorjeta", 0)
+    add("ECF.DATA_MOV", dt_emissao.strftime("%d/%m/%Y"))
+    add("ECF.CCF", "")
+    add("ECF.PAFR04_ITENS", "P")
+    add("ECF.NUMFAB", "")
+    add("ECF.LancarNoCaixa", "N")
+    add("NotaManual.NUMFAB", "")
+    add("NotaManual.SERIE", "")
+    add("NotaManual.SUB_SERIE", "")
+    add("NotaManual.LancarNoCaixa", "N")
+    add("DFE.AMBIENTE", "")
+    add("DFE.TipoEmissao", 0)
+    add("DFE.CHAVE", "")
+    add("DFE.ServerNro", "")
+    add("DFE.Protocolo", "")
+    add("DFE.LancarNoCaixa", "N")
+    add("DFE.PlanoContas_Caixa", "")
+    add("DFE.DataEnvio", "30/12/1899")
+    add("VENDA.PROXIMOITEM", 0)
+    add("VENDA.TrabalhaComSalaoParceiro", "N")
+    add("QTD.fProdutos", len(itens_db))
+    for b in item_blocos:
+        linhas.extend(b)
+    add("QTD.fPagamentos", 1)
+    add("PAG_0.fForma", "Dinheiro:")
+    add("PAG_0.fValor", valor_total_nota)
+    add("PAG_0.fEspecie_Orig", "DINHEIRO")
+    add("PAG_0.fECF_Indice", 1)
+    add("PAG_0.fGNF", "")
+    add("PAG_0.fAprovada", "N")
+    add("PAG_0.FGridRow", 0)
+    add("PAG_0.FUUID", str(uuid.uuid4()).upper())
+    add("PAG_0.FTroca_Debito", "N")
+    add("PAG_0.FFidelidade_Debito", "N")
+    add("PAG_0.FGdoorPay", "N")
+    add("PAG_0.FShipay", "N")
+    add("PAG_0.FEmiteNFCe", "N")
+    add("QTD.fPRAZO", 0)
+    add("QTD.fTEF", 0)
+    add("QTD.fMFE", 0)
+    add("QTD.fSmart_POS", 0)
+    add("Transportadora.FCodigo", "")
+    add("Transportadora.FNome", "")
+    add("Transportadora.FCNPJ", "")
+
+    texto = "\r\n".join(linhas) + "\r\n"
+    return texto.encode("latin1")
+
+
+if __name__ == "__main__":
+    con = fb._conectar()
+    try:
+        cur = con.cursor()
+        venda_id = 29
+        blob_bytes = gerar_blob_pdv_arqbin(cur, venda_id)
+        print("tamanho gerado:", len(blob_bytes), "vs referencia 4415/4413")
+        with open("blob29_gerado.txt", "w", encoding="utf-8") as f:
+            f.write(blob_bytes.decode("latin1"))
+        cur.execute("DELETE FROM PDV_ARQBIN WHERE ID_VENDA = ?", (venda_id,))
+        cur.execute("INSERT INTO PDV_ARQBIN (ID_VENDA, OBJETO) VALUES (?, ?)", (venda_id, blob_bytes))
+        con.commit()
+        print("PDV_ARQBIN gravado pra venda", venda_id)
+    finally:
+        con.close()

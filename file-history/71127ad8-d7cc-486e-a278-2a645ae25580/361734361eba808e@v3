@@ -1,0 +1,108 @@
+import { apiPath } from '../lib/apiUrl';
+import { supabase } from '../lib/supabase';
+
+const API = apiPath('/api/motoboy');
+
+async function motoboyFetch(path, options = {}) {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+
+  if (!res.ok) {
+    const err = isJson ? await res.json().catch(() => ({})) : {};
+    throw new Error(err?.message ?? `HTTP ${res.status}`);
+  }
+
+  return isJson ? res.json() : {};
+}
+
+export const getMe = () => motoboyFetch('/me');
+export const atualizarPerfil = (dados) =>
+  motoboyFetch('/me', { method: 'PATCH', body: JSON.stringify(dados) });
+export const solicitarRevisaoPlataforma = () => motoboyFetch('/solicitar-revisao', { method: 'POST' });
+export const getMeusPedidos = () => motoboyFetch('/pedidos');
+export const atualizarLocalizacao = (pedidoId, lat, lng) =>
+  motoboyFetch(`/pedidos/${pedidoId}/localizacao`, {
+    method: 'PATCH',
+    body: JSON.stringify({ lat, lng }),
+  });
+export const confirmarEntrega = (pedidoId, entregaPagamento) =>
+  motoboyFetch(`/pedidos/${pedidoId}/entregar`, {
+    method: 'POST',
+    body: JSON.stringify({ entrega_pagamento: entregaPagamento ?? null }),
+  });
+
+export const registrarOcorrencia = (pedidoId, tipo, motivo) =>
+  motoboyFetch(`/pedidos/${pedidoId}/ocorrencia`, {
+    method: 'POST',
+    body: JSON.stringify({ tipo, motivo }),
+  });
+
+// Sem restaurantId, agrega pedidos disponíveis de todas as lojas afiliadas de uma vez —
+// é o modo usado pro polling de alerta (ver motoboy-portal/index.jsx), pra não perder
+// pedido pronto de uma loja só porque outra está selecionada no momento.
+export const getPedidosDisponiveis = (restaurantId) =>
+  motoboyFetch(`/pedidos/disponiveis${restaurantId ? `?restaurant_id=${restaurantId}` : ''}`);
+
+export const pegarPedido = (pedidoId) =>
+  motoboyFetch(`/pedidos/${pedidoId}/pegar`, { method: 'POST' });
+
+// Pedidos em produção (ainda sem motoboy) de todas as lojas afiliadas — motoboy demonstra
+// interesse aqui, antes de o pedido ficar pronto. Alerta final de "pronto" prioriza quem
+// já demonstrou interesse (ver getPedidosDisponiveis).
+export const getPedidosEmProducao = () => motoboyFetch('/pedidos/em-producao');
+export const demonstrarInteresse = (pedidoId) =>
+  motoboyFetch(`/pedidos/${pedidoId}/interesse`, { method: 'POST' });
+export const desistirInteresse = (pedidoId) =>
+  motoboyFetch(`/pedidos/${pedidoId}/interesse`, { method: 'DELETE' });
+
+export const confirmarColeta = (pedidoId, barcode) =>
+  motoboyFetch(`/pedidos/${pedidoId}/confirmar-coleta`, {
+    method: 'POST',
+    body: JSON.stringify({ barcode }),
+  });
+
+export const reivindicarPedido = (pedidoId) =>
+  motoboyFetch(`/pedidos/${pedidoId}/reivindicar`, { method: 'POST' });
+
+export const uploadComprovantePagamento = (pedidoId, base64) =>
+  motoboyFetch(`/pedidos/${pedidoId}/comprovante`, {
+    method: 'POST',
+    body: JSON.stringify({ base64 }),
+  });
+
+// Estabelecimentos — buscar/solicitar afiliação
+export const getEstabelecimentosDisponiveis = (busca) =>
+  motoboyFetch(`/estabelecimentos${busca ? `?busca=${encodeURIComponent(busca)}` : ''}`);
+
+export const solicitarAfiliacao = (restaurantId) =>
+  motoboyFetch(`/estabelecimentos/${restaurantId}/solicitar`, { method: 'POST' });
+
+export const getMinhasAfiliacoes = () => motoboyFetch('/estabelecimentos/minhas');
+
+// Ganhos / comissões
+export const getGanhosResumo = () => motoboyFetch('/ganhos');
+
+const ganhosQuery = ({ restaurantId, de, ate } = {}) => {
+  const params = new URLSearchParams();
+  if (restaurantId) params.set('restaurant_id', restaurantId);
+  if (de) params.set('de', de);
+  if (ate) params.set('ate', ate);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+};
+
+export const getGanhosHistorico = (filtro) => motoboyFetch(`/ganhos/historico${ganhosQuery(filtro)}`);
+export const getGanhosPorDia = (filtro) => motoboyFetch(`/ganhos/por-dia${ganhosQuery(filtro)}`);

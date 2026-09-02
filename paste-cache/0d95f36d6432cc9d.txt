@@ -1,0 +1,16 @@
+Iniciando agente GDOOR...
+←[32mINFO←[0m:     Started server process [←[36m19856←[0m]
+←[32mINFO←[0m:     Waiting for application startup.
+INFO:gdoor_delivery_sync.poller:poller iniciado — consultando https://app-desenvolvimento-server-delivery.ubjifz.easypanel.host a cada 5.0s
+←[32mINFO←[0m:     Application startup complete.
+←[32mINFO←[0m:     Uvicorn running on ←[1mhttp://127.0.0.1:8000←[0m (Press CTRL+C to quit)
+WARNING:gdoor_delivery_sync.poller:job 1 tem produto(s) sem mapeamento: [231, 229, 232, 29, 29, 115, 110, 16, 231, 72, 38, 29, 115, 110]
+WARNING:gdoor_delivery_sync.poller:job 2 tem produto(s) sem mapeamento: [81]
+WARNING:gdoor_delivery_sync.poller:job 3 tem produto(s) sem mapeamento: [45, 84, 81, 124, 51]
+WARNING:gdoor_delivery_sync.poller:job 4 tem produto(s) sem mapeamento: [70]
+WARNING:gdoor_delivery_sync.poller:job 5 tem produto(s) sem mapeamento: [17, 29, 124, 29, 29, 17, 119, 29, 29, 29]
+WARNING:gdoor_delivery_sync.poller:job 6 tem produto(s) sem mapeamento: [124, 119]
+WARNING:gdoor_delivery_sync.poller:job 7 tem produto(s) sem mapeamento: [29, 53, 239, 29, 29, 29]
+WARNING:gdoor_delivery_sync.poller:job 8 tem produto(s) sem mapeamento: [124, 229, 119]
+WARNING:gdoor_delivery_sync.poller:job 9 tem produto(s) sem mapeamento: [119]
+WARNING:gdoor_delivery_sync.poller:job 10 tem produto(s) sem mapeamento: [119]

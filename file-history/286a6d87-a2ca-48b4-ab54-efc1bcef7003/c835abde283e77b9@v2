@@ -1,0 +1,22 @@
+// Defaults do branding público do marketplace (/menu-catalog-product-browse).
+// Devem bater com os valores hoje hardcoded no frontend, pra nada mudar
+// visualmente até o admin editar algo em /admin/aparencia.
+export const DEFAULT_APARENCIA_MARKETPLACE = {
+  logo_icon: 'Utensils',
+  nome_marca: 'DeliveryHub',
+  header_bg_color: '#FFFFFF',
+  page_bg_color: '#F4F4F5',
+  hero_tagline: 'Delivery · Rápido · Confiável',
+  hero_titulo: 'Seu delivery favorito',
+  hero_subtitulo: 'Peça dos melhores restaurantes da sua cidade',
+  hero_fundo_tipo: 'gradiente', // 'gradiente' | 'cor' | 'imagem'
+  hero_fundo_cor: '#FF441F',
+  hero_fundo_imagem_url: '',
+  stat1_label: 'Restaurantes',
+  stat2_label: 'Avaliação média',
+  stat3_label: 'Min. entrega',
+  stat3_valor: '~30',
+  footer_bg_color: '#FFFFFF',
+  footer_text_color: '#71717A',
+  footer_link_color: '#FF441F',
+};

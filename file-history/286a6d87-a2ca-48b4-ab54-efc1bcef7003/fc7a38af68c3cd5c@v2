@@ -1,0 +1,19 @@
+const fs = require('fs');
+const file = 'C:/Users/jotac/OneDrive/Documents/DEV/deliveryhub_white_label/src/pages/menu-catalog-product-browse/index.jsx';
+let content = fs.readFileSync(file, 'utf8');
+
+// Só troca a classe BASE (não hover:/group-hover: etc, que ficam intocadas).
+// Negative lookbehind exige que o caractere anterior não seja ':'.
+const before = content;
+
+content = content.replace(/(?<!:)text-\[#18181B\]/g, 'text-[var(--texto-principal)]');
+content = content.replace(/(?<!:)text-\[#27272A\]/g, 'text-[var(--texto-principal)]');
+content = content.replace(/(?<!:)text-\[#71717A\]/g, 'text-[var(--texto-secundario)]');
+
+fs.writeFileSync(file, content, 'utf8');
+
+const countBefore = (re) => (before.match(re) || []).length;
+console.log('18181B antes:', countBefore(/text-\[#18181B\]/g));
+console.log('27272A antes:', countBefore(/text-\[#27272A\]/g));
+console.log('71717A antes:', countBefore(/text-\[#71717A\]/g));
+console.log('done');

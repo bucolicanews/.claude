@@ -1,0 +1,73 @@
+const fs = require('fs');
+
+const files = [
+  'C:/Users/jotac/OneDrive/Documents/DEV/deliveryhub_white_label/src/pages/motoboy-portal/index.jsx',
+  'C:/Users/jotac/OneDrive/Documents/DEV/deliveryhub_white_label/src/pages/motoboy-portal/ColetaBarcode.jsx',
+  'C:/Users/jotac/OneDrive/Documents/DEV/deliveryhub_white_label/src/pages/motoboy-portal/EntregaBarcode.jsx',
+];
+
+// exact literal class token -> dark companion to append. Matched against the
+// ORIGINAL content only (single pass), so outputs never get re-matched by
+// another rule (avoids e.g. text-[#71717A]'s "dark:text-[#A1A1AA]" being
+// re-caught by the text-[#A1A1AA] rule).
+const literalMap = {
+  'bg-white': 'dark:bg-[#27272A]',
+  'text-[#18181B]': 'dark:text-[#F4F4F5]',
+  'text-[#71717A]': 'dark:text-[#A1A1AA]',
+  'text-[#A1A1AA]': 'dark:text-[#71717A]',
+  'text-[#27272A]': 'dark:text-[#F4F4F5]',
+  'border-[#E4E4E7]': 'dark:border-[#3F3F46]',
+  'border-[#F4F4F5]': 'dark:border-[#3F3F46]',
+  'bg-[#F4F4F5]': 'dark:bg-[#3F3F46]',
+  'bg-[#FAFAFA]': 'dark:bg-[#27272A]',
+  'bg-[#E4E4E7]': 'dark:bg-[#3F3F46]',
+};
+
+const darkFor = {
+  50: (c) => `${c}-950/30`,
+  100: (c) => `${c}-950/40`,
+  200: (c) => `${c}-800`,
+  300: (c) => `${c}-700`,
+  500: (c) => `${c}-400`,
+  600: (c) => `${c}-400`,
+  700: (c) => `${c}-400`,
+  800: (c) => `${c}-300`,
+  900: (c) => `${c}-200`,
+};
+const colors = 'red|orange|amber|yellow|green|blue|purple|indigo'.split('|');
+
+// Escape regex special chars in a literal token.
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Build one alternation regex from all literal keys + the semantic color patterns,
+// so every match position in the ORIGINAL string is visited exactly once.
+const literalKeys = Object.keys(literalMap).sort((a, b) => b.length - a.length);
+const literalAlt = literalKeys.map(esc).join('|');
+// bg: only light surfaces (50/100) get adapted — solid button bgs (500/600/700) are fine as-is in dark mode.
+// border: 100/200/300 (light-surface borders).
+// text: 500-900 (colored text needs dimming on dark backgrounds).
+const semanticAlt = [
+  `\\bbg-(?:${colors.join('|')})-(?:50|100)\\b`,
+  `\\bborder-(?:${colors.join('|')})-(?:100|200|300)\\b`,
+  `\\btext-(?:${colors.join('|')})-(?:500|600|700|800|900)\\b`,
+].join('|');
+
+const combined = new RegExp(`(${literalAlt})|(${semanticAlt})`, 'g');
+
+function darkFor_semantic(token) {
+  const m = token.match(new RegExp(`^(bg|border|text)-(${colors.join('|')})-(\\d+)$`));
+  const [, prop, color, shade] = m;
+  return `dark:${prop}-${darkFor[shade](color)}`;
+}
+
+for (const file of files) {
+  let content = fs.readFileSync(file, 'utf8');
+
+  content = content.replace(combined, (match) => {
+    if (literalMap[match]) return `${match} ${literalMap[match]}`;
+    return `${match} ${darkFor_semantic(match)}`;
+  });
+
+  fs.writeFileSync(file, content, 'utf8');
+  console.log('done', file);
+}

@@ -1,0 +1,20 @@
+---
+titulo: Hub de Design Systems
+criado: 2026-06-10
+tipo: hub
+tags: [design, ui, ux, design-system, tailwind, mobile-first]
+---
+
+# Designer
+
+Hub de Design Systems e diretrizes visuais dos projetos.
+
+## Documentos
+
+- [[DIRETRIZES-UX-UI]] — Diretrizes de UX/UI e Design Centrado no Humano: ISO 9241-210/11, 5 Planos de UX (Garrett), heurísticas de Nielsen, acessibilidade (WCAG), Lean UX. Framework obrigatório para qualquer trabalho de design/UX/UI.
+- [[DESIGN SYSTEM OFICIAL(DELIVERY-RESTAURANTES)]] — Design System: Plataforma Delivery inspirada no Rappi (cores, tipografia, componentes, animações) — aplicação concreta de [[DIRETRIZES-UX-UI]]
+
+## Relacionamentos
+
+- [[../07-PROJETOS/README]] — Projetos ativos
+- [[../22-ENGENHARIA/README]] — Diretrizes de Engenharia

@@ -1,0 +1,10 @@
+import { Module } from '@nestjs/common';
+import { ApiGdoorService } from './api-gdoor.service';
+import { LicencaModule } from '../licenca/licenca.module';
+
+@Module({
+  imports: [LicencaModule],
+  providers: [ApiGdoorService],
+  exports: [ApiGdoorService],
+})
+export class ApiGdoorModule {}
