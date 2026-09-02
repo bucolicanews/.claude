@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: e5d5a35d-2a3a-4072-8b13-7ab7a3847924
-  modified: 2026-08-16T19:13:06.796Z
+  modified: 2026-09-02T12:43:07.784Z
 ---
 
 Two conventions confirmed by the user (2026-08-16, session fixing several mobile layout bugs on [[project-deliveryhub]]) — apply them by default to similar screens, not just on request:
@@ -16,3 +16,7 @@ Two conventions confirmed by the user (2026-08-16, session fixing several mobile
 
 **Why:** user explicitly confirmed liking the button-below-cash-field layout and asked to replicate it across the other two payment forms without re-explaining the spec — treat it as the standing convention for this app, not a one-off request.
 **How to apply:** when building or fixing any payment-entry UI in this codebase, default to this layout (fields → conditional cash field with red border → full-width submit button) and check any new flex row for wrap/shrink safety before shipping, especially in modals/panels that are tested on real phones.
+
+See also [[reference_may_memory_vault]]'s `DIRETRIZES-UX-UI.md` (Nielsen heuristic #4 "Consistência e padronização" and the mobile-first accessibility checklist) — this is the concrete instance of that framework for this codebase.
+
+**Recurrence (2026-08-23):** shipped a brand-new list row (checkbox + product name + comanda label + "Ver comanda" button, in the fechar-caixa "Pedidos ainda em preparo" screen) without applying this pattern up front, and the user hit the exact same "muitas letras... ficando espremido" symptom immediately on first use. User's follow-up: "sempre observe a responsividade para a melhor visão no celular" — a standing instruction, not scoped to fixing old screens. **How to apply (reinforced):** apply the flex-wrap/min-w-0/break-words checklist proactively to every NEW row/card you write in this codebase, not just when retrofitting a reported bug — a 3+ item flex row (checkbox/icon + primary label + secondary label + action button) on a card that will render at mobile width should default to a stacked two-line layout (primary label full-width on its own line with `truncate`/`break-words`, secondary label + action button on a second line with `min-w-0`/`flex-shrink-0`) rather than cramming everything into one `flex items-center` row.
