@@ -9,3 +9,5 @@
 - [AskUserQuestion vs plain chat](feedback_askuserquestion_investigative.md) — user rejects the tool for facts he already knows, types the answer instead; fine for real tradeoff picks
 - [Migration order](feedback_migration_order.md) — apply Supabase migrations to local DB first, production (--linked) second, never reverse
 - [Modal sizing](feedback_modal_sizing.md) — modals: max-w-md mobile, md:max-w-[85%] desktop, project-wide convention
+- [Unified config over per-element](feedback_unified_config_over_per_element.md) — one shared style block beats a config panel per button/element
+- [DeliveryHub módulo Serviços + Retirada balcão](project_deliveryhub_pendencias_ui.md) — both deployed 2026-09-04 (Serviços ad7a0f2/e3a4c41; Retirada+KDS fixes 2e388f9/1a21e05)
