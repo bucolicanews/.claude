@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
-  modified: 2026-09-05T21:32:44.932Z
+  modified: 2026-09-06T00:24:53.678Z
 ---
 
 Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
@@ -509,3 +509,19 @@ Usuário reportou: produto custa R$40, em promoção por R$35 (campo `preco_prom
 
 **Why:** `preco_promo` só é considerado na hora de **exibir** o preço (frontend/catálogo), nunca foi propagado pro cálculo que efetivamente grava o valor cobrado no banco — bug estrutural desde que o campo existe, não uma regressão recente.
 **How to apply:** se aparecer um 5º lugar que insere `order_items` a partir de `products.price` (ex. um novo canal de venda), replicar o mesmo padrão `preco_promo ?? price`. Se aparecer "recibo/conferência mostra valor diferente do cobrado", suspeitar de re-fetch de `products.price` em vez de usar o `unit_price` já persistido — mesma classe do bug encontrado na impressão do PDV.
+
+## Feature: Marketplace Boost — perfis nomeados de vagas + seleção multi-carrossel (2026-09-05/06) — em produção
+
+Módulo já existia (`/admin/marketplace-boost`, `/restaurante/impulsionar` — dono paga pra destacar produto/combo nos carrosséis da home pública, item ganha etiqueta "Patrocinado"), mas passou por duas rodadas de UX na mesma sessão:
+
+**1. Criar pacote em vários carrosséis de uma vez.** Modal de "Novo pacote" só deixava escolher 1 carrossel por vez (`<select>`), obrigando repetir a criação pra cada carrossel. Primeira versão: checkboxes + "Selecionar todos" (cria 1 pacote por carrossel marcado, mesma config — schema `marketplace_boost_pacotes` é 1 carrossel por linha, não dá pra vincular um pacote a vários ao mesmo tempo).
+
+**2. Depois trocado por seletor de perfil de vagas.** Usuário achou melhor não marcar carrossel por carrossel toda vez — criou um conceito novo, **perfis nomeados de vagas** (`marketplace_boost_vagas_presets`, migration `20260906000001`): admin salva a combinação atual de "vagas pagas por carrossel" com um nome (ex: "3 master", "Black Friday") em vez de só sobrescrever o único valor vigente. No modal de criar pacote, escolher um perfil (dropdown) já define automaticamente quais carrosséis entram (as chaves do `config` do perfil) — substituiu os checkboxes individuais. "Selecionar todos" continua como atalho sem precisar de perfil.
+
+Endpoints novos em `MarketplaceBoostAdminController`: `GET/POST /marketplace-boost/vagas/presets`, `POST .../:id/aplicar` (reusa `salvarVagas()` com o config congelado do preset), `DELETE .../:id`. Aplicar um perfil não tem conceito de "ativo" — só sobrescreve a vaga em vigor na hora, sem histórico do que estava valendo antes.
+
+**Bug real encontrado e corrigido no mesmo fluxo:** `SelecionarItensModal` (`/restaurante/impulsionar`, tela onde o dono escolhe quais itens destacar depois de comprar um pacote) quebrava com `itens.map is not a function` ao clicar num pacote do carrossel **"Combos"** especificamente. Causa: `getMeusCombos()` retorna `{ combos: [...] }` (mesmo padrão de `getMeusProdutos()` → `{ produtos: [...] }`), mas o código usava o resultado direto sem desembrulhar — só o branch de produtos tinha o `.then(r => r.produtos ?? [])`. Bug pré-existente, não era regressão da sessão.
+
+**Gotcha de teste local (2026-09-05):** senha do `admin@delivery.com` local tinha expirado de novo (mesmo padrão já documentado — resetada em sessão anterior de teste), resetei via Admin API pra `TesteAdmin123!`. Nessa mesma investigação, **errei o alvo uma vez**: `GET /auth/v1/admin/users?email=admin@delivery.com` no GoTrue local **não filtra por query string** (retorna o primeiro usuário da lista, ignorando o parâmetro) — resetei sem querer a senha de `motoboy3@delivery.com` antes de perceber. Sem impacto real (ambiente local, dado de teste), mas documentado pra não repetir: **sempre listar todos os usuários (`per_page=200`) e filtrar no client** (`.find(u => u.email === ...)`) antes de chamar o Admin API de update, nunca confiar em filtro de query string nesse endpoint específico do GoTrue local.
+
+Commits: backend `8c9fb0c` (`serer_delivery` + submódulo, mesmo hash) + frontend `7b87680` (checkboxes) → `0724ec5` (perfil de vagas + fix do combos) + `8114b01` (ponteiro). Migration aplicada em produção via `db push --linked`.
