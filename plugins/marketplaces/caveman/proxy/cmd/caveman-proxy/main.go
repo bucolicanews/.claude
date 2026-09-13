@@ -81,6 +81,8 @@ func main() {
 	}
 }
 
+const nativeHookMaxPayloadBytes = 2 * 1024 * 1024
+
 func runNativeHookBridge(args []string) {
 	if len(args) == 0 {
 		return
@@ -95,11 +97,34 @@ func runNativeHookBridge(args []string) {
 		}
 		home = filepath.Join(userHome, ".caveman")
 	}
-	raw, err := io.ReadAll(io.LimitReader(os.Stdin, 2*1024*1024+1))
-	if err != nil || len(raw) > 2*1024*1024 {
+	raw, err := readNativeHookPayload(os.Stdin)
+	if err != nil || len(raw) > nativeHookMaxPayloadBytes {
 		return
 	}
 	_ = nativehook.Run(context.Background(), home, agent, adapter, raw, os.Stdout, os.Stderr)
+}
+
+func readNativeHookPayload(r io.Reader) ([]byte, error) {
+	raw := make([]byte, 0, 4096)
+	buf := make([]byte, 16*1024)
+	for {
+		n, err := r.Read(buf)
+		if n > 0 {
+			if len(raw)+n > nativeHookMaxPayloadBytes {
+				return nil, fmt.Errorf("native hook payload too large")
+			}
+			raw = append(raw, buf[:n]...)
+			if json.Valid(raw) {
+				return raw, nil
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				return raw, nil
+			}
+			return nil, err
+		}
+	}
 }
 
 func runNativeWhy(logger *slog.Logger, args []string) {
@@ -270,6 +295,7 @@ func runServe(logger *slog.Logger) {
 	// Publish active gate inputs so a later wrap can prove a reused proxy matches
 	// its requested recovery contract before making a compression claim.
 	state.RecoveryViaMCP = env.String("CAVEMAN_RECOVERY", "") == "mcp"
+	state.CompatUpstreams = compatUpstreams(cfg)
 	if err := runstate.Write(home, state); err != nil {
 		_ = listener.Close()
 		logger.Error("cannot write proxy run state", "error", err)
@@ -289,6 +315,18 @@ func runServe(logger *slog.Logger) {
 	if err := runstate.RemoveMatching(home, state.Port, state.InstanceToken); err != nil {
 		logger.Warn("cannot remove proxy run state", "error", err)
 	}
+}
+
+// compatUpstreams flattens the named OpenAI-compatible mounts to name → base URL
+// for publication in the run-state file. A client cannot otherwise learn which
+// /compat/<name>/ mounts this proxy actually serves.
+func compatUpstreams(cfg config.Config) map[string]string {
+	upstreams := cfg.CompatUpstreams()
+	out := make(map[string]string, len(upstreams))
+	for name, upstream := range upstreams {
+		out[name] = upstream.BaseURL
+	}
+	return out
 }
 
 // initializeNativePersistence keeps provider routing usable when local recovery

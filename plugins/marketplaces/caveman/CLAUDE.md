@@ -26,7 +26,10 @@ Caveman makes AI coding agents respond in compressed caveman-style prose while p
 This repo is source of truth for Caveman skills, Engine, and MV3 directive
 extension. Agent SDK + initializer work belongs in
 `/Users/julb/Desktop/GitHub/caveman-agent-sdk`
-(`JuliusBrussee/caveman-agent-sdk`). Browse driver/MCP/benchmark/plugin work
+(`JuliusBrussee/agent-sdk`). Proprietary Pebble runtime, policy, sessions, TUI,
+distribution, and conformance work belongs in
+`/Users/julb/Desktop/GitHub/caveman-coding-agent`
+(intended `JuliusBrussee/caveman-coding-agent`). Browse driver/MCP/benchmark/plugin work
 belongs in `/Users/julb/Desktop/GitHub/caveman-browse`
 (`JuliusBrussee/caveman-browse`). Matching `packages/agent/`,
 `packages/create-caveman-agent/`, and `browse/` directories here are
@@ -35,8 +38,8 @@ or an explicitly requested cross-repo sync.
 
 Visibility is separate from ownership: this repo and `caveman-browse` are
 public now; `caveman-agent-sdk` is private during development and planned for
-public release after its release gates; Caveman-Cloud remains private
-commercial source.
+public release after its release gates; `caveman-coding-agent` and
+Caveman-Cloud remain private commercial source.
 
 ---
 
@@ -86,7 +89,7 @@ caveman/
 │   ├── subagent-tax/            # Local harness-prefix benchmark
 │   └── shared/                  # Contracts + binary installer
 ├── engine/ · proxy/             # BSL local compression runtime + provider proxy
-├── cacheengine/ · rewriter/     # Standalone cache planner + prompt rewriter
+├── rewriter/                    # Prompt rewriter
 ├── mcp/ · mem/ · shrink/        # Recovery tools, memory, output compression
 ├── browse/                      # consumer copy; source = caveman-browse
 ├── extension/                   # MV3 extension source
@@ -411,5 +414,6 @@ To reproduce: `uv run python benchmarks/run.py` (needs `ANTHROPIC_API_KEY` in `.
 - The two statusline scripts have no shared runtime with the JS, so they re-implement path resolution by hand. `tests/verify_repo.py::verify_powershell_static` greps both against the `SESSIONS_DIRNAME` and `SESSION_ID_RE` constants to catch drift — there is no behavioral `.ps1` test on the POSIX runners, so that grep is the only guard on the Windows badge.
 - Editing anything in `src/hooks/` means regenerating `src/hooks/checksums.sha256` (same file set, recomputed digests) — `tests/verify_repo.py` fails the build otherwise, and `bin/install.js` verifies remote hook downloads against the manifest for the pinned ref.
 - Hooks must respect `CLAUDE_CONFIG_DIR` env var, not hardcode `~/.claude`. Same for `bin/install.js` / statusline scripts.
+- **Any entrypoint that reads a host hook payload from stdin returns on the first complete JSON object, never at EOF.** Under the Windows pipe implementation the host's close lags arbitrarily (#729/#833, #949), so a reader that waits for EOF burns the host's whole budget with its work done. The readers that follow this rule: `caveman-activate.js` and `caveman-mode-tracker.js` (per-chunk parse), `packages/cli/src/native-hook-fast.ts` (`stdin()`), `readHookStdin()` in `packages/cli/src/index.ts` (shrink-hook, memory recall, native-hook), and `readNativeHookPayload` in `proxy/cmd/caveman-proxy/main.go`. A new hook callback uses one of those, not `readStdin()` or `io.ReadAll`. Each has a keep-the-writer-open regression test; add one for any new reader.
 - `bin/install.js` is the only installer source. `install.sh` / `install.ps1` at repo root are 30-line shims that delegate to it. Never re-add per-OS install logic to the shims — that's how we got the Windows quoting bug (#249).
 - Any settings.json read in installer or hooks must go through `bin/lib/settings.js` `readSettings()` so JSONC comments don't crash the merge. Any settings.json write must run through `validateHookFields()` first.

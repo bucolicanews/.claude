@@ -3,13 +3,18 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   accessSync,
   appendFileSync,
+  closeSync,
   cpSync,
   existsSync,
+  fchmodSync,
+  fsyncSync,
   chmodSync,
   constants,
   copyFileSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
   lstatSync,
   readdirSync,
   readFileSync,
@@ -22,13 +27,14 @@ import {
   writeFileSync,
 } from "node:fs";
 import { chmod, mkdir, open, readFile, rename, writeFile } from "node:fs/promises";
-import { homedir, hostname, tmpdir } from "node:os";
-import { basename, delimiter, dirname, extname, isAbsolute, join, resolve } from "node:path";
+import { homedir, hostname, tmpdir, userInfo } from "node:os";
+import { basename, delimiter, dirname, extname, isAbsolute, join, normalize, parse, relative, resolve, sep } from "node:path";
 import { connect as netConnect, createServer as netCreateServer, isIP, type AddressInfo } from "node:net";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { createHash, createHmac, createPublicKey, randomBytes, randomUUID, verify as edVerify, type KeyObject } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { parseEnv } from "node:util";
 import { PROFILES, type AgentProfile } from "./agents.generated.js";
 import {
   BINARY_RELEASE,
@@ -125,8 +131,12 @@ function gatewayUrlFromConfigFile(): string {
 // still runs verbatim with the generic provider base-URL injection.
 const AGENTS: AgentProfile[] = PROFILES;
 
-// binOf is the primary binary name to resolve on PATH for an agent profile.
+// binOf prefers the first installed published binary and falls back to the
+// primary name for install hints. Some packages intentionally publish aliases.
 function binOf(a: AgentProfile): string {
+  for (const name of a.binary_names) {
+    if (which(name)) return name;
+  }
   return a.binary_names[0] ?? a.id;
 }
 
@@ -2009,8 +2019,10 @@ async function start(argv: string[] = []) {
   const subscriptionCompress = subscriptionCompressEnabled(startGate);
   // A bare proxy has no active-agent identity, so it cannot prove that whichever
   // subscription client arrives owns a compatible recovery tool. Keep the global
-  // recovery signal off; only `caveman wrap <agent>` can bind recovery to a checked
-  // agent profile. Inherited environment claims never cross this boundary.
+  // recovery signal off; `caveman wrap <agent>` binds recovery to a checked agent
+  // profile out of band, and for every other client the proxy reads the retrieve
+  // tool out of the request itself. Inherited environment claims never cross this
+  // boundary.
   const mcpRecovery = startMcpRecoveryAvailable();
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -2579,11 +2591,46 @@ function readPendingAgentNativeBundleRemoval(agent: "claude" | "codex"): AgentNa
   }
 }
 
-function readMcpServerMarker(agent: string, serverName: string): { command: string; args: string[] } | null {
+type McpServerMarker = { command: string; args: string[]; config_path?: string; schema_version?: 1 };
+
+function mcpServerToolName(serverName: string): string | undefined {
+  if (serverName === "caveman") return "caveman_retrieve";
+  if (serverName === "caveman-browse") return "caveman_browse";
+  if (serverName === "caveman-cloud") return "caveman_context";
+  if (serverName === "caveman-delegate") return "caveman_delegate";
+  return undefined;
+}
+
+function parseMcpServerMarkerBytes(agent: string, serverName: string, bytes: Buffer): McpServerMarker | null {
   try {
-    const value = JSON.parse(readFileSync(mcpServerMarkerPath(agent, serverName), "utf8")) as Record<string, unknown>;
-    if (typeof value.command !== "string" || !Array.isArray(value.args) || !value.args.every((arg) => typeof arg === "string")) return null;
-    return { command: value.command, args: value.args as string[] };
+    const value = JSON.parse(bytes.toString("utf8")) as Record<string, unknown>;
+    const expectedTool = mcpServerToolName(serverName);
+    if (!expectedTool || value.tool !== expectedTool) return null;
+    const hasConfigPath = Object.hasOwn(value, "config_path");
+    const expectedKeys = hasConfigPath
+      ? ["args", "command", "config_path", "schema_version", "tool"]
+      : ["args", "command", "tool"];
+    if (Object.keys(value).sort().join("\0") !== expectedKeys.join("\0")) return null;
+    if (typeof value.command !== "string" || !value.command.trim() || /[\r\n]/.test(value.command) || !Array.isArray(value.args) || !value.args.every((arg) => typeof arg === "string")) return null;
+    if (hasConfigPath && (value.schema_version !== 1
+      || agent !== "kilo" && agent !== "qwen"
+      || typeof value.config_path !== "string"
+      || value.config_path !== canonicalMcpConfigPath(value.config_path))) return null;
+    return {
+      command: value.command,
+      args: value.args as string[],
+      ...(hasConfigPath ? { config_path: value.config_path as string, schema_version: 1 as const } : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readMcpServerMarker(agent: string, serverName: string): McpServerMarker | null {
+  try {
+    const path = mcpServerMarkerPath(agent, serverName);
+    if ((agent === "kilo" || agent === "qwen") && lstatSync(path).isSymbolicLink()) return null;
+    return parseMcpServerMarkerBytes(agent, serverName, readFileSync(path));
   } catch {
     return null;
   }
@@ -3032,11 +3079,12 @@ type WrapRuntimeMode = "compress" | "record" | "pixel";
 //   auto        — install the caveman MCP server when a real binary resolves
 //                 (today's behavior); the agent gets caveman_retrieve and the
 //                 proxy may compress streams marker-only.
-//   marker-only — inject NOTHING. Wrap stops managing the MCP surface: it does
-//                 not install, and it does not uninstall what is already there.
-//                 Recovery is then answered purely by what the agent actually
-//                 has (see wrapMcpRecoveryAvailable), so the proxy is never told
-//                 a retrieval tool exists when none does.
+//   marker-only — install NOTHING new and strip profile-owned automatic MCP.
+//                 Wrap does not uninstall a prior explicit install; agents whose
+//                 highest-precedence config can shadow that install may receive
+//                 an ephemeral copy only after marker + native entry validation.
+//                 Recovery is answered from that effective registration (see
+//                 wrapMcpRecoveryAvailable), never marker existence alone.
 //   off         — the pre-existing `execute.mcp: false`; same install behavior
 //                 as marker-only, kept as its own name for config compatibility.
 type McpSurfaceMode = "auto" | "marker-only" | "off";
@@ -4488,11 +4536,17 @@ async function wrap(rest: string[]) {
     console.error("caveman wrap: --pixel not yet supported for codex subscription sessions");
     process.exit(1);
   }
-  await bootstrapLocalWrapRuntime(parsed);
-  await firstRunExperience();
+  // Route-changing agent flags intentionally bypass Caveman. Decide before any
+  // first-run install, proxy bootstrap, or welcome work so a direct launch has
+  // no Caveman side effects beyond its explicit warning.
+  const routeDecision = agent ? agentRouteOverride(agent, extra) : null;
+  if (!routeDecision) {
+    await bootstrapLocalWrapRuntime(parsed);
+    await firstRunExperience();
+  }
   // `wrap` is a zero-commit trial. Native hooks/MCP/config live only in a temp
   // host pack for this child; persistent integration requires an explicit install.
-  await runWrapped(resolved, extra, agent, parsed, codexAuthMode === "subscription");
+  await runWrapped(resolved, extra, agent, parsed, codexAuthMode === "subscription", routeDecision);
 }
 
 // ===========================================================================
@@ -5072,8 +5126,11 @@ async function agentShortcut(rest: string[]) {
 // is the one-command compression path. If the proxy can't be reached, a TTY run
 // offers to launch the agent directly (no Caveman, no compression this run) rather
 // than wire it to a dead endpoint; non-TTY runs warn and route through as before.
-async function runWrapped(bin: string, cmdArgs: string[], agent?: AgentProfile, opts: WrapOptions = { mode: "compress", noProxy: false, toon: true, noShrink: false, mcpMode: "auto", noBrowse: false, delegate: false, minimal: false, command: [] }, codexSubscription = false) {
-  const result = await spawnWrapped(bin, cmdArgs, agent, opts, gatewayURL(), codexSubscription);
+async function runWrapped(bin: string, cmdArgs: string[], agent?: AgentProfile, opts: WrapOptions = { mode: "compress", noProxy: false, toon: true, noShrink: false, mcpMode: "auto", noBrowse: false, delegate: false, minimal: false, command: [] }, codexSubscription = false, routeDecision?: AgentRouteOverride | null) {
+  const result = await spawnWrapped(bin, cmdArgs, agent, opts, gatewayURL(), codexSubscription, routeDecision);
+  // Preflight route bypass is intentionally outside Caveman's lifecycle: no
+  // savings read, sync, telemetry, or other post-child mutation.
+  if (result.routeBypass) process.exit(result.code);
   const summary = result.summaryKind && result.sessionStart
     ? printSessionSavings(result.summaryKind, result.sessionStart, agent?.id)
     : null;
@@ -5134,7 +5191,8 @@ async function spawnWrapped(
   opts: WrapOptions,
   gw: string,
   codexSubscription = false,
-): Promise<{ code: number; proxyStarted: boolean; sessionStart?: string | undefined; summaryKind?: "observe" | "compress" | undefined }> {
+  routeDecision?: AgentRouteOverride | null,
+): Promise<{ code: number; proxyStarted: boolean; routeBypass: boolean; sessionStart?: string | undefined; summaryKind?: "observe" | "compress" | undefined }> {
   const { host, port } = gatewayHostPort(gw);
   const local = wrapMode(gw) === "local";
   let proxyStarted = false;
@@ -5143,14 +5201,23 @@ async function spawnWrapped(
   // Gemini cannot preserve both contracts. Launch direct instead of routing a
   // request that will 401 or misuse one credential as the other.
   const managedGeminiUnsupported = !local && agent?.id === "gemini";
-  let direct = managedGeminiUnsupported;
+  // `wrap` resolves this before first-run work and passes even a null decision.
+  // Other callers resolve here. Never reread mutable settings across that boundary.
+  const routeOverride = agent
+    ? routeDecision === undefined ? agentRouteOverride(agent, cmdArgs) : routeDecision
+    : null;
+  const routeBypass = routeOverride !== null;
+  let direct = managedGeminiUnsupported || routeOverride !== null;
   if (managedGeminiUnsupported) {
     process.stderr.write("caveman: managed Gemini CLI wrap is unsupported because Gemini CLI cannot send separate Caveman and upstream credentials; launching directly\n");
+  }
+  if (routeOverride && agent) {
+    process.stderr.write(`caveman: ${routeOverrideLabel(agent)} ${routeOverride.surface} ${routeOverride.reason}; launching directly\n`);
   }
   // The local proxy compresses with no account. When wrap runs the LOCAL
   // proxy path we resolve the mode; managed gateway traffic is governed by the cloud
   // policy engine, so we never resolve it here.
-  const gateApplies = local && !opts.noProxy;
+  const gateApplies = !direct && local && !opts.noProxy;
   const entitlement = gateApplies ? readWrapEntitlement() : null;
   const entitlementState = gateApplies ? readWrapEntitlementState() : null;
   const gate = gateApplies ? resolveWrapGate(entitlement, new Date(), opts.mode) : null;
@@ -5172,19 +5239,19 @@ async function spawnWrapped(
   // detail itself — i.e. it has the caveman MCP retrieve tool installed (run
   // `caveman mcp install <agent>`). When it does, signal the proxy to use MCP
   // recovery (which lets it compress streams); otherwise streams pass through.
-  const ephemeralMcp = agent && (agent.id === "claude" || agent.id === "codex")
+  const ephemeralMcp = !direct && agent && (agent.id === "claude" || agent.id === "codex")
     && !opts.minimal && opts.mcpMode === "auto" && wrapRecoveryEligible(opts)
     ? probeMcpBinary()
     : null;
   if (ephemeralMcp && !ephemeralMcp.probe.current) queueStaleMcpBinary(ephemeralMcp.probe);
   const ephemeralMcpBinary = ephemeralMcp?.probe.current ? ephemeralMcp.binary : undefined;
-  const mcpRecovery = Boolean(ephemeralMcpBinary) || wrapMcpRecoveryAvailable(agent, opts);
-  const delegateAlreadyInstalled = Boolean(agent && mcpServerInstalled(agent.id, "caveman-delegate"));
-  const ephemeralDelegateMcp = agent && (agent.id === "claude" || agent.id === "codex")
+  const mcpRecovery = !direct && (Boolean(ephemeralMcpBinary) || wrapMcpRecoveryAvailable(agent, opts, cmdArgs));
+  const delegateAlreadyInstalled = Boolean(!direct && agent && mcpServerInstalled(agent.id, "caveman-delegate"));
+  const ephemeralDelegateMcp = !direct && agent && (agent.id === "claude" || agent.id === "codex")
     && !opts.minimal && opts.delegate && !delegateAlreadyInstalled
     ? resolveDelegateMcpCommand()
     : null;
-  if (agent && (agent.id === "claude" || agent.id === "codex") && opts.delegate && !delegateAlreadyInstalled && !ephemeralDelegateMcp) {
+  if (!direct && agent && (agent.id === "claude" || agent.id === "codex") && opts.delegate && !delegateAlreadyInstalled && !ephemeralDelegateMcp) {
     process.stderr.write("caveman: delegate enabled but caveman-delegate server is unavailable; launching without delegate\n");
   }
   const desiredRecoveryViaMCP = observeEstimate ? false : mcpRecovery;
@@ -5192,7 +5259,7 @@ async function spawnWrapped(
   const proxyVersion = gateApplies ? probeProxyVersion() : null;
   let runtime: ProxyRuntimeState = { owner: "unknown" };
   let runtimeState: OffState | null = null;
-  let proxyReady = await portListening(host, port);
+  let proxyReady = direct ? false : await portListening(host, port);
   if (proxyReady && gateApplies) {
     runtime = readProxyRuntimeState(port, proxyVersion);
     if (runtime.owner === "unknown") {
@@ -5237,7 +5304,7 @@ async function spawnWrapped(
               );
               proxyReady = await portListening(host, port);
             }
-            runtime = proxyReady ? readProxyRuntimeState(port, proxyVersion) : { owner: "unknown" };
+            runtime = proxyReady ? await awaitProxyRuntimeState(port, proxyVersion) : { owner: "unknown" };
             if (runtime.owner === "unknown" || !proxyRuntimeMatches(runtime, effectiveMode, desiredRecoveryViaMCP)) {
               runtimeState = runtime.owner === "unknown"
                 ? OFF_STATES.foreignProcess(host, port)
@@ -5268,7 +5335,7 @@ async function spawnWrapped(
       }
     }
   }
-  if (!proxyReady) {
+  if (!proxyReady && !direct) {
     if (local && !opts.noProxy) {
       proxyStarted = codexSubscription
         ? await startWrapProxy(effectiveMode, desiredRecoveryViaMCP, false, undefined, undefined, gw, "codex-subscription", observeEstimate)
@@ -5276,14 +5343,14 @@ async function spawnWrapped(
     }
     proxyReady = await portListening(host, port);
     if (proxyReady && gateApplies) {
-      runtime = readProxyRuntimeState(port, proxyVersion);
+      runtime = proxyStarted ? await awaitProxyRuntimeState(port, proxyVersion) : readProxyRuntimeState(port, proxyVersion);
       if (runtime.owner === "unknown") {
         runtimeState = proxyVersion?.capabilities.includes("run_state")
           ? OFF_STATES.foreignProcess(host, port)
           : OFF_STATES.staleBinary("caveman-proxy", proxyVersion?.version ?? "unknown", cliVersion());
       }
     }
-    if (!proxyReady && !direct) {
+    if (!proxyReady) {
       const startHint = codexSubscription || opts.mode === "record" ? "caveman start" : `CAVEMAN_MODE=${opts.mode} caveman start`;
       if (codexSubscription && opts.noProxy) {
         // Explicit proxy:false leaves subscription Codex in pass-through launch mode
@@ -5303,7 +5370,7 @@ async function spawnWrapped(
           process.stderr.write(`${mark("warn")} cancelled — run ${cyan(startHint)}, then re-run your wrap\n`);
           emitCommandRunOnce("error", "usage");
           removeProxySessionMarker(sessionMarker);
-          return { code: 130, proxyStarted };
+          return { code: 130, proxyStarted, routeBypass };
         }
       } else {
         process.stderr.write(
@@ -5313,8 +5380,17 @@ async function spawnWrapped(
       }
     }
   }
+  // A foreign listener on the proxy port is the same failure as a gate
+  // mismatch, with a worse consequence: launching routed would hand the
+  // operator's provider keys to a process caveman does not own (#945).
   if (runtimeState?.id === "running-gate-mismatch") {
     process.stderr.write(`${mark("warn")} ${runtimeState.line}\n`);
+    direct = true;
+  } else if (proxyReady && gateApplies && !proxyStarted && runtime.owner === "unknown") {
+    // A listener caveman did not start this run and cannot prove it owns: a
+    // foreign process, or a proxy binary too old to answer. Routing anyway
+    // would hand the operator's provider keys to that listener (#945).
+    if (runtimeState) process.stderr.write(`${mark("warn")} ${runtimeState.line}\n`);
     direct = true;
   }
   const subscriptionCompressionActive = !direct && proxyReady && subscriptionCompress && desiredRecoveryViaMCP
@@ -5387,7 +5463,7 @@ async function spawnWrapped(
       ? { ...process.env }
       : agent?.id === "codex"
         ? buildCodexEphemeralWrapEnv(gw, codexSubscription, ephemeralMcpBinary, includeShrink, ephemeralDelegateMcp)
-        : buildWrapEnv(agent, gw, opts.mcpMode);
+        : buildWrapEnv(agent, gw, opts.mcpMode, cmdArgs);
     if (!direct && agent?.id === "claude") {
       const pluginDir = buildClaudeEphemeralPlugin(ephemeralMcpBinary, includeShrink, Boolean(opts.autoRecall), ephemeralDelegateMcp);
       childArgs = ["--plugin-dir", pluginDir, ...cmdArgs];
@@ -5400,11 +5476,22 @@ async function spawnWrapped(
     childArgs = cmdArgs;
     process.stderr.write(`${mark("warn")} temporary native pack unavailable: ${(error as Error).message}; launching ${agent?.display_name ?? bin} directly\n`);
   }
+  // Profile args are routing injection too. Qwen's extension lock must never
+  // leak into a launch we explicitly classified as direct; preserve only the
+  // user's argv on every bypass and native-pack failure path.
+  if (direct && agent?.id === "qwen"
+    && agent.args.every((arg, index) => childArgs[index] === arg)) {
+    childArgs = childArgs.slice(agent.args.length);
+  }
   if (!direct && agent?.id === "claude") Object.assign(env, claudeCaveBuildEnv());
   if (!direct) maybeWarnHermesMissingKey(agent, gw);
   if (direct) {
+    // buildWrapEnv writes the agent-attributed `${gw}/w/<agent>` form, and an
+    // outer routed wrap may leak the bare form; a direct launch strips both.
+    const gwPrefix = `${gw.replace(/\/+$/, "")}/`;
     for (const k of WRAP_BASE_URL_ENV_VARS) {
-      if (env[k] === gw) delete env[k];
+      const value = env[k];
+      if (value !== undefined && (value === gw || value.startsWith(gwPrefix))) delete env[k];
     }
   }
   // Only a local proxy session that survived native-pack setup can produce a
@@ -5483,7 +5570,7 @@ async function spawnWrapped(
     cleanupWrapTempDirs();
     removeProxySessionMarker(sessionMarker);
   }
-  return { code, proxyStarted, sessionStart, summaryKind };
+  return { code, proxyStarted, routeBypass, sessionStart, summaryKind };
 }
 
 export function claudeCaveBuildEnv(): NodeJS.ProcessEnv {
@@ -5693,14 +5780,39 @@ function renderTemplate(s: string, gw = gatewayURL()): string {
     .replaceAll("{{cave_org_id}}", orgIdFromConfigFile());
 }
 
+const OPTIONAL_OPENAI_KEY_ENV_TEMPLATE = "{{cave_optional_openai_key_env}}";
+type RenderDeepOptions = {
+  optionalOpenAIKeyEnvAvailable?: boolean;
+  optionalOpenAIKeyReference?: "$OPENAI_API_KEY" | "{env:OPENAI_API_KEY}";
+};
+
 // renderDeep applies renderTemplate to every string leaf of a JSON value — used to
 // render an agent's inline-config template before it is stringified into an env var.
-function renderDeep(v: unknown, gw = gatewayURL()): unknown {
+// Optional credential references disappear as whole object properties when their
+// source variable is unavailable. Secrets never enter generated JSON: the retained
+// value is the agent-native `$OPENAI_API_KEY` reference, not its expansion.
+function renderDeep(v: unknown, gw = gatewayURL(), env: NodeJS.ProcessEnv = process.env, options: RenderDeepOptions = {}): unknown {
+  if (v === OPTIONAL_OPENAI_KEY_ENV_TEMPLATE) {
+    const key = env.OPENAI_API_KEY;
+    const inherited = typeof key === "string" && !!key.trim() && !/[\r\n]/.test(key);
+    return (options.optionalOpenAIKeyEnvAvailable ?? inherited)
+      ? options.optionalOpenAIKeyReference ?? "$OPENAI_API_KEY"
+      : undefined;
+  }
   if (typeof v === "string") return renderTemplate(v, gw);
-  if (Array.isArray(v)) return v.map((item) => renderDeep(item, gw));
+  if (Array.isArray(v)) {
+    return v.map((item) => {
+      const rendered = renderDeep(item, gw, env, options);
+      if (rendered === undefined) throw new Error("optional profile credentials cannot be array elements");
+      return rendered;
+    });
+  }
   if (v && typeof v === "object") {
     const out: Record<string, unknown> = {};
-    for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = renderDeep(val, gw);
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      const rendered = renderDeep(val, gw, env, options);
+      if (rendered !== undefined) out[k] = rendered;
+    }
     return out;
   }
   return v;
@@ -5726,18 +5838,26 @@ function stripJson5Comments(s: string): string {
       continue;
     }
     if (ch === "/" && next === "/") {
+      out += "  ";
       i += 2;
-      while (i < s.length && s[i] !== "\n" && s[i] !== "\r") i++;
+      while (i < s.length && s[i] !== "\n" && s[i] !== "\r") {
+        out += /\s/.test(s[i]!) ? s[i]! : " ";
+        i++;
+      }
       if (i < s.length) out += s[i]!;
       continue;
     }
     if (ch === "/" && next === "*") {
+      out += "  ";
       i += 2;
       while (i < s.length && !(s[i] === "*" && s[i + 1] === "/")) {
-        if (s[i] === "\n" || s[i] === "\r") out += s[i];
+        out += /\s/.test(s[i]!) ? s[i]! : " ";
         i++;
       }
-      if (i < s.length) i++;
+      if (i < s.length) {
+        out += "  ";
+        i++;
+      }
       continue;
     }
     out += ch;
@@ -5788,10 +5908,21 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
   return proto === Object.prototype || proto === null;
 }
 
+function isSafeObjectKey(key: string): boolean {
+  return key !== "__proto__" && key !== "constructor" && key !== "prototype";
+}
+
 export function deepMerge(base: unknown, overlay: unknown): unknown {
-  if (isPlainObject(base) && isPlainObject(overlay)) {
-    const out: Record<string, unknown> = { ...base };
-    for (const [k, v] of Object.entries(overlay)) out[k] = deepMerge(out[k], v);
+  if (isPlainObject(overlay)) {
+    const out: Record<string, unknown> = {};
+    if (isPlainObject(base)) {
+      for (const [k, v] of Object.entries(base)) {
+        if (isSafeObjectKey(k)) out[k] = isPlainObject(v) ? deepMerge({}, v) : v;
+      }
+    }
+    for (const [k, v] of Object.entries(overlay)) {
+      if (isSafeObjectKey(k)) out[k] = deepMerge(out[k], v);
+    }
     return out;
   }
   return overlay;
@@ -5799,11 +5930,28 @@ export function deepMerge(base: unknown, overlay: unknown): unknown {
 
 type ConfigFileInjection = Extract<AgentProfile["injection"], { method: "config-file" }>;
 
+export function platformDefaultConfigPath(
+  kind: NonNullable<NonNullable<ConfigFileInjection["base_config"]>["platform_default"]>,
+  platform: NodeJS.Platform = process.platform,
+  _env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  if (kind !== "qwen-system-settings") return undefined;
+  if (platform === "darwin") return "/Library/Application Support/QwenCode/settings.json";
+  // Qwen 0.22.3 deliberately does not consult %ProgramData% here.
+  if (platform === "win32") return "C:\\ProgramData\\qwen-code\\settings.json";
+  if (platform === "linux") return "/etc/qwen-code/settings.json";
+  return undefined;
+}
+
 function baseConfigPath(base: NonNullable<ConfigFileInjection["base_config"]>): string {
   const envPath = base.env_var ? process.env[base.env_var] : undefined;
   if (envPath && envPath.trim()) return expandTilde(envPath);
   const stateDir = base.state_dir?.env_var ? process.env[base.state_dir.env_var] : undefined;
   if (stateDir && stateDir.trim()) return join(expandTilde(stateDir), base.state_dir!.filename);
+  const platformDefault = base.platform_default
+    ? platformDefaultConfigPath(base.platform_default)
+    : undefined;
+  if (platformDefault) return platformDefault;
   return expandTilde(base.path);
 }
 
@@ -6294,15 +6442,29 @@ function nativeHooksDocument(agentId: "claude" | "codex" | "gemini", includeShri
     ? ["SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest", "PostToolUse", "PostToolUseFailure", "PreCompact", "PostCompact", "SubagentStart", "SubagentStop", "Stop", "SessionEnd"]
     : ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "PreCompact", "SubagentStart", "SubagentStop", "Stop", "SessionEnd"];
   const command = nativeHookCommand(agentId);
+  const identity = `native-hook:${agentId}`;
   for (const event of lifecycle) {
-    const list = Array.isArray(hooks[event]) ? hooks[event] as Array<Record<string, unknown>> : [];
-    if (!list.some((entry) => hookEntryCommand(entry) === command)) list.push(nativeHookEntry(command, agentId));
+    // Replace, never accumulate: a caveman native-hook entry for this agent
+    // that points at another binary or adapter path (an upgrade, a moved
+    // install, a dev build) is the SAME hook, so it goes before ours is added.
+    // Matching on the exact command string alone appended a new set on every
+    // path change and the host ran three caveman hooks per event.
+    const list = (Array.isArray(hooks[event]) ? hooks[event] as Array<Record<string, unknown>> : [])
+      .filter((entry) => managedHookIdentity(hookEntryCommand(entry) ?? "") !== identity);
+    list.push(nativeHookEntry(command, agentId));
     hooks[event] = list;
   }
   if (includeShrink) {
     const shrinkEvent = agentId === "gemini" ? "BeforeTool" : "PreToolUse";
     const list = Array.isArray(hooks[shrinkEvent]) ? hooks[shrinkEvent] as Array<Record<string, unknown>> : [];
     const shrinkCommand = `${cavemanBinForHook()} shrink-hook`;
+    // Same replace-not-accumulate rule as the native hook: a shrink-hook entry
+    // under another caveman path is ours.
+    for (let i = list.length - 1; i >= 0; i--) {
+      const entry = list[i];
+      const existing = entry ? hookEntryCommand(entry) : undefined;
+      if (existing !== undefined && existing !== shrinkCommand && managedHookIdentity(existing) === "shrink-hook") list.splice(i, 1);
+    }
     if (!list.some((entry) => hookEntryCommand(entry) === shrinkCommand)) {
       list.push(agentId === "gemini"
         ? { matcher: "run_shell_command", ...nativeHookEntry(shrinkCommand, agentId) }
@@ -6598,6 +6760,103 @@ function atomicWriteFile(path: string, bytes: Buffer, mode = 0o600): void {
   } catch (error) {
     try { unlinkSync(temp); } catch { /* no partial */ }
     throw error;
+  }
+}
+
+function fsyncParentDirectory(path: string): void {
+  let fd: number | undefined;
+  try {
+    fd = openSync(dirname(path), constants.O_RDONLY);
+    fsyncSync(fd);
+  } catch {
+    // Some platforms/filesystems reject directory fsync. File fsync + atomic
+    // rename still provides strongest portable guarantee available to Node.
+  } finally {
+    if (fd !== undefined) try { closeSync(fd); } catch { /* best effort */ }
+  }
+}
+
+function durableAtomicWriteFile(path: string, bytes: Buffer, mode = 0o600): void {
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  const temp = join(dirname(path), `.${basename(path)}.caveman-${process.pid}-${randomUUID()}.tmp`);
+  let fd: number | undefined;
+  try {
+    fd = openSync(temp, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, mode);
+    writeFileSync(fd, bytes);
+    fchmodSync(fd, mode);
+    fsyncSync(fd);
+    closeSync(fd);
+    fd = undefined;
+    renameSync(temp, path);
+    fsyncParentDirectory(path);
+  } catch (error) {
+    if (fd !== undefined) try { closeSync(fd); } catch { /* original error wins */ }
+    try { unlinkSync(temp); } catch { /* no partial */ }
+    throw error;
+  }
+}
+
+// Publish a fully-synced file without replacing an existing intent. Hard-linking
+// a same-directory temp gives O_EXCL semantics plus atomic visibility.
+function durableCreateFile(path: string, bytes: Buffer, mode = 0o600): void {
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  const temp = join(dirname(path), `.${basename(path)}.caveman-create-${process.pid}-${randomUUID()}.tmp`);
+  try {
+    durableAtomicWriteFile(temp, bytes, mode);
+    linkSync(temp, path);
+    fsyncParentDirectory(path);
+  } finally {
+    try { unlinkSync(temp); } catch { /* published or failed before temp creation */ }
+  }
+}
+
+function optionalBytesEqual(left: Buffer | null, right: Buffer | null): boolean {
+  return left === null ? right === null : right !== null && left.equals(right);
+}
+
+function durableReplaceFileIfUnchanged(path: string, expected: Buffer | null, next: Buffer | null, mode = 0o600): void {
+  const current = fileBytes(path);
+  if (!optionalBytesEqual(current, expected)) throw new Error(`${path} changed during MCP update; refusing overwrite`);
+  if (next === null) {
+    if (current !== null) {
+      const atDelete = fileBytes(path);
+      if (!optionalBytesEqual(atDelete, expected)) throw new Error(`${path} changed during MCP update; refusing removal`);
+      unlinkSync(path);
+      fsyncParentDirectory(path);
+    }
+    return;
+  }
+
+  // Prepare durable replacement first, then run final compare immediately
+  // before rename. Per-agent lock serializes Caveman writers; this CAS catches
+  // external edits observed before commit without erasing them.
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  const temp = join(dirname(path), `.${basename(path)}.caveman-cas-${process.pid}-${randomUUID()}.tmp`);
+  let fd: number | undefined;
+  try {
+    fd = openSync(temp, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, mode);
+    writeFileSync(fd, next);
+    fchmodSync(fd, mode);
+    fsyncSync(fd);
+    closeSync(fd);
+    fd = undefined;
+    const atCommit = fileBytes(path);
+    if (!optionalBytesEqual(atCommit, expected)) throw new Error(`${path} changed during MCP update; refusing overwrite`);
+    renameSync(temp, path);
+    fsyncParentDirectory(path);
+  } catch (error) {
+    if (fd !== undefined) try { closeSync(fd); } catch { /* original error wins */ }
+    try { unlinkSync(temp); } catch { /* no partial */ }
+    throw error;
+  }
+}
+
+function durableUnlink(path: string): void {
+  try {
+    unlinkSync(path);
+    fsyncParentDirectory(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
 }
 
@@ -7095,13 +7354,21 @@ function aiderNativeMutations(gw: string): NativeMutation[] {
 }
 
 function codexNativeConfig(source: string, gw: string, subscription: boolean, mcpBinary: string): { text: string; rootBlock: string; tablesBlock: string } {
-  let stripped = stripCodexCavemanMcpToml(stripCodexCavemanProviderToml(source));
+  // Remove caveman's own marker blocks FIRST. The legacy table strippers below
+  // skip every line after a caveman table until the next TOML header, and the
+  // tables block ends with [mcp_servers.caveman] followed by the end marker, so
+  // running them first ate "# <<< caveman:native-tables" and the block this
+  // function had itself written failed its own re-parse as "corrupted" on the
+  // next wrap (every `caveman codex` run fell back to session-only wrap and
+  // doctor reported drift).
+  let stripped = source;
   for (const [begin, end] of [[CODEX_NATIVE_ROOT_BEGIN, CODEX_NATIVE_ROOT_END], [CODEX_NATIVE_TABLES_BEGIN, CODEX_NATIVE_TABLES_END]] as const) {
     const start = stripped.indexOf(begin);
     const finish = stripped.indexOf(end);
-    if ((start === -1) !== (finish === -1)) throw new Error("existing Codex Caveman block is corrupted; run `caveman doctor codex`");
+    if ((start === -1) !== (finish === -1) || finish < start) throw new Error("existing Codex Caveman block is corrupted; run `caveman doctor codex`");
     if (start !== -1) stripped = `${stripped.slice(0, start)}${stripped.slice(finish + end.length)}`.trim();
   }
+  stripped = stripCodexCavemanMcpToml(stripCodexCavemanProviderToml(stripped));
   const rootBlock = `${CODEX_NATIVE_ROOT_BEGIN}\nmodel_provider = "caveman"\n${CODEX_NATIVE_ROOT_END}`;
   const providerLines = codexCavemanProviderToml(gw, subscription).split("\n").slice(1).join("\n");
   const tablesBlock = [
@@ -7473,6 +7740,78 @@ function withIntegrationLock<T>(agent: string, run: () => T): T {
       const owner = JSON.parse(readFileSync(ownerPath, "utf8")) as { token?: unknown };
       if (owner.token === token) rmSync(lock, { recursive: true, force: true });
     } catch { /* best effort; future process can reclaim stale owner */ }
+  }
+}
+
+function withMcpConfigLock<T>(configPath: string, run: () => T): T {
+  const canonicalPath = canonicalMcpConfigPath(configPath);
+  const key = createHash("sha256").update(canonicalPath).digest("hex").slice(0, 20);
+  const lock = join(dirname(canonicalPath), `.caveman-mcp-${key}.lock`);
+  const token = randomUUID();
+  const claim = `${lock}.claim-${token}`;
+  const owner = { schema_version: 1, pid: process.pid, token, config_path: canonicalPath, started_at: new Date().toISOString() };
+  mkdirSync(dirname(lock), { recursive: true, mode: 0o700 });
+  mkdirSync(claim, { mode: 0o700 });
+  try {
+    durableAtomicWriteFile(join(claim, "owner.json"), Buffer.from(JSON.stringify(owner) + "\n"));
+    try {
+      renameSync(claim, lock);
+      fsyncParentDirectory(lock);
+    } catch (error) {
+      // Rename-to-existing differs by platform (EEXIST, ENOTEMPTY, EPERM,
+      // EACCES). Existing published lock is authority regardless of errno.
+      try { lstatSync(lock); } catch { throw error; }
+      let stale = false;
+      try {
+        const lockStat = lstatSync(lock);
+        const ownerPath = join(lock, "owner.json");
+        const ownerStat = lstatSync(ownerPath);
+        const existing = JSON.parse(readFileSync(ownerPath, "utf8")) as Record<string, unknown>;
+        const keys = ["config_path", "pid", "schema_version", "started_at", "token"];
+        if (!lockStat.isDirectory() || lockStat.isSymbolicLink()
+          || !ownerStat.isFile() || ownerStat.isSymbolicLink()
+          || readdirSync(lock).sort().join("\0") !== "owner.json"
+          || Object.keys(existing).sort().join("\0") !== keys.join("\0")
+          || existing.schema_version !== 1
+          || typeof existing.pid !== "number" || !Number.isInteger(existing.pid) || existing.pid <= 1
+          || typeof existing.token !== "string"
+          || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(existing.token)
+          || existing.config_path !== canonicalPath
+          || typeof existing.started_at !== "string"
+          || new Date(existing.started_at).toISOString() !== existing.started_at
+          || process.platform !== "win32" && ((lockStat.mode | ownerStat.mode) & 0o077) !== 0) {
+          throw new Error("invalid MCP lock owner");
+        }
+        try { process.kill(existing.pid, 0); }
+        catch (probeError) { stale = (probeError as NodeJS.ErrnoException).code === "ESRCH"; }
+      } catch {
+        // Populated claim is durable before publication, so malformed or
+        // ownerless lock can never be our crash residue. Never delete it.
+        stale = false;
+      }
+      if (!stale) throw new Error(`MCP config change already running for ${canonicalPath}`);
+      const quarantine = `${lock}.stale-${token}`;
+      try {
+        renameSync(lock, quarantine);
+        renameSync(claim, lock);
+        fsyncParentDirectory(lock);
+        process.stderr.write(`${mark("warn")} reclaimed stale MCP config lock for ${canonicalPath}\n`);
+      } catch {
+        throw new Error(`MCP config change already running for ${canonicalPath}`);
+      } finally {
+        try { rmSync(quarantine, { recursive: true, force: true }); } catch { /* isolated stale lock only */ }
+      }
+    }
+    return run();
+  } finally {
+    try { rmSync(claim, { recursive: true, force: true }); } catch { /* published or absent */ }
+    try {
+      const current = JSON.parse(readFileSync(join(lock, "owner.json"), "utf8")) as { token?: unknown };
+      if (current.token === token) {
+        rmSync(lock, { recursive: true, force: true });
+        fsyncParentDirectory(lock);
+      }
+    } catch { /* only owning token may remove a published lock */ }
   }
 }
 
@@ -8491,14 +8830,55 @@ function withoutCavemanMcpServer(overlay: JsonObject): JsonObject {
   return next;
 }
 
-function applyConfigFileInjection(env: NodeJS.ProcessEnv, agent: AgentProfile, inj: ConfigFileInjection, gw: string, modeGw = gw, mcpMode: McpSurfaceMode = "auto") {
+function applyConfigFileInjection(env: NodeJS.ProcessEnv, agent: AgentProfile, inj: ConfigFileInjection, gw: string, modeGw = gw, mcpMode: McpSurfaceMode = "auto", agentArgs: string[] = []) {
   const baseConfig = readBaseConfig(inj);
   const mode = wrapMode(modeGw);
   const staticOverlay = mode === "managed" && inj.config_overlay.managed !== undefined ? inj.config_overlay.managed : inj.config_overlay.local;
   const builder = overlayBuilders[agent.id];
-	const rawOverlay = renderDeep(builder ? builder(agent, baseConfig, { mode, gatewayUrl: gw, env }) : staticOverlay, gw);
-  const overlay = mcpMode === "auto" ? rawOverlay : withoutCavemanMcpServer(rawOverlay as JsonObject);
-  const merged = deepMerge(baseConfig, overlay);
+  const renderOptions: RenderDeepOptions = {};
+  if (agent.id === "qwen" && mode === "managed") {
+    const available = qwenEffectiveOpenAIKeyAvailable();
+    if (available === null) throw new Error("cannot safely resolve Qwen's effective OPENAI_API_KEY");
+    renderOptions.optionalOpenAIKeyEnvAvailable = available;
+  }
+  let rawOverlay = renderDeep(
+    builder ? builder(agent, baseConfig, { mode, gatewayUrl: gw, env }) : staticOverlay,
+    gw,
+    env,
+    renderOptions,
+  );
+  if (agent.id === "qwen" && mcpMode === "auto") {
+    const ownedMcp = ownedMcpRegistration(agent.id, agentArgs);
+    if (ownedMcp) {
+      // Qwen merges system settings last. Mirror only a still-journaled native
+      // entry into this temporary system overlay so project settings cannot
+      // replace the recovery server after Caveman has claimed it is available.
+      rawOverlay = deepMerge(rawOverlay, { mcpServers: { caveman: qwenMcpEntry(ownedMcp) } });
+    } else {
+      // Qwen can advertise MCP schemas even when enterprise policy blocks calls.
+      // Suppress the exact server in this highest-precedence temporary overlay
+      // whenever native registration + journal + effective policy do not agree.
+      const configured = jsonValueAt(baseConfig, ["mcp", "excluded"]);
+      const preserved = Array.isArray(configured)
+        ? configured.filter((item): item is string => typeof item === "string")
+        : [];
+      rawOverlay = deepMerge(rawOverlay, {
+        mcp: { excluded: [...new Set([...preserved, "caveman"])] },
+      });
+    }
+  }
+  const overlay = (mcpMode === "auto" ? rawOverlay : withoutCavemanMcpServer(rawOverlay as JsonObject)) as JsonObject;
+  const merged = deepMerge(baseConfig, overlay) as JsonObject;
+  if (agent.id === "qwen") {
+    // Qwen treats these as whole-object REPLACE settings. Our generic merge is
+    // intentionally conservative for other agents, but retaining a sibling
+    // provider here would make it selectable at runtime outside /w/qwen.
+    for (const key of ["modelProviders", "providerProtocol"] as const) {
+      const value = overlay[key];
+      if (value === undefined) throw new Error(`Qwen routed profile is missing ${key}`);
+      merged[key] = cloneJsonValue(value);
+    }
+  }
   const rendered = JSON.stringify(merged, null, 2);
   if (rendered === undefined) throw new Error("merged config is not JSON");
   const outDir = mkdtempSync(join(tmpdir(), "caveman-wrap-"));
@@ -8642,14 +9022,14 @@ function applyClaudeBedrockWrap(env: NodeJS.ProcessEnv, agent: AgentProfile, ren
 //   - config-env-content: render the mode-selected inline config and set it as one var
 //   - config-file:        merge a mode-selected overlay into a temp config file
 // An unrecognized method falls through to the generic union (fail-open), not a guess.
-// mcpMode governs the config-file arm only (it is the arm that can inject the
-// caveman MCP server). It defaults to "auto" — today's behavior — rather than
+// mcpMode governs every temporary config arm that can inject the caveman MCP
+// server. It defaults to "auto" — today's behavior — rather than
 // resolving config here, so this exported function stays a function of its
 // arguments and cannot pick up the developer's own global config in tests. The
 // one production caller passes the SAME opts.mcpMode that wrapMcpRecoveryAvailable
 // reads, which is what keeps "what we inject" and "what we tell the proxy" from
 // ever disagreeing.
-export function buildWrapEnv(agent?: AgentProfile, gw = gatewayURL(), mcpMode: McpSurfaceMode = "auto"): NodeJS.ProcessEnv {
+export function buildWrapEnv(agent?: AgentProfile, gw = gatewayURL(), mcpMode: McpSurfaceMode = "auto", agentArgs: string[] = []): NodeJS.ProcessEnv {
   if (agent?.id === "gemini" && wrapMode(gw) === "managed") {
     throw new Error("managed Gemini CLI routing is unsupported because Gemini CLI cannot send separate Caveman and upstream credentials");
   }
@@ -8664,6 +9044,22 @@ export function buildWrapEnv(agent?: AgentProfile, gw = gatewayURL(), mcpMode: M
   }
   if (!agent) return env;
   if (applyClaudeBedrockWrap(env, agent, renderedGw, gw)) return env;
+  const routeOverride = agentRouteOverride(agent, agentArgs);
+  if (agent.id === "qwen") {
+    const override = routeOverride;
+    if (override?.surface === "effective settings") {
+      throw new Error("cannot safely resolve Qwen's effective settings");
+    }
+    if (override?.surface === "--safe-mode" && override.reason === "ignores Caveman system settings") {
+      throw new Error("Qwen safe mode ignores Caveman system settings");
+    }
+    // These environment switches outrank settings in pinned Qwen 0.22.3.
+    // Keep side-request tools and workflow-spawned agents off in routed mode;
+    // corresponding system settings provide the durable second lock.
+    env.ENABLE_WEB_SEARCH = "0";
+    env.QWEN_CODE_DISABLE_WORKFLOWS = "1";
+  }
+  if (routeOverride) throw new Error(`${routeOverrideLabel(agent)} ${routeOverride.surface} ${routeOverride.reason}`);
   const inj = agent.injection;
   if (inj.method === "env") {
     for (const [k, raw] of Object.entries(inj.env)) {
@@ -8673,17 +9069,38 @@ export function buildWrapEnv(agent?: AgentProfile, gw = gatewayURL(), mcpMode: M
   } else if (inj.method === "config-env-content") {
     const cc = inj.config_content;
     const content = wrapMode(gw) === "managed" && cc.managed !== undefined ? cc.managed : cc.local;
-    env[inj.env_var] = JSON.stringify(renderDeep(content, renderedGw));
+    const renderOptions: RenderDeepOptions = agent.id === "kilo"
+      ? { optionalOpenAIKeyReference: "{env:OPENAI_API_KEY}" }
+      : {};
+    let rendered = renderDeep(content, renderedGw, env, renderOptions);
+    if (agent.id === "kilo" && mcpMode === "auto") {
+      const ownedMcp = ownedMcpRegistration(agent.id, agentArgs);
+      if (ownedMcp) {
+        // Project exact owned registration into Kilo's highest user-controlled
+        // layer. Route preflight rejects active org/managed sources that load
+        // afterward, so no later known policy can silently disable recovery.
+        rendered = deepMerge(rendered, { mcp: { caveman: kiloMcpEntry(ownedMcp) } });
+      }
+    }
+    env[inj.env_var] = JSON.stringify(rendered);
   } else if (inj.method === "config-file") {
     try {
-      applyConfigFileInjection(env, agent, inj, renderedGw, gw, mcpMode);
+      applyConfigFileInjection(env, agent, inj, renderedGw, gw, mcpMode, agentArgs);
     } catch (e) {
       // OpenClaw ignores the generic base-URL union. Config injection is its only
       // provider redirect, so a failed/missing route must abort the wrapped path;
       // spawnWrapped then launches direct with an explicit warning.
-      if (agent.id === "openclaw") throw e;
+      if (agent.id === "openclaw" || agent.id === "qwen") throw e;
       process.stderr.write(`caveman: ${agent.id} config-file injection failed; using generic env wrap (${(e as Error).message})\n`);
     }
+  }
+  // Qwen 0.22 discovers MCP servers in the background by default. Its first
+  // request can therefore omit caveman_retrieve even though our durable marker
+  // says recovery is installed. Proxy compression must never outrun recovery,
+  // so marker-backed Qwen wraps use Qwen's compatibility switch to finish MCP
+  // discovery before the first model request.
+  if (agent.id === "qwen" && mcpInstalled(agent.id, agentArgs)) {
+    env.QWEN_CODE_LEGACY_MCP_BLOCKING = "1";
   }
   if (agent.id === "hermes") applyHermesAuthEnv(env, renderedGw, gw);
   if (agent.id === "claude" && wrapMode(gw) === "local" && env[CLAUDE_ASSUME_FIRST_PARTY_ENV] === undefined && proxyAnthropicUpstreamIsFirstParty()) {
@@ -9844,6 +10261,37 @@ function cavemanBin(name: string, envVar: string): string {
 function mcpServerMarkerPath(agentId: string, serverName: string): string {
   return join(cavemanHome(), "mcp", serverName === "caveman" ? `${agentId}.json` : `${agentId}.${serverName}.json`);
 }
+
+function canonicalOwnedMcpMarkerPath(agent: "kilo" | "qwen", serverName: string): string {
+  const path = mcpServerMarkerPath(agent, serverName);
+  try {
+    if (lstatSync(path).isSymbolicLink()) {
+      throw new Error(`${path} is a symlink; refusing transactional ownership mutation`);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return canonicalMcpConfigPath(path);
+}
+
+// A native MCP registration and its Caveman ownership journal form one logical
+// write. Prove the journal directory is writable before touching agent config;
+// otherwise Kilo/Qwen would refuse both a later upgrade and removal because the
+// surviving registration has no trustworthy owner.
+function preflightMcpServerMarker(agentId: string, serverName: string): void {
+  const path = mcpServerMarkerPath(agentId, serverName);
+  const probe = join(dirname(path), `.${basename(path)}.preflight-${process.pid}-${randomUUID()}`);
+  try {
+    mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+    chmodSync(dirname(path), 0o700);
+    durableAtomicWriteFile(probe, Buffer.alloc(0));
+    unlinkSync(probe);
+    fsyncParentDirectory(probe);
+  } catch (error) {
+    try { unlinkSync(probe); } catch { /* no probe survived */ }
+    throw new Error(`cannot persist ${agentId} ${serverName} MCP ownership journal at ${path}: ${(error as Error).message}`);
+  }
+}
 function mcpMarkerPath(agentId: string): string {
   return mcpServerMarkerPath(agentId, "caveman");
 }
@@ -9854,7 +10302,8 @@ function mcpServerInstalled(agentId: string, serverName: string): boolean {
     return false;
   }
 }
-function mcpInstalled(agentId: string): boolean {
+function mcpInstalled(agentId: string, agentArgs: string[] = []): boolean {
+  if (agentId === "kilo" || agentId === "qwen") return ownedMcpRegistration(agentId, agentArgs) !== null;
   return mcpServerInstalled(agentId, "caveman");
 }
 
@@ -9894,7 +10343,7 @@ function queueStaleMcpBinary(probe: VersionedBinaryProbe): void {
 // that is — the proxy would otherwise either elide bytes nothing can expand, or
 // pass through while the agent still pays for tools it isn't allowed to use.
 // (honesty rule: no-placeholder)
-function wrapMcpRecoveryAvailable(agent: AgentProfile | undefined, opts: WrapOptions): boolean {
+function wrapMcpRecoveryAvailable(agent: AgentProfile | undefined, opts: WrapOptions, agentArgs: string[] = []): boolean {
   if (!wrapRecoveryEligible(opts) || !agent) return false;
   if (agent.id === "pi") {
     const compatibility = probeMcpBinary();
@@ -9902,13 +10351,18 @@ function wrapMcpRecoveryAvailable(agent: AgentProfile | undefined, opts: WrapOpt
     if (!compatibility.probe.current) queueStaleMcpBinary(compatibility.probe);
     return compatibility.probe.current;
   }
+  // Kilo and Qwen can apply policy after user-owned config. Never turn their
+  // durable marker into a proxy-wide recovery assertion: each request must
+  // carry the exact namespaced retrieve tool and prove recovery in band. The
+  // validated registration below still drives launch-time projection/blocking.
+  if (agent.id === "kilo" || agent.id === "qwen") return false;
   // Two independent sources of a real caveman_retrieve: a marker from
   // `caveman tools mcp install`, or the profile's own config-file overlay. The
   // second only counts under `auto`, because that is exactly when buildWrapEnv
   // still merges it — under marker-only/false the overlay is stripped, so
   // counting it here would tell the proxy about a tool this launch removed.
   const overlayInjects = opts.mcpMode === "auto" && configFileOverlayHasCavemanMcp(agent);
-  if (!mcpInstalled(agent.id) && !overlayInjects) return false;
+  if (!mcpInstalled(agent.id, agentArgs) && !overlayInjects) return false;
   const compatibility = probeMcpBinary();
   if (!compatibility) return false;
   if (!compatibility.probe.current) {
@@ -9919,8 +10373,10 @@ function wrapMcpRecoveryAvailable(agent: AgentProfile | undefined, opts: WrapOpt
 }
 
 // Bare start cannot bind a machine-level MCP marker or inherited opt-in to the
-// client issuing a later request. Recovery therefore stays off. Agent-scoped wrap
-// performs the only supported compatibility check.
+// client issuing a later request, so it never CLAIMS recovery on their behalf:
+// CAVEMAN_RECOVERY stays off and the proxy decides per request, from the caveman
+// retrieve tool the caller's own tool list carries (gateway.mcpRecoveryAvailable).
+// Agent-scoped wrap performs the only supported out-of-band compatibility check.
 function startMcpRecoveryAvailable(): boolean {
   return false;
 }
@@ -10173,19 +10629,29 @@ function mcpUninstall(target?: string, serverName = "caveman") {
     }
     targets = [a];
   } else {
-    targets = AGENTS.filter((a) => mcpServerInstalled(a.id, serverName));
+    targets = AGENTS.filter((a) => mcpServerInstalled(a.id, serverName)
+      || ((a.id === "kilo" || a.id === "qwen") && (
+        existsSync(mcpPendingJournalPath(a.id, serverName))
+        || existsSync(mcpConfigPendingJournalPath(a.id === "kilo" ? kiloConfigPath() : qwenConfigPath()))
+      )));
     if (targets.length === 0) {
       console.error(`no agents have the ${serverName} MCP tool installed`);
       return;
     }
   }
   for (const a of targets) {
-    if (uninstallMcpForAgent(a, serverName)) {
-      try {
-        unlinkSync(mcpServerMarkerPath(a.id, serverName));
-      } catch {
-        // marker already gone — the visible state is what matters.
+    const uninstallOne = (lockedConfigPath?: string): boolean => {
+      if (a.id === "kilo" || a.id === "qwen") {
+        return transactOwnedMcpConfig(a.id, serverName, "uninstall", undefined, lockedConfigPath);
       }
+      if (!uninstallMcpForAgent(a, serverName)) return false;
+      durableUnlink(mcpServerMarkerPath(a.id, serverName));
+      return true;
+    };
+    const removed = a.id === "kilo" || a.id === "qwen"
+      ? withOwnedMcpTransactionLock(a.id, serverName, uninstallOne)
+      : uninstallOne();
+    if (removed) {
       process.stderr.write(`${mark("ok")} ${a.display_name}: ${serverName} MCP tool removed\n`);
     }
   }
@@ -10207,6 +10673,9 @@ function uninstallMcpForAgent(a: AgentProfile, serverName = "caveman"): boolean 
       return removeMcpCodexToml(serverName);
     case "opencode":
       return removeMcpJson(join(homedir(), ".config", "opencode", "opencode.json"), ["mcp", serverName]);
+    case "kilo":
+    case "qwen":
+      throw new Error(`${a.display_name} MCP changes require the ownership transaction`);
     case "gemini":
       return removeMcpJson(join(homedir(), ".gemini", "settings.json"), ["mcpServers", serverName]);
     case "hermes":
@@ -10278,6 +10747,1872 @@ function removeMcpJson(path: string, keyPath: string[]): boolean {
   }
 }
 
+type KiloConfigLocation = {
+  path: string;
+  jsonc: boolean;
+  source: "KILO_CONFIG_DIR" | "KILO_CONFIG" | "XDG_CONFIG_HOME";
+};
+
+function kiloPathFromEnv(value: string, name: string): string {
+  if (/[\0\r\n]/.test(value)) throw new Error(`${name} contains an invalid path character`);
+  // Kilo passes env paths directly to its loader. Shell-style "~/" expansion
+  // does not occur inside an environment value; relative paths resolve from cwd.
+  return normalize(isAbsolute(value) ? value : resolve(value));
+}
+
+function kiloConfigInDirectory(directory: string, source: KiloConfigLocation["source"]): KiloConfigLocation {
+  // Mirror pinned Kilo's native global writer: prefer an existing canonical
+  // config in this order, otherwise create kilo.json. JSONC stays read-only here
+  // because a JSON stringify would destroy comments.
+  const candidates = ["kilo.jsonc", "kilo.json", "opencode.jsonc", "opencode.json"];
+  const selected = candidates.map((name) => join(directory, name)).find((path) => existsSync(path))
+    ?? join(directory, "kilo.json");
+  return { path: selected, jsonc: extname(selected).toLowerCase() === ".jsonc", source };
+}
+
+// Kilo 7.5.6's native config writer targets KILO_CONFIG_DIR when present. That
+// directory is also loaded after KILO_CONFIG, so it must win for effective MCP
+// ownership. Explicit KILO_CONFIG wins only without a custom config directory;
+// xdg-basedir is the final fallback.
+function kiloConfigLocation(): KiloConfigLocation {
+  const configuredDirectory = process.env.KILO_CONFIG_DIR;
+  if (configuredDirectory) {
+    return kiloConfigInDirectory(kiloPathFromEnv(configuredDirectory, "KILO_CONFIG_DIR"), "KILO_CONFIG_DIR");
+  }
+  const explicit = process.env.KILO_CONFIG;
+  if (explicit) {
+    const path = kiloPathFromEnv(explicit, "KILO_CONFIG");
+    return { path, jsonc: extname(path).toLowerCase() === ".jsonc", source: "KILO_CONFIG" };
+  }
+  // Pinned Kilo strips accidental newlines from xdg-basedir output before use.
+  const configuredRoot = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
+  const cleanedRoot = configuredRoot.replace(/[\r\n]+/g, "");
+  if (!cleanedRoot) throw new Error("Kilo config root resolves to an empty path");
+  const root = normalize(isAbsolute(cleanedRoot) ? cleanedRoot : resolve(cleanedRoot));
+  return kiloConfigInDirectory(join(root, "kilo"), "XDG_CONFIG_HOME");
+}
+
+function kiloConfigPath(): string {
+  return kiloConfigLocation().path;
+}
+
+function kiloMcpEntry(mcp: { command: string; args: string[] }): Record<string, unknown> {
+  return {
+    type: "local",
+    command: [mcp.command, ...mcp.args],
+    enabled: true,
+  };
+}
+
+function kiloMcpEntryMatches(value: unknown, mcp: { command: string; args: string[] }): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const entry = value as Record<string, unknown>;
+  const keys = Object.keys(entry).sort();
+  const command = [mcp.command, ...mcp.args];
+  if (keys.length !== 3 || keys[0] !== "command" || keys[1] !== "enabled" || keys[2] !== "type") return false;
+  return entry.type === "local"
+    && entry.enabled === true
+    && Array.isArray(entry.command)
+    && entry.command.length === command.length
+    && entry.command.every((arg, index) => typeof arg === "string" && arg === command[index]);
+}
+
+function readStrictMcpJsonRoot(path: string): { root: Record<string, unknown>; exists: boolean; bytes: Buffer | null } | null {
+  let bytes: Buffer;
+  try {
+    bytes = readFileSync(path);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return { root: {}, exists: false, bytes: null };
+    console.error(`${mark("warn")} cannot read ${path}: ${(e as Error).message}; not modifying it`);
+    return null;
+  }
+  const raw = bytes.toString("utf8");
+  try {
+    if (!raw.trim()) {
+      console.error(`${mark("warn")} ${path} is empty; not modifying it`);
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      console.error(`${mark("warn")} ${path} is not a JSON object; not modifying it`);
+      return null;
+    }
+    return { root: parsed as Record<string, unknown>, exists: true, bytes };
+  } catch (e) {
+    console.error(`${mark("warn")} cannot read ${path}: ${(e as Error).message}; not modifying it`);
+    return null;
+  }
+}
+
+type OwnedMcpConfigPlan = {
+  agent: "kilo" | "qwen";
+  path: string;
+  before: Buffer | null;
+  beforeMode: number;
+  after: Buffer | null;
+  changed: boolean;
+};
+
+function canonicalMcpConfigPath(path: string): string {
+  const absolute = normalize(resolve(path));
+  const missing: string[] = [];
+  let ancestor = absolute;
+  while (true) {
+    try {
+      return normalize(join(realpathSync(ancestor), ...missing));
+    } catch {
+      try {
+        if (lstatSync(ancestor).isSymbolicLink()) {
+          throw new Error(`MCP config path contains dangling symlink ${ancestor}; refusing mutation`);
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+      const parent = dirname(ancestor);
+      if (parent === ancestor) return absolute;
+      missing.unshift(basename(ancestor));
+      ancestor = parent;
+    }
+  }
+}
+
+function ownedMcpConfigPlan(
+  agent: "kilo" | "qwen",
+  path: string,
+  loaded: { bytes: Buffer | null; exists: boolean },
+  after: Buffer | null,
+): OwnedMcpConfigPlan {
+  const canonicalPath = canonicalMcpConfigPath(path);
+  let beforeMode = 0o600;
+  if (loaded.exists) {
+    beforeMode = statSync(canonicalPath).mode & 0o777;
+    if (!optionalBytesEqual(fileBytes(canonicalPath), loaded.bytes)) {
+      throw new Error(`${canonicalPath} changed while planning MCP update; refusing overwrite`);
+    }
+  }
+  return {
+    agent,
+    path: canonicalPath,
+    before: loaded.bytes,
+    beforeMode,
+    after,
+    changed: !optionalBytesEqual(loaded.bytes, after),
+  };
+}
+
+function movedOwnedMcpEntryState(
+  agent: "kilo" | "qwen",
+  serverName: string,
+  marker: McpServerMarker,
+): "absent" | "present" | "ambiguous" {
+  const activePath = canonicalMcpConfigPath(agent === "kilo" ? kiloConfigPath() : qwenConfigPath());
+  if (marker.config_path === activePath || fileBytes(activePath) === null) return "absent";
+  const root = agent === "kilo" ? readOptionalJsonObject(activePath) : readQwenJsonObject(activePath);
+  if (!root) return "ambiguous";
+  const entry = jsonValueAt(root, agent === "kilo" ? ["mcp", serverName] : ["mcpServers", serverName]);
+  if (entry === undefined) return "absent";
+  // Exact match proves a physical move; a different value can be same moved
+  // registration edited afterward. Both retain ownership marker fail-closed.
+  return "present";
+}
+
+function movedOwnedMcpRemovalBlocked(agent: "kilo" | "qwen", serverName: string, marker: McpServerMarker): boolean {
+  const state = movedOwnedMcpEntryState(agent, serverName, marker);
+  if (state === "absent") return false;
+  const activePath = canonicalMcpConfigPath(agent === "kilo" ? kiloConfigPath() : qwenConfigPath());
+  console.error(`${mark("warn")} recorded ${agent} MCP config is missing while ${activePath} ${state === "present" ? "contains" : "may contain"} moved ${serverName} state; retaining ownership marker`);
+  return true;
+}
+
+function kiloJsoncBlocksMutation(path: string): boolean {
+  const location = kiloConfigLocation();
+  if (location.jsonc && canonicalMcpConfigPath(location.path) === path) {
+    console.error(`${mark("warn")} ${location.source} selects JSONC ${path}; refusing comment-destructive mutation`);
+    return true;
+  }
+  return false;
+}
+
+function planMcpKiloJson(mcp: { command: string; args: string[] }, serverName = "caveman"): OwnedMcpConfigPlan | null {
+  const path = canonicalMcpConfigPath(kiloConfigPath());
+  const marker = readMcpServerMarker("kilo", serverName);
+  if (marker?.config_path && marker.config_path !== path) {
+    console.error(`${mark("warn")} ${serverName} is owned in ${marker.config_path}; uninstall it before installing into ${path}`);
+    return null;
+  }
+  if (kiloJsoncBlocksMutation(path)) return null;
+  const loaded = readStrictMcpJsonRoot(path);
+  if (!loaded) return null;
+  const { root } = loaded;
+  if (root.mcp !== undefined && (!root.mcp || typeof root.mcp !== "object" || Array.isArray(root.mcp))) {
+    console.error(`${mark("warn")} ${path} mcp must be a JSON object; not modifying it`);
+    return null;
+  }
+  const servers = root.mcp as Record<string, unknown> | undefined;
+  const current = servers?.[serverName];
+  if (marker && !marker.config_path && current === undefined) {
+    console.error(`${mark("warn")} legacy ${serverName} ownership marker does not identify its Kilo config; refusing relocation`);
+    return null;
+  }
+  if (current !== undefined) {
+    if (!marker) {
+      console.error(`${mark("warn")} ${path} mcp.${serverName} exists but is not Caveman-journaled; refusing overwrite`);
+      return null;
+    }
+    if (!kiloMcpEntryMatches(current, marker)) {
+      console.error(`${mark("warn")} ${path} mcp.${serverName} changed since Caveman installed it; refusing overwrite`);
+      return null;
+    }
+    if (kiloMcpEntryMatches(current, mcp)) {
+      return ownedMcpConfigPlan("kilo", path, loaded, loaded.bytes!);
+    }
+  }
+  const nextServers = servers ?? {};
+  nextServers[serverName] = kiloMcpEntry(mcp);
+  root.mcp = nextServers;
+  return ownedMcpConfigPlan("kilo", path, loaded, Buffer.from(JSON.stringify(root, null, 2) + "\n"));
+}
+
+function planRemoveMcpKiloJson(serverName = "caveman"): OwnedMcpConfigPlan | null {
+  const marker = readMcpServerMarker("kilo", serverName);
+  const path = marker?.config_path ?? canonicalMcpConfigPath(kiloConfigPath());
+  const loaded = readStrictMcpJsonRoot(path);
+  if (!loaded) return null;
+  if (!loaded.exists) {
+    if (marker && !marker.config_path) {
+      console.error(`${mark("warn")} legacy ${serverName} ownership marker does not identify its Kilo config; refusing removal`);
+      return null;
+    }
+    if (marker?.config_path && movedOwnedMcpRemovalBlocked("kilo", serverName, marker)) return null;
+    return ownedMcpConfigPlan("kilo", path, loaded, null);
+  }
+  const { root } = loaded;
+  if (root.mcp !== undefined && (!root.mcp || typeof root.mcp !== "object" || Array.isArray(root.mcp))) {
+    console.error(`${mark("warn")} ${path} mcp must be a JSON object; not modifying it`);
+    return null;
+  }
+  const servers = root.mcp as Record<string, unknown> | undefined;
+  const current = servers?.[serverName];
+  if (current === undefined) {
+    if (marker && !marker.config_path) {
+      console.error(`${mark("warn")} legacy ${serverName} ownership marker does not identify its Kilo config; refusing removal`);
+      return null;
+    }
+    return ownedMcpConfigPlan("kilo", path, loaded, loaded.bytes);
+  }
+  if (!marker) {
+    console.error(`${mark("warn")} ${path} mcp.${serverName} exists but is not Caveman-journaled; refusing removal`);
+    return null;
+  }
+  if (!kiloMcpEntryMatches(current, marker)) {
+    console.error(`${mark("warn")} ${path} mcp.${serverName} changed since Caveman installed it; refusing removal`);
+    return null;
+  }
+  delete servers![serverName];
+  if (Object.keys(servers!).length === 0) delete root.mcp;
+  return ownedMcpConfigPlan("kilo", path, loaded, Buffer.from(JSON.stringify(root, null, 2) + "\n"));
+}
+
+type QwenHomeState = { root: string; env: NodeJS.ProcessEnv; ambiguous: boolean };
+const qwenHomeBootstrapKeys = [
+  "QWEN_HOME",
+  "QWEN_RUNTIME_DIR",
+  "QWEN_CODE_MCP_APPROVALS_PATH",
+  "QWEN_CODE_TRUSTED_FOLDERS_PATH",
+] as const;
+
+function qwenReadDotEnv(path: string): Record<string, string> | null {
+  try {
+    const parsed = parseEnv(readFileSync(path, "utf8"));
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    return null;
+  }
+}
+
+function qwenResolveHomeRoot(value: string | undefined): string {
+  const configured = value?.trim();
+  const root = configured ? expandTilde(configured) : join(homedir(), ".qwen");
+  return isAbsolute(root) ? root : resolve(root);
+}
+
+// Qwen resolves QWEN_HOME from user-level dotenv before reading settings.
+// Mirror that bootstrap so install, uninstall, and recovery checks all inspect
+// the same settings file as pinned Qwen 0.22.3.
+function qwenHomeState(): QwenHomeState {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  const initialHome = env.QWEN_HOME;
+  const initialRoot = qwenResolveHomeRoot(initialHome);
+  const candidates = [join(initialRoot, ".env")];
+  if (!initialHome) candidates.push(join(homedir(), ".env"));
+  let ambiguous = false;
+  const load = (path: string) => {
+    const parsed = qwenReadDotEnv(path);
+    if (!parsed) {
+      ambiguous = true;
+      return;
+    }
+    for (const key of qwenHomeBootstrapKeys) {
+      if (parsed[key] && !Object.hasOwn(env, key)) env[key] = parsed[key];
+    }
+  };
+  for (const path of candidates) load(path);
+  const discoveredRoot = qwenResolveHomeRoot(env.QWEN_HOME);
+  if (env.QWEN_HOME && env.QWEN_HOME !== initialHome && discoveredRoot !== initialRoot) {
+    // Pinned Qwen performs a second pass through a newly discovered QWEN_HOME.
+    // Trust and approval paths can live there, not only QWEN_RUNTIME_DIR.
+    load(join(discoveredRoot, ".env"));
+  }
+  return { root: discoveredRoot, env, ambiguous };
+}
+
+function qwenHomeEnvFallback(state: QwenHomeState = qwenHomeState()): Record<string, string> | null {
+  if (state.ambiguous) return null;
+  const candidates = [join(state.root, ".env")];
+  if (!state.env.QWEN_HOME) candidates.push(join(homedir(), ".env"));
+  const fallback: Record<string, string> = {};
+  for (const path of candidates) {
+    const parsed = qwenReadDotEnv(path);
+    if (!parsed) return null;
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!Object.hasOwn(state.env, key) && fallback[key] === undefined) fallback[key] = value;
+    }
+  }
+  return fallback;
+}
+
+function qwenConfigPath(): string {
+  return join(qwenHomeState().root, "settings.json");
+}
+
+function qwenMcpEntry(mcp: { command: string; args: string[] }): Record<string, unknown> {
+  return { command: mcp.command, args: mcp.args };
+}
+
+function qwenMcpEntryMatches(value: unknown, mcp: { command: string; args: string[] }): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const entry = value as Record<string, unknown>;
+  const keys = Object.keys(entry).sort();
+  if (keys.length !== 2 || keys[0] !== "args" || keys[1] !== "command") return false;
+  return entry.command === mcp.command
+    && Array.isArray(entry.args)
+    && entry.args.length === mcp.args.length
+    && entry.args.every((arg, index) => typeof arg === "string" && arg === mcp.args[index]);
+}
+
+function jsonValueAt(root: unknown, path: string[]): unknown {
+  let current = root;
+  for (const key of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
+}
+
+function readOptionalJsonObject(path: string): JsonObject | null {
+  try {
+    const value = readJson5Lenient(path);
+    return asJsonObject(value) ?? null;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT" ? {} : null;
+  }
+}
+
+// Qwen settings and trust files are JSON-with-comments, not JSON5: trailing
+// commas are corruption in 0.22.3. Read-only safety checks must not accept a
+// policy or credential source the pinned binary will discard during recovery.
+function readQwenJsonObject(path: string): JsonObject | null {
+  try {
+    const value = JSON.parse(stripJson5Comments(readFileSync(path, "utf8")));
+    return asJsonObject(value) ?? null;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT" ? {} : null;
+  }
+}
+
+function qwenResolvedSettingString(value: string, fallback: Record<string, string> = {}): string {
+  return value.replace(/\$(?:(\w+)|{([^}]+)})/g, (match, bare: string | undefined, braced: string | undefined) => {
+    const name = bare || braced || "";
+    if (typeof fallback[name] === "string") return fallback[name]!;
+    return typeof process.env[name] === "string" ? process.env[name]! : match;
+  });
+}
+
+const qwenEnvReference = /\$(?:(\w+)|{([^}]+)})/;
+
+// Qwen 0.22.3 uses this complete indicator set to decide whether any legacy
+// V1 shape triggers migration for the whole settings scope. Keep detection
+// exact even though Caveman only materializes fields used by its safety gates.
+const qwenV1IndicatorKeys = [
+  "theme", "model", "autoAccept", "hideTips", "vimMode", "checkpointing",
+  "accessibility", "allowedTools", "allowMCPServers", "autoConfigureMaxOldSpaceSize",
+  "bugCommand", "chatCompression", "coreTools", "contextFileName", "customThemes",
+  "customWittyPhrases", "debugKeystrokeLogging", "dnsResolutionOrder", "enforcedAuthType",
+  "excludeTools", "excludeMCPServers", "excludedProjectEnvVars", "fileFiltering",
+  "folderTrustFeature", "folderTrust", "hasSeenIdeIntegrationNudge", "hideWindowTitle",
+  "showStatusInTitle", "showLineNumbers", "showCitations", "ideMode", "includeDirectories",
+  "loadMemoryFromIncludeDirectories", "maxSessionTurns", "mcpServerCommand",
+  "memoryImportFormat", "preferredEditor", "sandbox", "selectedAuthType",
+  "shouldUseNodePtyShell", "shellPager", "shellShowColor", "skipNextSpeakerCheck",
+  "toolDiscoveryCommand", "toolCallCommand", "usageStatisticsEnabled", "useExternalAuth",
+  "useRipgrep", "enableWelcomeBack", "approvalMode", "sessionTokenLimit", "contentGenerator",
+  "skipLoopDetection", "skipStartupContext", "enableOpenAILogging", "tavilyApiKey",
+  "disableAutoUpdate", "disableUpdateNag", "disableLoadingPhrases", "disableFuzzySearch",
+  "disableCacheControl",
+] as const;
+
+// Subset of V1 -> V2 relocations consumed by credential/trust/MCP gates below.
+// Migration still triggers from the complete upstream indicator set above.
+const qwenV1PolicyMigrationMap: Record<string, string> = {
+  allowMCPServers: "mcp.allowed",
+  coreTools: "tools.core",
+  excludeMCPServers: "mcp.excluded",
+  excludeTools: "tools.exclude",
+  excludedProjectEnvVars: "advanced.excludedEnvVars",
+  folderTrust: "security.folderTrust.enabled",
+};
+
+function qwenSetNestedPropertySafe(root: JsonObject, path: string, value: unknown): void {
+  const keys = path.split(".");
+  if (keys.some((key) => !isSafeObjectKey(key))) return;
+  const last = keys.pop();
+  if (!last) return;
+  let current = root;
+  for (const key of keys) {
+    if (current[key] === undefined) current[key] = {};
+    const next = current[key];
+    if (!next || typeof next !== "object") return;
+    current = next as JsonObject;
+  }
+  current[last] = value;
+}
+
+// Mirror policy-relevant output of Qwen's per-scope V1 migration without
+// rewriting user files. Existing nested V2 content wins exactly as upstream's
+// parent-path carry step does.
+function qwenMigratePolicySettings(source: JsonObject): JsonObject {
+  const version = source["$version"];
+  if (typeof version === "number" && version >= 2) return cloneJsonValue(source);
+  const shouldMigrate = qwenV1IndicatorKeys.some((key) => {
+    if (!Object.hasOwn(source, key)) return false;
+    const value = source[key];
+    return !value || typeof value !== "object" || Array.isArray(value);
+  });
+  if (!shouldMigrate) return cloneJsonValue(source);
+
+  const result: JsonObject = {};
+  const processed = new Set<string>();
+  for (const [legacyKey, targetPath] of Object.entries(qwenV1PolicyMigrationMap)) {
+    if (!Object.hasOwn(source, legacyKey)) continue;
+    qwenSetNestedPropertySafe(result, targetPath, source[legacyKey]);
+    processed.add(legacyKey);
+  }
+  for (const [key, value] of Object.entries(source)) {
+    if (processed.has(key)) continue;
+    const parentOfMigratedPath = [...processed].some((legacyKey) =>
+      qwenV1PolicyMigrationMap[legacyKey]!.startsWith(`${key}.`));
+    if (!parentOfMigratedPath) {
+      result[key] = value;
+      continue;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      result[key] = value;
+      continue;
+    }
+    for (const [nestedKey, nestedValue] of Object.entries(value)) {
+      const nestedPath = `${key}.${nestedKey}`;
+      const alreadyMigrated = [...processed].some((legacyKey) =>
+        qwenV1PolicyMigrationMap[legacyKey] === nestedPath);
+      if (!alreadyMigrated) qwenSetNestedPropertySafe(result, nestedPath, nestedValue);
+    }
+  }
+  result["$version"] = 2;
+  return result;
+}
+
+function qwenResolveSettingValue(value: unknown, fallback: Record<string, string>): unknown {
+  if (typeof value === "string") return qwenResolvedSettingString(value, fallback);
+  if (Array.isArray(value)) return value.map((item) => qwenResolveSettingValue(item, fallback));
+  if (!value || typeof value !== "object") return value;
+  const resolved = { ...(value as JsonObject) };
+  for (const [key, child] of Object.entries(resolved)) resolved[key] = qwenResolveSettingValue(child, fallback);
+  return resolved;
+}
+
+function qwenStringList(root: JsonObject, path: string[], fallback: Record<string, string> | null): string[] | undefined | null {
+  const value = jsonValueAt(root, path);
+  if (value === undefined) return undefined;
+  if (!fallback) return null;
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) return null;
+  const resolved = value.map((item) => qwenResolvedSettingString(item as string, fallback)).filter(Boolean);
+  // Qwen loads .env files after this wrapper starts. An unresolved reference
+  // can therefore become a restrictive rule later; unknown policy fails closed.
+  if (resolved.some((item) => qwenEnvReference.test(item))) return null;
+  return resolved;
+}
+
+// Exact wildcard matcher used by Qwen 0.22 for mcp.allowed/mcp.excluded:
+// `*` spans any run, `?` spans one character, everything else is literal.
+function qwenMcpServerPatternMatches(name: string, pattern: string): boolean {
+  let nameIndex = 0;
+  let patternIndex = 0;
+  let starNameIndex = -1;
+  let starPatternIndex = -1;
+  while (nameIndex < name.length) {
+    if (patternIndex < pattern.length && (pattern[patternIndex] === "?" || pattern[patternIndex] === name[nameIndex])) {
+      nameIndex++;
+      patternIndex++;
+    } else if (patternIndex < pattern.length && pattern[patternIndex] === "*") {
+      starPatternIndex = patternIndex++;
+      starNameIndex = nameIndex;
+    } else if (starPatternIndex !== -1) {
+      patternIndex = starPatternIndex + 1;
+      nameIndex = ++starNameIndex;
+    } else {
+      return false;
+    }
+  }
+  while (patternIndex < pattern.length && pattern[patternIndex] === "*") patternIndex++;
+  return patternIndex === pattern.length;
+}
+
+const qwenCavemanToolName = "mcp__caveman__caveman_retrieve";
+
+function qwenSanitizeToolName(value: string): string {
+  const sanitized = value.replace(/[^A-Za-z0-9_-]/g, "_");
+  return /^[A-Za-z]/.test(sanitized) ? sanitized : `tool_${sanitized}`;
+}
+
+function qwenNormalizeToolName(value: string): string {
+  if (value.length <= 63 && /^[A-Za-z][A-Za-z0-9_-]*$/.test(value)) return value;
+  const sanitized = qwenSanitizeToolName(value);
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  const suffix = `_${(hash >>> 0).toString(36).padStart(7, "0")}`;
+  return `${sanitized.slice(0, 63 - suffix.length)}${suffix}`;
+}
+
+// Port of Qwen 0.22.3's MCP permission matcher for one exact target tool.
+function qwenCavemanToolDenied(rule: string): boolean {
+  let pattern = rule.trim();
+  const open = pattern.indexOf("(");
+  if (open !== -1) {
+    if (!pattern.endsWith(")") || pattern.slice(open + 1, -1).trim() !== "") return false;
+    pattern = pattern.slice(0, open).trim();
+  } else if (pattern.includes(")")) {
+    return false;
+  }
+  if (pattern === qwenCavemanToolName) return true;
+  if (!pattern.endsWith("*") && pattern.split("__").length >= 3) {
+    const normalized = pattern.startsWith("mcp__") ? qwenNormalizeToolName(pattern) : pattern;
+    if (normalized === qwenCavemanToolName) return true;
+  }
+  if (pattern.endsWith("*")) {
+    return qwenCavemanToolName.startsWith(qwenSanitizeToolName(pattern.slice(0, -1)));
+  }
+  const patternParts = pattern.split("__");
+  const toolParts = qwenCavemanToolName.split("__");
+  return patternParts.length === 2
+    && patternParts[0] === toolParts[0]
+    && qwenSanitizeToolName(patternParts[1]!) === qwenSanitizeToolName(toolParts[1]!);
+}
+
+function qwenCavemanToolDisabled(name: string): boolean {
+  return name.trim() === qwenCavemanToolName;
+}
+
+function qwenConfigFileInjection(): ConfigFileInjection | undefined {
+  const profile = AGENTS.find((agent) => agent.id === "qwen");
+  return profile?.injection.method === "config-file" ? profile.injection : undefined;
+}
+
+function qwenSettingsLayerPaths(): string[] | null {
+  const injection = qwenConfigFileInjection();
+  if (!injection?.base_config) return null;
+  const state = qwenHomeState();
+  if (state.ambiguous) return null;
+  const system = baseConfigPath(injection.base_config);
+  const configuredDefaults = process.env.QWEN_CODE_SYSTEM_DEFAULTS_PATH?.trim();
+  const defaultsRoot = configuredDefaults ? expandTilde(configuredDefaults) : join(dirname(system), "system-defaults.json");
+  const defaults = isAbsolute(defaultsRoot) ? defaultsRoot : resolve(defaultsRoot);
+  // Keep system settings last even when operator paths alias another layer;
+  // last-layer identity matters for enterprise MCP server shadow checks.
+  return [
+    defaults,
+    join(state.root, "settings.json"),
+    join(process.cwd(), ".qwen", "settings.json"),
+    system,
+  ];
+}
+
+function qwenMergedSettings(layers: JsonObject[]): JsonObject {
+  let merged: unknown = {};
+  for (const layer of layers) merged = deepMerge(merged, layer);
+  return merged as JsonObject;
+}
+
+function qwenPathVariants(rawPath: string): Set<string> {
+  const variants = new Set<string>([normalize(resolve(rawPath))]);
+  try {
+    variants.add(normalize(realpathSync(rawPath)));
+  } catch {
+    // Qwen compares a lexical absolute path when a target cannot be resolved.
+  }
+  return variants;
+}
+
+function qwenPathWithinRoot(childPath: string, parentPath: string): boolean {
+  const remainder = relative(parentPath, childPath);
+  return remainder === "" || (!remainder.startsWith(`..${sep}`) && remainder !== ".." && !isAbsolute(remainder));
+}
+
+function qwenPathDepth(path: string): number {
+  const remainder = relative(parse(path).root, path);
+  return remainder === "" ? 0 : remainder.split(sep).filter(Boolean).length;
+}
+
+// Mirror Qwen 0.22.3's persisted trust-rule precedence. Unknown workspaces are
+// trusted by Qwen's initial settings load; malformed trust state is ambiguous
+// here and must fail closed before an optional credential reference is emitted.
+function qwenWorkspaceTrusted(settings: JsonObject, workspacePath: string): boolean | null {
+  const enabled = jsonValueAt(settings, ["security", "folderTrust", "enabled"]);
+  if (enabled === undefined || enabled === false) return true;
+  if (enabled !== true) return null;
+  const state = qwenHomeState();
+  if (state.ambiguous) return null;
+  const configuredPath = state.env.QWEN_CODE_TRUSTED_FOLDERS_PATH;
+  const trustedPath = configuredPath || join(state.root, "trustedFolders.json");
+  const config = readQwenJsonObject(trustedPath);
+  if (!config) return null;
+
+  const workspaceVariants = qwenPathVariants(workspacePath);
+  let winnerDepth = -1;
+  let winnerTrusted: boolean | undefined;
+  for (const [rulePath, rawLevel] of Object.entries(config)) {
+    if (rawLevel !== "TRUST_FOLDER" && rawLevel !== "TRUST_PARENT" && rawLevel !== "DO_NOT_TRUST") return null;
+    const rootPath = rawLevel === "TRUST_PARENT" ? dirname(rulePath) : rulePath;
+    let matchDepth = -1;
+    for (const workspaceVariant of workspaceVariants) {
+      for (const ruleVariant of qwenPathVariants(rootPath)) {
+        if (qwenPathWithinRoot(workspaceVariant, ruleVariant)) {
+          matchDepth = Math.max(matchDepth, qwenPathDepth(ruleVariant));
+        }
+      }
+    }
+    if (matchDepth < 0) continue;
+    const trusted = rawLevel !== "DO_NOT_TRUST";
+    if (matchDepth > winnerDepth || (matchDepth === winnerDepth && !trusted && winnerTrusted !== false)) {
+      winnerDepth = matchDepth;
+      winnerTrusted = trusted;
+    }
+  }
+  return winnerTrusted ?? true;
+}
+
+function qwenSettingsLayers(): JsonObject[] | null {
+  const paths = qwenSettingsLayerPaths();
+  if (!paths) return null;
+  const fallback = qwenHomeEnvFallback();
+  if (!fallback) return null;
+  const layers: JsonObject[] = [];
+  for (const path of paths) {
+    const layer = readQwenJsonObject(path);
+    if (!layer) return null;
+    const migrated = qwenMigratePolicySettings(layer);
+    layers.push(qwenResolveSettingValue(migrated, fallback) as JsonObject);
+  }
+  // Qwen decides workspace trust from System + User settings (User wins in
+  // this initial check), then drops the entire workspace layer when untrusted.
+  const initialTrustSettings = deepMerge(layers[3], layers[1]) as JsonObject;
+  const workspaceTrusted = qwenWorkspaceTrusted(initialTrustSettings, process.cwd());
+  if (workspaceTrusted === null) return null;
+  if (!workspaceTrusted) layers[2] = {};
+  return layers;
+}
+
+function qwenSettingsPermitRecovery(marker: McpServerMarker, layers: JsonObject[]): boolean {
+  const fallback = qwenHomeEnvFallback();
+  if (!fallback) return false;
+
+  // System settings are enterprise-owned and outrank Caveman's user entry.
+  // Never replace a different server carrying the same name.
+  const systemEntry = jsonValueAt(layers[layers.length - 1], ["mcpServers", "caveman"]);
+  if (systemEntry !== undefined && !qwenMcpEntryMatches(systemEntry, marker)) return false;
+
+  let allowedConfigured = false;
+  let allowed = false;
+  for (const layer of layers) {
+    const allowList = qwenStringList(layer, ["mcp", "allowed"], fallback);
+    const excludeList = qwenStringList(layer, ["mcp", "excluded"], fallback);
+    const denyRules = qwenStringList(layer, ["permissions", "deny"], fallback);
+    const legacyDenyRules = qwenStringList(layer, ["tools", "exclude"], fallback);
+    const disabledTools = qwenStringList(layer, ["tools", "disabled"], fallback);
+    if (allowList === null || excludeList === null || denyRules === null || legacyDenyRules === null || disabledTools === null) return false;
+    if (allowList !== undefined) {
+      allowedConfigured = true;
+      if (allowList.some((pattern) => qwenMcpServerPatternMatches("caveman", pattern))) allowed = true;
+    }
+    if (excludeList?.some((pattern) => qwenMcpServerPatternMatches("caveman", pattern))) return false;
+    if (denyRules?.some(qwenCavemanToolDenied) || legacyDenyRules?.some(qwenCavemanToolDenied)) return false;
+    if (disabledTools?.some(qwenCavemanToolDisabled)) return false;
+  }
+  return !allowedConfigured || allowed;
+}
+
+function qwenUserLevelEnvPaths(state: QwenHomeState = qwenHomeState()): Set<string> {
+  return new Set([
+    normalize(join(homedir(), ".env")),
+    normalize(join(state.root, ".env")),
+    normalize(join(homedir(), ".qwen", ".env")),
+  ]);
+}
+
+function qwenEnvFileIsQwenScoped(path: string, state: QwenHomeState): boolean {
+  const normalized = normalize(path);
+  return qwenUserLevelEnvPaths(state).has(normalized) || basename(dirname(normalized)) === ".qwen";
+}
+
+// advanced.excludedEnvVars uses Qwen's UNION merge strategy. Malformed final
+// state is ambiguous; fail closed instead of guessing which project env keys
+// the pinned binary will accept.
+function qwenExcludedEnvVars(layers: JsonObject[]): string[] | null {
+  let merged: unknown;
+  for (const layer of layers) {
+    const next = jsonValueAt(layer, ["advanced", "excludedEnvVars"]);
+    if (next === undefined) continue;
+    if (Array.isArray(merged)) {
+      const additions = Array.isArray(next) ? next : [next];
+      merged = [...new Set([...merged, ...additions])];
+    } else {
+      merged = next;
+    }
+  }
+  if (merged === undefined) return ["DEBUG", "DEBUG_MODE"];
+  return Array.isArray(merged) && merged.every((item) => typeof item === "string")
+    ? merged as string[]
+    : null;
+}
+
+function qwenEnvironmentFilePaths(layers: JsonObject[]): string[] | null {
+  const state = qwenHomeState();
+  const home = homedir();
+  const legacy = join(home, ".qwen");
+  const effectiveSettings = qwenMergedSettings(layers);
+  const found: string[] = [];
+  const push = (path: string) => {
+    if (existsSync(path) && !found.includes(path)) found.push(path);
+  };
+  const pushWorkspace = (path: string, workspacePath: string): boolean | null => {
+    if (!existsSync(path)) return false;
+    const trusted = qwenWorkspaceTrusted(effectiveSettings, workspacePath);
+    if (trusted === null) return null;
+    if (!trusted) return false;
+    push(path);
+    return true;
+  };
+  const pushHome = () => {
+    push(join(state.root, ".env"));
+    if (state.root !== legacy) push(join(legacy, ".env"));
+    push(join(home, ".env"));
+  };
+  let current: string;
+  try {
+    current = realpathSync(process.cwd());
+  } catch {
+    current = resolve(process.cwd());
+  }
+  while (true) {
+    if (current === home) {
+      pushHome();
+      break;
+    }
+    const scoped = join(current, ".qwen", ".env");
+    const scopedAdded = pushWorkspace(scoped, current);
+    if (scopedAdded === null) return null;
+    if (scopedAdded) {
+      pushHome();
+      break;
+    }
+    const plain = join(current, ".env");
+    const plainAdded = pushWorkspace(plain, current);
+    if (plainAdded === null) return null;
+    if (plainAdded) {
+      pushHome();
+      break;
+    }
+    const parent = dirname(current);
+    if (!parent || parent === current) {
+      pushHome();
+      break;
+    }
+    current = parent;
+  }
+  return found;
+}
+
+function qwenEffectiveEnvValue(layers: JsonObject[], key: string): string | undefined | null {
+  const inherited = process.env[key];
+  if (inherited) return inherited;
+  const state = qwenHomeState();
+  const excluded = qwenExcludedEnvVars(layers);
+  if (!excluded) return null;
+  const envPaths = qwenEnvironmentFilePaths(layers);
+  if (!envPaths) return null;
+  for (const path of envPaths) {
+    const parsed = qwenReadDotEnv(path);
+    if (!parsed) return null;
+    if (!qwenEnvFileIsQwenScoped(path, state) && excluded.includes(key)) continue;
+    const candidate = parsed[key];
+    if (candidate) return candidate;
+  }
+  // settings.env is the lowest environment tier; system settings win over
+  // workspace, user, and system defaults for each key. Qwen's normal loader
+  // intentionally does not apply excludedEnvVars to settings.env.
+  const env = jsonValueAt(qwenMergedSettings(layers), ["env"]);
+  if (env === undefined) return undefined;
+  if (!env || typeof env !== "object" || Array.isArray(env)) return null;
+  const candidate = (env as Record<string, unknown>)[key];
+  if (candidate === undefined) return undefined;
+  return typeof candidate === "string" ? candidate : null;
+}
+
+function qwenOpenAIKeyAvailability(value: string | undefined | null): boolean | null {
+  if (value === null) return null;
+  if (value === undefined || !value.trim()) return false;
+  if (qwenEnvReference.test(value) || /[\r\n]/.test(value)) return null;
+  return true;
+}
+
+// Qwen resolves settings before loading project dotenv/settings.env. Its normal
+// process then relaunches once, inheriting those late-loaded values, and resolves
+// the temporary system settings again. Pre-existing no-relaunch/sandbox processes
+// skip that second pass, so only process env or Qwen's home fallback can safely
+// satisfy a header reference there.
+function qwenEffectiveOpenAIKeyAvailable(): boolean | null {
+  const layers = qwenSettingsLayers();
+  if (!layers) return null;
+  const noRelaunch = qwenEffectiveEnvValue(layers, "QWEN_CODE_NO_RELAUNCH");
+  const sandbox = qwenEffectiveEnvValue(layers, "SANDBOX");
+  if (noRelaunch === null || sandbox === null) return null;
+  if (!noRelaunch && !sandbox) {
+    return qwenOpenAIKeyAvailability(qwenEffectiveEnvValue(layers, "OPENAI_API_KEY"));
+  }
+  const fallback = qwenHomeEnvFallback();
+  if (!fallback) return null;
+  const inherited = process.env.OPENAI_API_KEY;
+  return qwenOpenAIKeyAvailability(typeof inherited === "string" ? inherited : fallback.OPENAI_API_KEY);
+}
+
+type AgentRouteOverride = { surface: string; reason: string };
+type QwenMatchedOption = { inline: boolean; value?: string };
+
+function qwenMatchedOption(arg: string, names: readonly string[]): QwenMatchedOption | null {
+  for (const name of names) {
+    if (arg === name) return { inline: false };
+    if (arg.startsWith(`${name}=`)) return { inline: true, value: arg.slice(name.length + 1) };
+  }
+  return null;
+}
+
+function kiloProfileModelIds(agent: AgentProfile): Set<string> {
+  if (agent.id !== "kilo" || agent.injection.method !== "config-env-content") return new Set();
+  const contents = [agent.injection.config_content.local, agent.injection.config_content.managed ?? agent.injection.config_content.local];
+  let shared: Set<string> | undefined;
+  for (const content of contents) {
+    const enabled = jsonValueAt(content, ["enabled_providers"]);
+    const models = jsonValueAt(content, ["provider", "caveman", "models"]);
+    if (!Array.isArray(enabled) || enabled.length !== 1 || enabled[0] !== "caveman"
+      || !models || typeof models !== "object" || Array.isArray(models)) return new Set();
+    const ids = new Set(Object.keys(models).filter((id) => id && id.trim() === id).map((id) => `caveman/${id}`));
+    shared = shared === undefined ? ids : new Set([...shared].filter((id) => ids.has(id)));
+  }
+  return shared ?? new Set();
+}
+
+function kiloManagedPolicyPresent(): boolean {
+  const directory = process.env.KILO_TEST_MANAGED_CONFIG_DIR || (process.platform === "darwin"
+    ? "/Library/Application Support/kilo"
+    : process.platform === "win32"
+      ? join(process.env.ProgramData || "C:\\ProgramData", "kilo")
+      : "/etc/kilo");
+  // Exact Kilo 7.5.6 managed file set. config.json is a legacy global filename,
+  // but managed loading deliberately excludes it.
+  const configFiles = ["kilo.jsonc", "kilo.json", "opencode.jsonc", "opencode.json"];
+  if (configFiles.some((name) => existsSync(join(directory, name)))) return true;
+  if (process.platform !== "darwin") return false;
+  const preferenceFiles = ["/Library/Managed Preferences/ai.opencode.managed.plist"];
+  try {
+    preferenceFiles.unshift(join("/Library/Managed Preferences", userInfo().username, "ai.opencode.managed.plist"));
+  } catch {
+    // System-level preference remains covered; an unreadable username is itself
+    // unusual, but no user path can be resolved safely enough to claim absence.
+    return true;
+  }
+  return preferenceFiles.some((path) => existsSync(path));
+}
+
+function kiloDatabasePath(): string | null {
+  const rawDataRoot = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
+  const cleanedDataRoot = rawDataRoot.replace(/[\r\n]+/g, "");
+  if (!cleanedDataRoot) throw new Error("Kilo data root resolves to an empty path");
+  const dataRoot = normalize(isAbsolute(cleanedDataRoot) ? cleanedDataRoot : resolve(cleanedDataRoot));
+  const configured = process.env.KILO_DB;
+  if (configured === ":memory:") return null;
+  if (configured) {
+    if (/[\0\r\n]/.test(configured)) throw new Error("KILO_DB contains an invalid path character");
+    return normalize(isAbsolute(configured) ? configured : join(dataRoot, "kilo", configured));
+  }
+  return join(dataRoot, "kilo", "kilo.db");
+}
+
+function kiloActiveOrganizationState(): "none" | "active" | "unknown" {
+  let path: string | null;
+  try {
+    path = kiloDatabasePath();
+    if (path === null) return "none";
+    const stat = statSync(path);
+    if (!stat.isFile()) return "unknown";
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return "none";
+    return "unknown";
+  }
+  const script = [
+    'const { DatabaseSync } = require("node:sqlite");',
+    'const db = new DatabaseSync(process.argv[1], { readOnly: true });',
+    'try {',
+    '  const row = db.prepare("SELECT 1 AS active FROM account_state WHERE id = 1 AND active_account_id IS NOT NULL AND active_org_id IS NOT NULL LIMIT 1").get();',
+    '  process.stdout.write(row?.active === 1 ? "active" : "none");',
+    '} finally { db.close(); }',
+  ].join("\n");
+  const probe = spawnSync(process.execPath, ["--no-warnings", "-e", script, path], {
+    encoding: "utf8",
+    timeout: 2_000,
+    env: { ...process.env, NODE_NO_WARNINGS: "1", NODE_OPTIONS: "" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (probe.status !== 0 || probe.signal || probe.error) return "unknown";
+  return probe.stdout === "active" ? "active" : probe.stdout === "none" ? "none" : "unknown";
+}
+
+function kiloHigherPriorityRouteOverride(): AgentRouteOverride | null {
+  if (kiloManagedPolicyPresent()) {
+    return { surface: "managed policy", reason: "loads after Caveman's inline routing config" };
+  }
+  const organization = kiloActiveOrganizationState();
+  if (organization === "active") {
+    return { surface: "active organization", reason: "can load routing policy after Caveman's inline config" };
+  }
+  if (organization === "unknown") {
+    return { surface: "organization state", reason: "cannot be verified safely" };
+  }
+  return null;
+}
+
+// Kilo's inline config selects a routed default, but its CLI model option has
+// higher precedence and attach mode delegates inference to another server whose
+// environment this process cannot control. Detect both before proxy/bootstrap
+// work. Unknown short-option clusters fail direct instead of guessing yargs.
+function kiloRouteOverride(agent: AgentProfile, args: string[]): AgentRouteOverride | null {
+  const higherPriority = kiloHigherPriorityRouteOverride();
+  if (higherPriority) return higherPriority;
+  const separator = args.indexOf("--");
+  const parsedArgs = separator === -1 ? args : args.slice(0, separator);
+  const valueOptions = new Set([
+    "--log-level", "--port", "--hostname", "--mdns-domain", "--cors",
+    "--session", "-s", "--worktree", "--prompt", "--agent", "--replay-limit",
+    "--command", "--format", "--file", "-f", "--title", "--password", "-p",
+    "--username", "-u", "--dir", "--variant", "--timeout", "--parallel", "--output",
+    "--repo", "--repo-type", "--branch", "--mode", "--org-id", "--session-id", "--message-id",
+  ]);
+  const booleanOptions = new Set([
+    "-h", "--help", "-v", "--version", "--print-logs", "--pure", "--mdns",
+    "-c", "--continue", "--fork", "--cloud-fork", "--auto", "--mini", "--no-replay",
+    "--share", "--thinking", "-i", "--interactive", "--stream", "--verbose", "--quiet",
+  ]);
+  let command: string | undefined;
+  let modelValue: string | undefined;
+  let modelOccurrences = 0;
+  for (let index = 0; index < parsedArgs.length; index++) {
+    const arg = parsedArgs[index]!;
+    if (arg === "--attach" || arg.startsWith("--attach=")) {
+      return { surface: "--attach", reason: "uses another server's provider route" };
+    }
+    const model = qwenMatchedOption(arg, ["--model", "--m", "-m"]);
+    if (model) {
+      modelOccurrences++;
+      const value = model?.inline ? model.value : parsedArgs[index + 1];
+      if (typeof value !== "string" || !value || value.startsWith("-")) {
+        return { surface: "--model", reason: "is repeated or malformed" };
+      }
+      modelValue = value;
+      if (!model?.inline) index++;
+      continue;
+    }
+    if (arg.startsWith("-") && !arg.startsWith("--") && arg.slice(1).includes("m")) {
+      return { surface: "-m", reason: "is ambiguous inside a short-option cluster" };
+    }
+    const equals = arg.indexOf("=");
+    const optionName = equals === -1 ? arg : arg.slice(0, equals);
+    if (valueOptions.has(optionName)) {
+      if (equals === -1) {
+        const value = parsedArgs[index + 1];
+        if (typeof value !== "string" || !value || value.startsWith("-")) {
+          return { surface: optionName, reason: "is malformed and makes command routing ambiguous" };
+        }
+        index++;
+      } else if (!arg.slice(equals + 1)) {
+        return { surface: optionName, reason: "is malformed and makes command routing ambiguous" };
+      }
+      continue;
+    }
+    if (booleanOptions.has(optionName)) {
+      if (equals !== -1) {
+        const value = arg.slice(equals + 1);
+        if (value !== "true" && value !== "false") {
+          return { surface: optionName, reason: "has a non-boolean value and makes command routing ambiguous" };
+        }
+      } else if (parsedArgs[index + 1] === "true" || parsedArgs[index + 1] === "false") {
+        index++;
+      }
+      continue;
+    }
+    if (arg.startsWith("-")) {
+      return { surface: "arguments", reason: "cannot be parsed safely with Kilo 7.5.6 option arities" };
+    }
+    if (command === undefined) {
+      command = arg;
+      if (command === "attach") return { surface: "attach", reason: "uses another server's provider route" };
+      if (command === "cloud" || command === "roll-call") {
+        return { surface: command, reason: "runs outside Kilo's local single-model route" };
+      }
+      if (command === "daemon" || command === "console") {
+        return { surface: command, reason: "can outlive Caveman's wrap session" };
+      }
+    }
+  }
+  if (modelOccurrences > 1) return { surface: "--model", reason: "is repeated or malformed" };
+
+  const routedModels = kiloProfileModelIds(agent);
+  if (routedModels.size === 0) return { surface: "routing profile", reason: "does not confine Kilo to Caveman providers" };
+  if (modelValue !== undefined && !routedModels.has(modelValue)) {
+    return { surface: "--model", reason: "selects a model outside Caveman's routed profile" };
+  }
+  return null;
+}
+
+function qwenProfileModelIds(agent: AgentProfile): Set<string> {
+  if (agent.id !== "qwen" || agent.injection.method !== "config-file") return new Set();
+  const overlays = [agent.injection.config_overlay.local, agent.injection.config_overlay.managed ?? agent.injection.config_overlay.local];
+  let shared: Set<string> | undefined;
+  for (const overlay of overlays) {
+    const models = jsonValueAt(overlay, ["modelProviders", "openai"]);
+    if (!Array.isArray(models)) return new Set();
+    const ids = new Set(models.flatMap((model) => {
+      const id = jsonValueAt(model, ["id"]);
+      return typeof id === "string" && id.trim() === id && id ? [id] : [];
+    }));
+    shared = shared === undefined ? ids : new Set([...shared].filter((id) => ids.has(id)));
+  }
+  return shared ?? new Set();
+}
+
+function qwenBooleanArg(
+  args: string[],
+  index: number,
+  positive: readonly string[],
+  negative: readonly string[],
+): { matched: boolean; value?: boolean; malformed: boolean; consumed: number } {
+  const arg = args[index]!;
+  const negated = qwenMatchedOption(arg, negative);
+  if (negated?.inline) return { matched: true, malformed: true, consumed: 0 };
+  if (negated) return { matched: true, value: false, malformed: false, consumed: 0 };
+  const enabled = qwenMatchedOption(arg, positive);
+  if (!enabled) return { matched: false, malformed: false, consumed: 0 };
+  if (enabled.inline) {
+    if (enabled.value === "true" || enabled.value === "false") {
+      return { matched: true, value: enabled.value === "true", malformed: false, consumed: 0 };
+    }
+    return { matched: true, malformed: true, consumed: 0 };
+  }
+  const next = args[index + 1];
+  if (next === "true" || next === "false") {
+    return { matched: true, value: next === "true", malformed: false, consumed: 1 };
+  }
+  return { matched: true, value: true, malformed: false, consumed: 0 };
+}
+
+// Qwen's temporary system settings route can be superseded by CLI routing and
+// auth flags, while safe/bare modes can discard it entirely. Parse the pinned
+// 0.22.3 spellings before proxy startup. Ambiguous or repeated selectors launch
+// direct: preserving the user's argv is safer than claiming traffic was routed.
+function qwenShortOptionLetters(arg: string): Set<string> {
+  if (!arg.startsWith("-") || arg.startsWith("--") || arg.length < 2) return new Set();
+  const letters = new Set<string>();
+  // yargs expands boolean clusters left-to-right, but these aliases consume the
+  // remaining suffix as their value. Do not mistake model/prompt text for flags.
+  const takesValue = new Set(["e", "i", "m", "o", "p", "r"]);
+  for (const letter of arg.slice(1).split("=", 1)[0]!) {
+    letters.add(letter);
+    if (takesValue.has(letter)) break;
+  }
+  return letters;
+}
+
+function qwenExtensionRouteOverride(args: string[]): AgentRouteOverride | null {
+  let confined = 0;
+  for (const arg of args) {
+    if (arg === "--extensions=none") {
+      confined++;
+      continue;
+    }
+    if (arg === "--extensions" || arg === "-e" || arg.startsWith("--extensions=") || arg.startsWith("-e")
+      || qwenShortOptionLetters(arg).has("e")) {
+      return { surface: "--extensions", reason: "can load model-routing code outside Caveman's locked session" };
+    }
+  }
+  return confined > 1
+    ? { surface: "--extensions", reason: "is repeated or ambiguous" }
+    : null;
+}
+
+function qwenControlSurfaceOverride(args: string[]): AgentRouteOverride | null {
+  for (const arg of args) {
+    if (arg === "--") break;
+    const shortOptions = qwenShortOptionLetters(arg);
+    if (arg === "--continue" || arg.startsWith("--continue=") || shortOptions.has("c")
+      || arg === "--resume" || arg.startsWith("--resume=") || shortOptions.has("r")
+      || arg === "--fork-session" || arg.startsWith("--fork-session=")
+      || arg === "--forkSession" || arg.startsWith("--forkSession=")) {
+      return { surface: "session restore", reason: "can reactivate a recorded provider route outside Caveman's locked session" };
+    }
+  }
+  const directFlags = ["--acp", "--experimental-acp", "--experimentalAcp", "--experimental-skills", "--experimentalSkills"] as const;
+  for (let index = 0; index < args.length; index++) {
+    const match = qwenBooleanArg(args, index, directFlags, []);
+    if (!match.matched) continue;
+    if (match.malformed || match.value === true) {
+      return { surface: args[index]!.split("=", 1)[0]!, reason: "exposes runtime model selection outside Caveman's locked session" };
+    }
+    index += match.consumed;
+  }
+  if (args.some((arg) => {
+    return arg === "--list-extensions" || arg === "--listExtensions" || qwenShortOptionLetters(arg).has("l") || arg.startsWith("--channel=") || arg === "--channel";
+  })) {
+    return { surface: "control mode", reason: "does not run one confined Qwen model session" };
+  }
+
+  const controlCommands = new Set(["auth", "channel", "extensions", "hooks", "mcp", "review", "serve", "sessions", "update"]);
+  const booleanOptions = new Set([
+    "--telemetry", "--debug", "--bare", "--safe-mode", "--insecure", "--chat-recording",
+    "--sandbox", "--yolo", "--experimental-lsp", "--restore-ask-user-question",
+    "--screen-reader", "--include-partial-messages", "--continue", "--fork-session", "--worktree",
+    "-s", "-c", "-v", "--version", "-h", "--help",
+  ]);
+  const valueOptions = new Set([
+    "--telemetry-target", "--telemetry-otlp-endpoint", "--telemetry-otlp-protocol", "--telemetry-log-prompts",
+    "--telemetry-outfile", "--proxy", "--model", "-m", "--prompt", "-p", "--prompt-interactive", "-i",
+    "--system-prompt", "--append-system-prompt", "--sandbox-image", "--approval-mode", "--allowed-mcp-server-names",
+    "--mcp-config", "--allowed-tools", "--include-directories", "--openai-logging", "--openai-logging-dir",
+    "--openai-api-key", "--openai-base-url", "--input-format", "--output-format", "-o", "--json-fd",
+    "--json-file", "--json-schema", "--input-file", "--resume", "-r", "--session-id", "--sandbox-session-id",
+    "--max-session-turns", "--max-wall-time", "--max-tool-calls", "--max-subagent-depth", "--core-tools",
+    "--exclude-tools", "--disabled-slash-commands", "--auth-type",
+  ]);
+  const routedArgs = args.filter((arg) => arg !== "--extensions=none");
+  for (let index = 0; index < routedArgs.length; index++) {
+    const arg = routedArgs[index]!;
+    if (arg === "--") break;
+    if (arg.startsWith("--") && arg.includes("=")) continue;
+    if (booleanOptions.has(arg)) {
+      if (routedArgs[index + 1] === "true" || routedArgs[index + 1] === "false") index++;
+      continue;
+    }
+    if (valueOptions.has(arg)) {
+      if (routedArgs[index + 1] !== undefined) index++;
+      continue;
+    }
+    if (arg.startsWith("-")) continue;
+    return controlCommands.has(arg)
+      ? { surface: arg, reason: "is a Qwen control command, not one confined model session" }
+      : null;
+  }
+  return null;
+}
+
+function qwenRouteOverride(agent: AgentProfile, args: string[]): AgentRouteOverride | null {
+  const extensionOverride = qwenExtensionRouteOverride(args);
+  if (extensionOverride) return extensionOverride;
+  const controlOverride = qwenControlSurfaceOverride(args);
+  if (controlOverride) return controlOverride;
+  // Qwen 0.22.3 checks raw process.argv before yargs and forces SIMPLE mode
+  // whenever this exact token occurs, even after `--` or beside `false`.
+  if (args.includes("--bare")) return { surface: "--bare", reason: "ignores Caveman system settings" };
+  const modelValues: string[] = [];
+  const fallbackValues: string[] = [];
+  const authValues: string[] = [];
+  const safeValues: boolean[] = [];
+  const bareValues: boolean[] = [];
+  let modelOccurrences = 0;
+  let authOccurrences = 0;
+  let safeMalformed = false;
+  let bareMalformed = false;
+  let modelMalformed = false;
+  let fallbackMalformed = false;
+  let authMalformed = false;
+
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!;
+    if (arg === "--") break;
+
+    if (qwenMatchedOption(arg, ["--openai-api-key", "--openaiApiKey"])) {
+      return { surface: "--openai-api-key", reason: "overrides Caveman's credential route" };
+    }
+    if (qwenMatchedOption(arg, ["--openai-base-url", "--openaiBaseUrl"])) {
+      return { surface: "--openai-base-url", reason: "overrides Caveman's gateway route" };
+    }
+
+    const model = qwenMatchedOption(arg, ["--model", "--m"]);
+    if (model || arg === "-m") {
+      modelOccurrences++;
+      const value = model?.inline ? model.value : args[index + 1];
+      if (typeof value !== "string" || !value || value === "--" || (!model?.inline && value.startsWith("-"))) {
+        modelMalformed = true;
+      } else {
+        modelValues.push(value);
+        if (!model?.inline) index++;
+      }
+      continue;
+    }
+    if (arg.startsWith("-") && !arg.startsWith("--") && arg.slice(1).includes("m")) {
+      if (!arg.startsWith("-m=")) {
+        return { surface: "-m", reason: "is ambiguous inside a short-option cluster" };
+      }
+      modelOccurrences++;
+      const value = arg.slice(3);
+      if (!value) modelMalformed = true;
+      else modelValues.push(value);
+      continue;
+    }
+
+    const fallback = qwenMatchedOption(arg, ["--fallback-model", "--fallbackModel"]);
+    if (fallback) {
+      const raw: string[] = [];
+      if (fallback.inline) {
+        if (fallback.value !== undefined) raw.push(fallback.value);
+      }
+      // yargs arrays consume every following non-option token even when first
+      // value used `=`; all of them participate in the effective fallback list.
+      while (index + 1 < args.length && !args[index + 1]!.startsWith("-")) raw.push(args[++index]!);
+      const values = raw.flatMap((value) => value.split(",").map((item) => item.trim()).filter(Boolean));
+      if (values.length === 0) fallbackMalformed = true;
+      else fallbackValues.push(...values);
+      continue;
+    }
+
+    const auth = qwenMatchedOption(arg, ["--auth-type", "--authType"]);
+    if (auth) {
+      authOccurrences++;
+      const value = auth.inline ? auth.value : args[index + 1];
+      if (typeof value !== "string" || !value || value === "--" || (!auth.inline && value.startsWith("-"))) {
+        authMalformed = true;
+      } else {
+        authValues.push(value);
+        if (!auth.inline) index++;
+      }
+      continue;
+    }
+
+    const safe = qwenBooleanArg(args, index, ["--safe-mode", "--safeMode"], ["--no-safe-mode", "--no-safeMode"]);
+    if (safe.matched) {
+      safeMalformed ||= safe.malformed;
+      if (safe.value !== undefined) safeValues.push(safe.value);
+      index += safe.consumed;
+      continue;
+    }
+    const bare = qwenBooleanArg(args, index, ["--bare"], ["--no-bare"]);
+    if (bare.matched) {
+      bareMalformed ||= bare.malformed;
+      if (bare.value !== undefined) bareValues.push(bare.value);
+      index += bare.consumed;
+    }
+  }
+
+  if (modelMalformed || modelOccurrences > 1 || modelValues.length !== modelOccurrences) {
+    return { surface: "--model", reason: "is repeated or malformed" };
+  }
+  if (fallbackMalformed || fallbackValues.length > 3) {
+    return { surface: "--fallback-model", reason: "is repeated or malformed" };
+  }
+  if (authMalformed || authOccurrences > 1 || authValues.length !== authOccurrences) {
+    return { surface: "--auth-type", reason: "is repeated or malformed" };
+  }
+  if (safeMalformed || safeValues.length > 1) return { surface: "--safe-mode", reason: "is repeated or malformed" };
+  if (bareMalformed || bareValues.length > 1) return { surface: "--bare", reason: "is repeated or malformed" };
+
+  const routedModels = qwenProfileModelIds(agent);
+  if (routedModels.size === 0) return { surface: "routing profile", reason: "has no common local and managed model" };
+  if (modelValues.some((model) => !routedModels.has(model))) {
+    return { surface: "--model", reason: "selects a model outside Caveman's routed profile" };
+  }
+  if (fallbackValues.some((model) => !routedModels.has(model))) {
+    return { surface: "--fallback-model", reason: "selects a model outside Caveman's routed profile" };
+  }
+  if (authValues.some((auth) => auth !== "openai")) {
+    return { surface: "--auth-type", reason: "selects an auth provider outside Caveman's routed profile" };
+  }
+
+  const layers = qwenSettingsLayers();
+  if (!layers) return { surface: "effective settings", reason: "cannot be resolved safely" };
+  for (const layer of layers) {
+    const enforcedType = jsonValueAt(layer, ["security", "auth", "enforcedType"]);
+    if (enforcedType !== undefined && enforcedType !== "openai") {
+      return { surface: "enforced auth policy", reason: "requires a provider outside Caveman's routed profile" };
+    }
+  }
+  const safeEnv = qwenEffectiveEnvValue(layers, "QWEN_CODE_SAFE_MODE");
+  const bareEnv = qwenEffectiveEnvValue(layers, "QWEN_CODE_SIMPLE");
+  if (safeEnv === null || bareEnv === null) return { surface: "effective settings", reason: "cannot be resolved safely" };
+  const truthy = (value: string | undefined) => !!value && ["1", "true", "yes", "on"].includes(value.toLowerCase().trim());
+  const safeMode = safeValues[0] ?? truthy(safeEnv);
+  // Pinned Qwen implements bare mode as CLI-true OR QWEN_CODE_SIMPLE. An
+  // explicit CLI false cannot neutralize an ambient true value.
+  const bareMode = bareValues[0] === true || truthy(bareEnv);
+  if (safeMode) return { surface: "--safe-mode", reason: "ignores Caveman system settings" };
+  if (bareMode) return { surface: "--bare", reason: "ignores Caveman system settings" };
+  return null;
+}
+
+function agentRouteOverride(agent: AgentProfile, args: string[]): AgentRouteOverride | null {
+  if (agent.id === "kilo") return kiloRouteOverride(agent, args);
+  if (agent.id === "qwen") return qwenRouteOverride(agent, args);
+  // Claude Code 2.1.196+ refuses Remote Control unless ANTHROPIC_BASE_URL is
+  // api.anthropic.com, and the first-party escape hatch does not apply (#947).
+  if (agent.id === "claude" && args.includes("remote-control")) {
+    return { surface: "remote-control", reason: "only runs against api.anthropic.com, so it cannot route through the proxy" };
+  }
+  return null;
+}
+
+function routeOverrideLabel(agent: AgentProfile): string {
+  if (agent.id === "qwen") return "Qwen";
+  if (agent.id === "kilo") return "Kilo";
+  return agent.display_name;
+}
+
+function qwenCliBoolean(args: string[], name: string): boolean | undefined {
+  let value: boolean | undefined;
+  const camel = name.replace(/-([a-z])/g, (_match, char: string) => char.toUpperCase());
+  const names = new Set([name, camel]);
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!;
+    if (arg === "--") break;
+    if ([...names].some((candidate) => arg === `--no-${candidate}`)) {
+      value = false;
+      continue;
+    }
+    const withValue = [...names].find((candidate) => arg.startsWith(`--${candidate}=`));
+    if (withValue) {
+      value = arg.slice(arg.indexOf("=") + 1) === "true";
+      continue;
+    }
+    if (![...names].some((candidate) => arg === `--${candidate}`)) continue;
+    const next = args[index + 1];
+    if (next === "true" || next === "false") {
+      value = next === "true";
+      index++;
+    } else {
+      value = true;
+    }
+  }
+  return value;
+}
+
+function qwenModeEnabled(args: string[], name: string, envKey: string, layers: JsonObject[]): boolean | null {
+  const explicit = qwenCliBoolean(args, name);
+  if (explicit !== undefined) return explicit;
+  const raw = qwenEffectiveEnvValue(layers, envKey);
+  if (raw === null) return null;
+  return !!raw && ["1", "true", "yes", "on"].includes(raw.toLowerCase().trim());
+}
+
+function qwenArgsPermitRecovery(args: string[], layers: JsonObject[]): boolean {
+  if (qwenModeEnabled(args, "safe-mode", "QWEN_CODE_SAFE_MODE", layers) !== false) return false;
+  if (qwenModeEnabled(args, "bare", "QWEN_CODE_SIMPLE", layers) !== false) return false;
+  let allowedConfigured = false;
+  const allowed: string[] = [];
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!;
+    if (arg === "--") break;
+    if (arg === "--mcp-config" || arg.startsWith("--mcp-config=")) return false;
+    if (arg.startsWith("--exclude-tools=")) {
+      const denied = arg.slice(arg.indexOf("=") + 1).split(",").map((item) => item.trim()).filter(Boolean);
+      if (denied.some(qwenCavemanToolDenied)) return false;
+      continue;
+    }
+    if (arg === "--exclude-tools") {
+      while (index + 1 < args.length && !args[index + 1]!.startsWith("-")) {
+        const denied = args[++index]!.split(",").map((item) => item.trim()).filter(Boolean);
+        if (denied.some(qwenCavemanToolDenied)) return false;
+      }
+      continue;
+    }
+    if (arg.startsWith("--allowed-mcp-server-names=")) {
+      allowedConfigured = true;
+      allowed.push(...arg.slice(arg.indexOf("=") + 1).split(",").map((item) => item.trim()).filter(Boolean));
+      continue;
+    }
+    if (arg !== "--allowed-mcp-server-names") continue;
+    allowedConfigured = true;
+    while (index + 1 < args.length && !args[index + 1]!.startsWith("-")) {
+      allowed.push(...args[++index]!.split(",").map((item) => item.trim()).filter(Boolean));
+    }
+  }
+  return !allowedConfigured || allowed.some((pattern) => qwenMcpServerPatternMatches("caveman", pattern));
+}
+
+function ownedMcpRegistration(agentId: string, agentArgs: string[] = []): McpServerMarker | null {
+  const marker = readMcpServerMarker(agentId, "caveman");
+  if (!marker) return null;
+  if (agentId === "kilo") {
+    const activePath = canonicalMcpConfigPath(kiloConfigPath());
+    if (marker.config_path && marker.config_path !== activePath) return null;
+    const config = readOptionalJsonObject(marker.config_path ?? activePath);
+    return config && kiloMcpEntryMatches(jsonValueAt(config, ["mcp", "caveman"]), marker) ? marker : null;
+  }
+  if (agentId === "qwen") {
+    const activePath = canonicalMcpConfigPath(qwenConfigPath());
+    if (marker.config_path && marker.config_path !== activePath) return null;
+    const layers = qwenSettingsLayers();
+    if (!layers || !qwenArgsPermitRecovery(agentArgs, layers)) return null;
+    const config = readQwenJsonObject(marker.config_path ?? activePath);
+    if (!config || !qwenMcpEntryMatches(jsonValueAt(config, ["mcpServers", "caveman"]), marker)) return null;
+    return qwenSettingsPermitRecovery(marker, layers) ? marker : null;
+  }
+  return marker;
+}
+
+function planMcpQwenJson(mcp: { command: string; args: string[] }, serverName = "caveman"): OwnedMcpConfigPlan | null {
+  const path = canonicalMcpConfigPath(qwenConfigPath());
+  const marker = readMcpServerMarker("qwen", serverName);
+  if (marker?.config_path && marker.config_path !== path) {
+    console.error(`${mark("warn")} ${serverName} is owned in ${marker.config_path}; uninstall it before installing into ${path}`);
+    return null;
+  }
+  const loaded = readStrictMcpJsonRoot(path);
+  if (!loaded) return null;
+  const { root } = loaded;
+  if (root.mcpServers !== undefined && (!root.mcpServers || typeof root.mcpServers !== "object" || Array.isArray(root.mcpServers))) {
+    console.error(`${mark("warn")} ${path} mcpServers must be a JSON object; not modifying it`);
+    return null;
+  }
+  const servers = root.mcpServers as Record<string, unknown> | undefined;
+  const current = servers?.[serverName];
+  if (marker && !marker.config_path && current === undefined) {
+    console.error(`${mark("warn")} legacy ${serverName} ownership marker does not identify its Qwen config; refusing relocation`);
+    return null;
+  }
+  if (current !== undefined) {
+    if (!marker) {
+      console.error(`${mark("warn")} ${path} mcpServers.${serverName} exists but is not Caveman-journaled; refusing overwrite`);
+      return null;
+    }
+    if (!qwenMcpEntryMatches(current, marker)) {
+      console.error(`${mark("warn")} ${path} mcpServers.${serverName} changed since Caveman installed it; refusing overwrite`);
+      return null;
+    }
+    if (qwenMcpEntryMatches(current, mcp)) {
+      return ownedMcpConfigPlan("qwen", path, loaded, loaded.bytes!);
+    }
+  }
+  const nextServers = servers ?? {};
+  nextServers[serverName] = qwenMcpEntry(mcp);
+  root.mcpServers = nextServers;
+  return ownedMcpConfigPlan("qwen", path, loaded, Buffer.from(JSON.stringify(root, null, 2) + "\n"));
+}
+
+function planRemoveMcpQwenJson(serverName = "caveman"): OwnedMcpConfigPlan | null {
+  const marker = readMcpServerMarker("qwen", serverName);
+  const path = marker?.config_path ?? canonicalMcpConfigPath(qwenConfigPath());
+  const loaded = readStrictMcpJsonRoot(path);
+  if (!loaded) return null;
+  if (!loaded.exists) {
+    if (marker && !marker.config_path) {
+      console.error(`${mark("warn")} legacy ${serverName} ownership marker does not identify its Qwen config; refusing removal`);
+      return null;
+    }
+    if (marker?.config_path && movedOwnedMcpRemovalBlocked("qwen", serverName, marker)) return null;
+    return ownedMcpConfigPlan("qwen", path, loaded, null);
+  }
+  const { root } = loaded;
+  if (root.mcpServers !== undefined && (!root.mcpServers || typeof root.mcpServers !== "object" || Array.isArray(root.mcpServers))) {
+    console.error(`${mark("warn")} ${path} mcpServers must be a JSON object; not modifying it`);
+    return null;
+  }
+  const servers = root.mcpServers as Record<string, unknown> | undefined;
+  const current = servers?.[serverName];
+  if (current === undefined) {
+    if (marker && !marker.config_path) {
+      console.error(`${mark("warn")} legacy ${serverName} ownership marker does not identify its Qwen config; refusing removal`);
+      return null;
+    }
+    return ownedMcpConfigPlan("qwen", path, loaded, loaded.bytes);
+  }
+  if (!marker) {
+    console.error(`${mark("warn")} ${path} mcpServers.${serverName} exists but is not Caveman-journaled; refusing removal`);
+    return null;
+  }
+  if (!qwenMcpEntryMatches(current, marker)) {
+    console.error(`${mark("warn")} ${path} mcpServers.${serverName} changed since Caveman installed it; refusing removal`);
+    return null;
+  }
+  delete servers![serverName];
+  if (Object.keys(servers!).length === 0) delete root.mcpServers;
+  return ownedMcpConfigPlan("qwen", path, loaded, Buffer.from(JSON.stringify(root, null, 2) + "\n"));
+}
+
+type OwnedMcpPendingJournal = {
+  schema_version: 1;
+  transaction_id: string;
+  agent: "kilo" | "qwen";
+  server_name: string;
+  action: "install" | "uninstall";
+  config_path: string;
+  marker_path: string;
+  config_before_base64: string | null;
+  config_before_mode: number;
+  config_before_sha256: string | null;
+  config_after_sha256: string | null;
+  marker_before_base64: string | null;
+  marker_before_mode: number;
+  marker_before_sha256: string | null;
+  marker_after_base64: string | null;
+  marker_after_sha256: string | null;
+};
+
+function optionalBytesHash(bytes: Buffer | null): string | null {
+  return bytes ? bytesHash(bytes) : null;
+}
+
+function mcpPendingJournalPath(agent: "kilo" | "qwen", serverName: string): string {
+  return `${canonicalOwnedMcpMarkerPath(agent, serverName)}.pending`;
+}
+
+function mcpConfigPendingJournalPath(configPath: string): string {
+  const canonicalPath = canonicalMcpConfigPath(configPath);
+  return join(dirname(canonicalPath), `.${basename(canonicalPath)}.caveman-mcp.pending.json`);
+}
+
+function mcpMarkerBytes(mcp: { command: string; args: string[] }, tool: string, configPath?: string): Buffer {
+  return Buffer.from(JSON.stringify({
+    ...(configPath ? { schema_version: 1 } : {}),
+    tool,
+    command: mcp.command,
+    args: mcp.args,
+    ...(configPath ? { config_path: canonicalMcpConfigPath(configPath) } : {}),
+  }, null, 2) + "\n");
+}
+
+function validMcpMarkerBytes(bytes: Buffer, agent: "kilo" | "qwen", serverName: string): boolean {
+  return parseMcpServerMarkerBytes(agent, serverName, bytes) !== null;
+}
+
+function decodePendingBytes(value: unknown, field: string): Buffer | null {
+  if (value === null) return null;
+  if (typeof value !== "string") throw new Error(`${field} must be base64 or null`);
+  const bytes = Buffer.from(value, "base64");
+  if (bytes.toString("base64") !== value) throw new Error(`${field} is not canonical base64`);
+  return bytes;
+}
+
+function validOptionalHash(value: unknown): value is string | null {
+  return value === null || (typeof value === "string" && /^sha256:[0-9a-f]{64}$/.test(value));
+}
+
+type ReadOwnedMcpPendingJournal = {
+  journal: OwnedMcpPendingJournal;
+  configBefore: Buffer | null;
+  markerBefore: Buffer | null;
+  markerAfter: Buffer | null;
+  path: string;
+  bytes: Buffer;
+};
+
+function ownedMcpPendingLabel(agent?: string, serverName?: string): string {
+  return agent && serverName ? `${agent} ${serverName} MCP` : "owned MCP";
+}
+
+function readOwnedMcpPendingJournalAt(
+  path: string,
+  expected: { agent?: "kilo" | "qwen"; serverName?: string; configPath?: string; locatorPath?: string } = {},
+): ReadOwnedMcpPendingJournal | null {
+  const label = ownedMcpPendingLabel(expected.agent, expected.serverName);
+  let bytes: Buffer;
+  let value: Record<string, unknown>;
+  try {
+    bytes = readFileSync(path);
+    value = JSON.parse(bytes.toString("utf8")) as Record<string, unknown>;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw new Error(`cannot read pending ${label} transaction: ${(error as Error).message}`);
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`pending ${label} transaction is malformed; refusing recovery`);
+  }
+  if (process.platform !== "win32" && (statSync(path).mode & 0o077) !== 0) {
+    throw new Error(`pending ${label} transaction has unsafe permissions; refusing recovery`);
+  }
+  const keys = [
+    "action", "agent", "config_after_sha256", "config_before_base64", "config_before_mode", "config_path",
+    "config_before_sha256", "marker_after_base64", "marker_after_sha256", "marker_before_base64", "marker_before_mode",
+    "marker_before_sha256", "marker_path", "schema_version", "server_name", "transaction_id",
+  ].sort();
+  const journalAgent = value.agent;
+  const journalServer = value.server_name;
+  if (Object.keys(value).sort().join("\0") !== keys.join("\0")
+    || value.schema_version !== 1
+    || typeof value.transaction_id !== "string"
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value.transaction_id)
+    || (journalAgent !== "kilo" && journalAgent !== "qwen")
+    || typeof journalServer !== "string"
+    || !mcpServerToolName(journalServer)
+    || (expected.agent !== undefined && journalAgent !== expected.agent)
+    || (expected.serverName !== undefined && journalServer !== expected.serverName)
+    || (value.action !== "install" && value.action !== "uninstall")
+    || typeof value.config_path !== "string"
+    || value.config_path !== canonicalMcpConfigPath(value.config_path)
+    || (expected.configPath !== undefined && value.config_path !== canonicalMcpConfigPath(expected.configPath))
+    || typeof value.marker_path !== "string"
+    || value.marker_path !== canonicalMcpConfigPath(value.marker_path)
+    || (expected.locatorPath !== undefined && `${value.marker_path}.pending` !== canonicalMcpConfigPath(expected.locatorPath))
+    || !Number.isInteger(value.config_before_mode) || (value.config_before_mode as number) < 0 || (value.config_before_mode as number) > 0o777
+    || !Number.isInteger(value.marker_before_mode) || (value.marker_before_mode as number) < 0 || (value.marker_before_mode as number) > 0o777
+    || !validOptionalHash(value.config_before_sha256)
+    || !validOptionalHash(value.config_after_sha256)
+    || !validOptionalHash(value.marker_before_sha256)
+    || !validOptionalHash(value.marker_after_sha256)) {
+    throw new Error(`pending ${label} transaction is malformed; refusing recovery`);
+  }
+  try {
+    const configBefore = decodePendingBytes(value.config_before_base64, "config_before_base64");
+    const markerBefore = decodePendingBytes(value.marker_before_base64, "marker_before_base64");
+    const markerAfter = decodePendingBytes(value.marker_after_base64, "marker_after_base64");
+    if (optionalBytesHash(configBefore) !== value.config_before_sha256
+      || optionalBytesHash(markerBefore) !== value.marker_before_sha256
+      || optionalBytesHash(markerAfter) !== value.marker_after_sha256
+      || (markerBefore !== null && !validMcpMarkerBytes(markerBefore, journalAgent, journalServer))
+      || (markerAfter !== null && !validMcpMarkerBytes(markerAfter, journalAgent, journalServer))
+      || (markerBefore !== null && parseMcpServerMarkerBytes(journalAgent, journalServer, markerBefore)?.config_path !== undefined
+        && parseMcpServerMarkerBytes(journalAgent, journalServer, markerBefore)?.config_path !== value.config_path)
+      || (markerAfter !== null && parseMcpServerMarkerBytes(journalAgent, journalServer, markerAfter)?.config_path !== value.config_path)
+      || (value.action === "install") !== (markerAfter !== null)) {
+      throw new Error("journal bytes do not match declared transaction state");
+    }
+    return {
+      journal: value as OwnedMcpPendingJournal,
+      configBefore,
+      markerBefore,
+      markerAfter,
+      path,
+      bytes,
+    };
+  } catch (error) {
+    throw new Error(`pending ${label} transaction is malformed: ${(error as Error).message}`);
+  }
+}
+
+function readOwnedMcpPendingLocator(agent: "kilo" | "qwen", serverName: string): ReadOwnedMcpPendingJournal | null {
+  const path = canonicalMcpConfigPath(mcpPendingJournalPath(agent, serverName));
+  return readOwnedMcpPendingJournalAt(path, { agent, serverName, locatorPath: path });
+}
+
+function readOwnedMcpConfigPending(configPath: string): ReadOwnedMcpPendingJournal | null {
+  const canonicalPath = canonicalMcpConfigPath(configPath);
+  return readOwnedMcpPendingJournalAt(mcpConfigPendingJournalPath(canonicalPath), { configPath: canonicalPath });
+}
+
+type OwnedMcpRecovery = "none" | "discarded" | "finalized" | "rolled-back";
+
+function recoverOwnedMcpTransaction(pending: ReadOwnedMcpPendingJournal | null): OwnedMcpRecovery {
+  if (!pending) return "none";
+  const { journal, configBefore, markerBefore } = pending;
+  const agent = journal.agent;
+  const serverName = journal.server_name;
+  const configPath = journal.config_path;
+  const markerPath = journal.marker_path;
+  const configPendingPath = mcpConfigPendingJournalPath(configPath);
+  const locatorPath = `${markerPath}.pending`;
+  const configPending = readOwnedMcpPendingJournalAt(configPendingPath, { agent, serverName, configPath });
+  const locatorPending = readOwnedMcpPendingJournalAt(locatorPath, { agent, serverName, configPath, locatorPath });
+  if (configPending && locatorPending && !configPending.bytes.equals(locatorPending.bytes)) {
+    throw new Error(`${agent} ${serverName} MCP transaction journals disagree; refusing recovery`);
+  }
+  const configCurrent = fileBytes(configPath);
+  const markerCurrent = fileBytes(markerPath);
+  const configHash = optionalBytesHash(configCurrent);
+  const markerHash = optionalBytesHash(markerCurrent);
+  const configIsBefore = configHash === journal.config_before_sha256;
+  const configIsAfter = configHash === journal.config_after_sha256;
+  const markerIsBefore = markerHash === journal.marker_before_sha256;
+  const markerIsAfter = markerHash === journal.marker_after_sha256;
+  const removePendingCopies = () => {
+    if (configPending) durableUnlink(configPendingPath);
+    if (locatorPending) durableUnlink(locatorPath);
+  };
+
+  if (configIsAfter && markerIsAfter) {
+    removePendingCopies();
+    process.stderr.write(`${mark("warn")} finalized interrupted ${agent} ${serverName} MCP transaction\n`);
+    return "finalized";
+  }
+  if (configIsBefore && markerIsBefore) {
+    removePendingCopies();
+    process.stderr.write(`${mark("warn")} discarded uncommitted ${agent} ${serverName} MCP transaction\n`);
+    return "discarded";
+  }
+  if ((!configIsBefore && !configIsAfter) || (!markerIsBefore && !markerIsAfter)) {
+    throw new Error(`${agent} ${serverName} MCP config or ownership journal changed during interrupted transaction; refusing destructive recovery`);
+  }
+  if (!configPending || !locatorPending) {
+    throw new Error(`${agent} ${serverName} MCP transaction lost one durable journal copy; refusing destructive recovery`);
+  }
+
+  if (!configIsBefore) {
+    durableReplaceFileIfUnchanged(configPath, configCurrent, configBefore, journal.config_before_mode);
+  }
+  if (!markerIsBefore) {
+    durableReplaceFileIfUnchanged(markerPath, markerCurrent, markerBefore, journal.marker_before_mode);
+  }
+  if (optionalBytesHash(fileBytes(configPath)) !== journal.config_before_sha256
+    || optionalBytesHash(fileBytes(markerPath)) !== journal.marker_before_sha256) {
+    throw new Error(`${agent} ${serverName} MCP rollback postflight mismatch`);
+  }
+  removePendingCopies();
+  process.stderr.write(`${mark("warn")} rolled back interrupted ${agent} ${serverName} MCP transaction\n`);
+  return "rolled-back";
+}
+
+function transactOwnedMcpConfig(
+  agent: "kilo" | "qwen",
+  serverName: string,
+  action: "install" | "uninstall",
+  mcp?: { command: string; args: string[] },
+  lockedConfigPath?: string,
+): boolean {
+  const plan = action === "install"
+    ? agent === "kilo" ? planMcpKiloJson(mcp!, serverName) : planMcpQwenJson(mcp!, serverName)
+    : agent === "kilo" ? planRemoveMcpKiloJson(serverName) : planRemoveMcpQwenJson(serverName);
+  if (!plan) return false;
+  if (lockedConfigPath && plan.path !== canonicalMcpConfigPath(lockedConfigPath)) {
+    throw new Error(`${agent} ${serverName} MCP config target changed while acquiring lock; refusing mutation`);
+  }
+
+  const markerPath = canonicalOwnedMcpMarkerPath(agent, serverName);
+  const markerBefore = fileBytes(markerPath);
+  if (markerBefore !== null && !validMcpMarkerBytes(markerBefore, agent, serverName)) {
+    throw new Error(`${markerPath} is not a valid Caveman ownership journal; refusing overwrite`);
+  }
+  const markerBeforeMode = markerBefore === null ? 0o600 : statSync(markerPath).mode & 0o777;
+  if (!optionalBytesEqual(fileBytes(markerPath), markerBefore)) {
+    throw new Error(`${markerPath} changed while planning MCP update; refusing overwrite`);
+  }
+  const markerAfter = action === "install" ? mcpMarkerBytes(mcp!, mcpServerToolName(serverName)!, plan.path) : null;
+  if (!plan.changed && optionalBytesEqual(markerBefore, markerAfter)) return true;
+
+  const journal: OwnedMcpPendingJournal = {
+    schema_version: 1,
+    transaction_id: randomUUID(),
+    agent,
+    server_name: serverName,
+    action,
+    config_path: plan.path,
+    marker_path: markerPath,
+    config_before_base64: plan.before?.toString("base64") ?? null,
+    config_before_mode: plan.beforeMode,
+    config_before_sha256: optionalBytesHash(plan.before),
+    config_after_sha256: optionalBytesHash(plan.after),
+    marker_before_base64: markerBefore?.toString("base64") ?? null,
+    marker_before_mode: markerBeforeMode,
+    marker_before_sha256: optionalBytesHash(markerBefore),
+    marker_after_base64: markerAfter?.toString("base64") ?? null,
+    marker_after_sha256: optionalBytesHash(markerAfter),
+  };
+  const locatorPath = `${markerPath}.pending`;
+  const configPendingPath = mcpConfigPendingJournalPath(plan.path);
+  const pendingBytes = Buffer.from(JSON.stringify(journal, null, 2) + "\n");
+  if (fileBytes(locatorPath) !== null || fileBytes(configPendingPath) !== null) {
+    throw new Error(`${agent} ${serverName} MCP transaction journal already exists; refusing overwrite`);
+  }
+  durableCreateFile(locatorPath, pendingBytes);
+  try {
+    durableCreateFile(configPendingPath, pendingBytes);
+  } catch (error) {
+    durableUnlink(locatorPath);
+    throw error;
+  }
+
+  try {
+    if (action === "install") {
+      if (plan.changed) durableReplaceFileIfUnchanged(plan.path, plan.before, plan.after, plan.beforeMode);
+      if (!optionalBytesEqual(markerBefore, markerAfter)) durableReplaceFileIfUnchanged(markerPath, markerBefore, markerAfter);
+    } else {
+      if (!optionalBytesEqual(markerBefore, markerAfter)) durableReplaceFileIfUnchanged(markerPath, markerBefore, markerAfter);
+      if (plan.changed) durableReplaceFileIfUnchanged(plan.path, plan.before, plan.after, plan.beforeMode);
+    }
+    if (optionalBytesHash(fileBytes(plan.path)) !== journal.config_after_sha256
+      || optionalBytesHash(fileBytes(markerPath)) !== journal.marker_after_sha256) {
+      throw new Error(`${agent} ${serverName} MCP transaction postflight mismatch`);
+    }
+    durableUnlink(configPendingPath);
+    durableUnlink(locatorPath);
+    return true;
+  } catch (error) {
+    try {
+      const recovery = recoverOwnedMcpTransaction(readOwnedMcpConfigPending(plan.path) ?? readOwnedMcpPendingLocator(agent, serverName));
+      if (recovery === "finalized") return true;
+    } catch (recoveryError) {
+      throw new Error(`${agent} ${serverName} MCP transaction failed and safe recovery was blocked: ${(recoveryError as Error).message}; original error: ${(error as Error).message}`);
+    }
+    throw new Error(`${agent} ${serverName} MCP transaction failed and rolled back: ${(error as Error).message}`);
+  }
+}
+
+function withOwnedMcpTransactionLock<T>(
+  agent: "kilo" | "qwen",
+  serverName: string,
+  run: (lockedConfigPath: string) => T,
+): T {
+  const markerPath = canonicalOwnedMcpMarkerPath(agent, serverName);
+  return withMcpConfigLock(markerPath, () => {
+    const activeConfigPath = () => canonicalMcpConfigPath(agent === "kilo" ? kiloConfigPath() : qwenConfigPath());
+    const resourcePath = () => readOwnedMcpPendingLocator(agent, serverName)?.journal.config_path
+      ?? readMcpServerMarker(agent, serverName)?.config_path
+      ?? activeConfigPath();
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const lockPath = canonicalMcpConfigPath(resourcePath());
+      const outcome = withMcpConfigLock<{ retry: true } | { retry: false; value: T }>(lockPath, () => {
+        const locatorPending = readOwnedMcpPendingLocator(agent, serverName);
+        if (locatorPending) {
+          if (locatorPending.journal.config_path !== lockPath) return { retry: true };
+          recoverOwnedMcpTransaction(locatorPending);
+          return { retry: true };
+        }
+        const configPending = readOwnedMcpConfigPending(lockPath);
+        if (configPending) {
+          recoverOwnedMcpTransaction(configPending);
+          return { retry: true };
+        }
+        if (canonicalMcpConfigPath(resourcePath()) !== lockPath) return { retry: true };
+        return { retry: false, value: run(lockPath) };
+      });
+      if (!outcome.retry) return outcome.value;
+    }
+    throw new Error(`${agent} ${serverName} MCP transaction state kept changing; refusing mutation`);
+  });
+}
+
 function mcpInstall(target?: string, serverName = "caveman"): number {
   if (serverName !== "caveman" && serverName !== "caveman-browse" && serverName !== "caveman-cloud" && serverName !== "caveman-delegate") {
     console.error(`unknown MCP server '${serverName}'. valid: caveman, caveman-browse, caveman-cloud, caveman-delegate`);
@@ -10320,17 +12655,32 @@ function mcpInstall(target?: string, serverName = "caveman"): number {
   }
   let installed = 0;
   for (const a of targets) {
-    if (installMcpForAgent(a, mcp, serverName)) {
-      if (serverName === "caveman") {
-        writeMcpMarker(a.id, mcp);
-      } else {
-        writeMcpServerMarker(
-          a.id,
-          serverName,
-          mcp,
-          serverName === "caveman-browse" ? "caveman_browse" : serverName === "caveman-delegate" ? "caveman_delegate" : "caveman_context",
-        );
+    preflightMcpServerMarker(a.id, serverName);
+    const installOne = (lockedConfigPath?: string): boolean => {
+      if (a.id === "kilo" || a.id === "qwen") {
+        return transactOwnedMcpConfig(a.id, serverName, "install", mcp, lockedConfigPath);
       }
+      if (!installMcpForAgent(a, mcp, serverName)) return false;
+      try {
+        if (serverName === "caveman") {
+          writeMcpMarker(a.id, mcp);
+        } else {
+          writeMcpServerMarker(
+            a.id,
+            serverName,
+            mcp,
+            serverName === "caveman-browse" ? "caveman_browse" : serverName === "caveman-delegate" ? "caveman_delegate" : "caveman_context",
+          );
+        }
+      } catch (error) {
+        throw new Error(`${a.display_name}: MCP ownership journal failed; native config may already contain the registration: ${(error as Error).message}`);
+      }
+      return true;
+    };
+    const installedForAgent = a.id === "kilo" || a.id === "qwen"
+      ? withOwnedMcpTransactionLock(a.id, serverName, installOne)
+      : installOne();
+    if (installedForAgent) {
       installed++;
       const tool = serverName === "caveman"
         ? "caveman_retrieve"
@@ -10363,6 +12713,9 @@ function installMcpForAgent(a: AgentProfile, mcp: { command: string; args: strin
         command: [mcp.command, ...mcp.args],
         enabled: true,
       });
+    case "kilo":
+    case "qwen":
+      throw new Error(`${a.display_name} MCP changes require the ownership transaction`);
     case "gemini":
       return installMcpJson(join(homedir(), ".gemini", "settings.json"), ["mcpServers", serverName], {
         command: mcp.command,
@@ -10553,12 +12906,7 @@ function writeMcpMarker(agentId: string, mcp: { command: string; args: string[] 
 
 function writeMcpServerMarker(agentId: string, serverName: string, mcp: { command: string; args: string[] }, tool: string): void {
   const path = mcpServerMarkerPath(agentId, serverName);
-  try {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify({ tool, command: mcp.command, args: mcp.args }, null, 2) + "\n");
-  } catch {
-    // best-effort: without the marker, wrap simply tries the loadout again later.
-  }
+  durableAtomicWriteFile(path, mcpMarkerBytes(mcp, tool));
 }
 
 // compress streams stdin through the caveman-engine binary (resolved via
@@ -10831,7 +13179,7 @@ function cavemanBinForHook(powershell: boolean = process.platform === "win32"): 
 async function shrinkHook() {
   if (nativePolicyMode() === "record" || !new Set(["full-safe", "full-max"]).has(nativeProfile())) process.exit(0);
   let raw: Buffer;
-  try { raw = await readStdin(); } catch { process.exit(0); }
+  try { raw = await readHookStdin(); } catch { process.exit(0); }
   let evt: { tool_name?: string; tool_input?: { command?: string } };
   try { evt = JSON.parse(raw.toString("utf8") || "{}"); } catch { process.exit(0); }
   const tool = evt?.tool_name;
@@ -11438,7 +13786,7 @@ async function nativeHook(argv: string[]) {
   const agent = argv[0] === "claude" || argv[0] === "codex" || argv[0] === "hermes" || argv[0] === "gemini" || argv[0] === "opencode" || argv[0] === "pi" ? argv[0] : undefined;
   if (!agent) process.exit(0);
   let raw: Buffer;
-  try { raw = await readStdin(); } catch { process.exit(0); }
+  try { raw = await readHookStdin(); } catch { process.exit(0); }
   if (raw.length > 2 * 1024 * 1024) process.exit(0);
   let event: Record<string, unknown>;
   try {
@@ -11823,7 +14171,7 @@ function writeRecallHookMarker(agentId: string) {
 // agent, never injects a guess).
 async function memRecallHook() {
   let raw: Buffer;
-  try { raw = await readStdin(); } catch { process.exit(0); }
+  try { raw = await readHookStdin(); } catch { process.exit(0); }
   let evt: { prompt?: string };
   try { evt = JSON.parse(raw.toString("utf8") || "{}"); } catch { process.exit(0); }
   const prompt = typeof evt.prompt === "string" ? evt.prompt.trim() : "";
@@ -14234,6 +16582,48 @@ function readStdin(): Promise<Buffer> {
   });
 }
 
+// readHookStdin is for host hook callbacks (shrink-hook, mem recall, native-hook):
+// the host writes ONE JSON object and closes, but under the Windows pipe
+// implementation that close can lag arbitrarily (#729/#833, #949), and a hook that
+// waits for EOF burns the host's whole budget with its work already done. Resolve
+// on the first complete JSON object; EOF still resolves for hosts that close
+// promptly. Same 2 MiB cap as native-hook-fast.
+function readHookStdin(): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    if (process.stdin.isTTY) {
+      reject(new Error("no hook payload on stdin"));
+      return;
+    }
+    const chunks: Buffer[] = [];
+    let bytes = 0;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      // pause() stops the flow but the 'data' listener keeps the handle referenced;
+      // unref() lets the process exit as soon as stdout flushes.
+      process.stdin.pause();
+      try { process.stdin.unref(); } catch { /* not every stream type supports it */ }
+      resolve(Buffer.concat(chunks));
+    };
+    process.stdin.on("data", (chunk: Buffer) => {
+      if (done) return;
+      bytes += chunk.length;
+      if (bytes > 2 * 1024 * 1024) {
+        done = true;
+        reject(new Error("hook payload too large"));
+        return;
+      }
+      chunks.push(chunk);
+      // A partial payload throws here and we simply wait for more bytes.
+      try { JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { return; }
+      finish();
+    });
+    process.stdin.on("end", finish);
+    process.stdin.on("error", reject);
+  });
+}
+
 async function init(argv: string[]) {
   // Reuse login's own resolution (C8 review finding 6): init used to compute
   // its own baseURL with a bare localhost:8080 literal and no CAVE_API_URL
@@ -14444,6 +16834,17 @@ function readProxyRuntimeState(port: number, versionInfo: ReturnType<typeof prob
     };
   } catch {
     return { owner: "unknown" };
+  }
+}
+
+// A proxy caveman just started binds its port before its run state is
+// readable; polling briefly keeps that window from reading as a foreign owner.
+async function awaitProxyRuntimeState(port: number, versionInfo: ReturnType<typeof probeProxyVersion>, timeoutMs = 3000): Promise<ProxyRuntimeState> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const state = readProxyRuntimeState(port, versionInfo);
+    if (state.owner !== "unknown" || Date.now() >= deadline) return state;
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
 

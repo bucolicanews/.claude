@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -24,6 +25,7 @@ import (
 type captureUpstreamTransport struct {
 	body     []byte
 	headers  http.Header
+	url      string
 	status   int
 	response string
 }
@@ -32,6 +34,7 @@ func (t *captureUpstreamTransport) RoundTrip(r *http.Request) (*http.Response, e
 	body, _ := io.ReadAll(r.Body)
 	t.body = append([]byte(nil), body...)
 	t.headers = r.Header.Clone()
+	t.url = r.URL.String()
 	status := t.status
 	if status == 0 {
 		status = http.StatusOK
@@ -92,6 +95,63 @@ func TestStandaloneBoot_ZeroCloudDeps_InferredRows(t *testing.T) {
 	}
 	if stats.Basis != "inferred" {
 		t.Errorf("basis = %q, want inferred (standalone never claims verified)", stats.Basis)
+	}
+}
+
+func TestStandaloneActiveModeAutoCachesAcrossProvidersAndModelSwitches(t *testing.T) {
+	t.Setenv("CAVEMAN_MODE", "active")
+	t.Setenv("CAVEMAN_BREAKPOINT_PLAN", "")
+	cfg, err := config.Load(filepath.Join(t.TempDir(), "absent.yaml"))
+	if err != nil {
+		t.Fatalf("load defaults: %v", err)
+	}
+	upstream := &captureUpstreamTransport{response: `{}`}
+	spend, err := store.Open(filepath.Join(t.TempDir(), "caveman.db"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer spend.Close()
+	srv := New(cfg, spend, Options{HTTPClient: &http.Client{Transport: upstream}})
+
+	send := func(path, body string) []byte {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+		req.Header.Set("x-api-key", "provider-test-key")
+		rec := httptest.NewRecorder()
+		srv.Handler().ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status=%d body=%s", path, rec.Code, rec.Body.String())
+		}
+		return bytes.Clone(upstream.body)
+	}
+
+	anthropicBody := send("/anthropic/v1/messages", `{"model":"claude-sonnet-4-6","max_tokens":64,"tools":[{"name":"workspace","input_schema":{"type":"object"}}],"messages":[{"role":"user","content":"inspect"}]}`)
+	if !bytes.Contains(anthropicBody, []byte(`"cache_control"`)) {
+		t.Fatalf("Anthropic default missed cache breakpoint: %s", anthropicBody)
+	}
+	bedrockBody := send("/bedrock/model/global.anthropic.claude-sonnet-4-6/converse", `{"system":[{"text":"stable policy"}],"messages":[{"role":"user","content":[{"text":"inspect"}]}]}`)
+	if !bytes.Contains(bedrockBody, []byte(`"cachePoint"`)) {
+		t.Fatalf("Bedrock default missed cache point: %s", bedrockBody)
+	}
+
+	openAIKey := func(model string) string {
+		t.Helper()
+		body := send("/openai/v1/chat/completions", fmt.Sprintf(`{"model":%q,"messages":[{"role":"system","content":"stable policy"},{"role":"user","content":"inspect"}]}`, model))
+		var root map[string]any
+		if err := json.Unmarshal(body, &root); err != nil {
+			t.Fatalf("decode OpenAI body: %v", err)
+		}
+		key, _ := root["prompt_cache_key"].(string)
+		if key == "" {
+			t.Fatalf("OpenAI default missed prompt_cache_key: %s", body)
+		}
+		return key
+	}
+	first := openAIKey("gpt-5.6")
+	switched := openAIKey("gpt-5.6-sol")
+	back := openAIKey("gpt-5.6")
+	if first == switched || first != back {
+		t.Fatalf("model cache lanes not isolated/stable: first=%q switched=%q back=%q", first, switched, back)
 	}
 }
 
@@ -698,24 +758,57 @@ func TestBuildAdapters_RegistersNamedCompatBeforeLegacy(t *testing.T) {
 	}
 }
 
-func TestBuildAdapters_OpenCodeGoRouteUsesOpenCodeUpstream(t *testing.T) {
-	adapters := buildAdapters(config.Config{})
-	req := httptest.NewRequest(http.MethodPost, "/compat/opencode-go/v1/responses", nil)
-	for _, adapter := range adapters {
+// resolveCompatRoute resolves path through the one named compat adapter that
+// matches it. It fails the test if zero or more than one adapter matches.
+func resolveCompatRoute(t *testing.T, cfg config.Config, path string) string {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, nil)
+	var resolved []string
+	for _, adapter := range buildAdapters(cfg) {
 		if adapter.Name() != "openai_compatible" || !adapter.MatchRoute(req.Method, req.URL.Path) {
 			continue
 		}
 		upstream, err := adapter.ResolveUpstreamURL(req.Context(), req, providers.RouteContext{})
 		if err != nil {
-			t.Fatalf("resolve OpenCode Go route: %v", err)
+			t.Fatalf("resolve %s: %v", path, err)
 		}
-		want := "https://opencode.ai/zen/go/v1/responses"
-		if got := upstream.String(); got != want {
-			t.Fatalf("OpenCode Go upstream = %q, want %q", got, want)
-		}
-		return
+		resolved = append(resolved, upstream.String())
 	}
-	t.Fatal("built-in OpenCode Go adapter was not registered")
+	if len(resolved) != 1 {
+		t.Fatalf("%s matched %d compat adapters, want exactly one: %v", path, len(resolved), resolved)
+	}
+	return resolved[0]
+}
+
+func TestBuildAdapters_OpenCodeGoRouteUsesOpenCodeUpstream(t *testing.T) {
+	cases := map[string]string{
+		"/compat/opencode-go/v1/responses":        "https://opencode.ai/zen/go/v1/responses",
+		"/compat/opencode-go/v1/chat/completions": "https://opencode.ai/zen/go/v1/chat/completions",
+		"/compat/opencode-go/v1/messages":         "https://opencode.ai/zen/go/v1/messages",
+	}
+	for path, want := range cases {
+		if got := resolveCompatRoute(t, config.Config{}, path); got != want {
+			t.Errorf("OpenCode Go upstream for %s = %q, want %q", path, got, want)
+		}
+	}
+}
+
+// TestBuildAdapters_OpenCodeGoUserEntryReplacesBuiltin shows that a user
+// `compat.opencode-go` entry replaces the built-in upstream on the adapter path.
+// This entry is the escape hatch if OpenCode moves the endpoint.
+func TestBuildAdapters_OpenCodeGoUserEntryReplacesBuiltin(t *testing.T) {
+	cfg := config.Config{Compat: map[string]config.CompatConfig{
+		"opencode-go": {BaseURL: "https://opencode.example.test/zen", APIKeyEnv: "OPENCODE_ZEN_API_KEY"},
+	}}
+	cases := map[string]string{
+		"/compat/opencode-go/v1/responses": "https://opencode.example.test/zen/v1/responses",
+		"/compat/opencode-go/v1/messages":  "https://opencode.example.test/zen/v1/messages",
+	}
+	for path, want := range cases {
+		if got := resolveCompatRoute(t, cfg, path); got != want {
+			t.Errorf("user OpenCode Go upstream for %s = %q, want %q", path, got, want)
+		}
+	}
 }
 
 // TestCreds_OpenCodeGoBuiltinCompatCredential proves that the built-in OpenCode
@@ -1007,5 +1100,168 @@ func TestCreds_BedrockInboundThenEnvironment(t *testing.T) {
 	got = c.Resolve("bedrock", noAuth)
 	if got.Key != "" || got.AuthKind != "" {
 		t.Fatalf("partial IAM credential = %+v, want fail-closed empty credential", got)
+	}
+}
+
+// TestStandaloneOpenCodeGoAuthEndToEnd drives the Pi wire shapes through the
+// full standalone handler: the /w/pi agent prefix, the built-in opencode-go
+// mount, and the header mapping. The Anthropic client in Pi sends x-api-key to
+// /v1/messages, and OpenCode Go rejects a Bearer header there. The OpenAI client
+// in Pi sends a Bearer token to /v1/chat/completions. A real inbound Bearer token
+// keeps its scheme on every path. The legacy compat secret must never reach this
+// mount.
+func TestStandaloneOpenCodeGoAuthEndToEnd(t *testing.T) {
+	const anthropicBody = `{"model":"minimax-m3","max_tokens":8,"messages":[{"role":"user","content":"Reply with OK"}]}`
+	const anthropicResponse = `{"id":"msg","type":"message","role":"assistant","model":"minimax-m3","content":[{"type":"text","text":"OK"}],"usage":{"input_tokens":1,"output_tokens":1}}`
+	const openAIBody = `{"model":"glm-5.2","messages":[{"role":"user","content":"Reply with OK"}]}`
+	const openAIResponse = `{"id":"chat","model":"glm-5.2","choices":[{"message":{"role":"assistant","content":"OK"}}],"usage":{"prompt_tokens":1,"completion_tokens":1}}`
+	const responsesBody = `{"model":"glm-5.2","input":"Reply with OK"}`
+	const responsesResponse = `{"id":"resp","model":"glm-5.2","output":[{"type":"message","content":[{"type":"output_text","text":"OK"}]}],"usage":{"input_tokens":1,"output_tokens":1}}`
+
+	cases := []struct {
+		name        string
+		path        string
+		body        string
+		response    string
+		inbound     map[string]string
+		wantURL     string
+		wantAPIKey  string
+		wantAuth    string
+		wantHeaders map[string]string
+	}{
+		{
+			name:       "messages with inbound x-api-key",
+			path:       "/w/pi/compat/opencode-go/v1/messages",
+			body:       anthropicBody,
+			response:   anthropicResponse,
+			inbound:    map[string]string{"x-api-key": "sk-inbound", "anthropic-version": "2023-06-01"},
+			wantURL:    "https://opencode.ai/zen/go/v1/messages",
+			wantAPIKey: "sk-inbound",
+		},
+		{
+			name:       "messages without inbound key uses OPENCODE_API_KEY",
+			path:       "/w/pi/compat/opencode-go/v1/messages",
+			body:       anthropicBody,
+			response:   anthropicResponse,
+			wantURL:    "https://opencode.ai/zen/go/v1/messages",
+			wantAPIKey: "sk-env-opencode",
+		},
+		{
+			name:     "messages with inbound bearer keeps bearer",
+			path:     "/w/pi/compat/opencode-go/v1/messages",
+			body:     anthropicBody,
+			response: anthropicResponse,
+			inbound:  map[string]string{"authorization": "Bearer sk-inbound"},
+			wantURL:  "https://opencode.ai/zen/go/v1/messages",
+			wantAuth: "Bearer sk-inbound",
+		},
+		{
+			name:     "chat completions with inbound bearer",
+			path:     "/w/pi/compat/opencode-go/v1/chat/completions",
+			body:     openAIBody,
+			response: openAIResponse,
+			inbound:  map[string]string{"authorization": "Bearer sk-inbound"},
+			wantURL:  "https://opencode.ai/zen/go/v1/chat/completions",
+			wantAuth: "Bearer sk-inbound",
+		},
+		{
+			name:     "messages forwards the OpenCode session headers",
+			path:     "/w/pi/compat/opencode-go/v1/messages",
+			body:     anthropicBody,
+			response: anthropicResponse,
+			inbound: map[string]string{
+				"x-api-key":          "sk-inbound",
+				"x-opencode-session": "ses_messages",
+				"x-opencode-client":  "pi",
+			},
+			wantURL:    "https://opencode.ai/zen/go/v1/messages",
+			wantAPIKey: "sk-inbound",
+			wantHeaders: map[string]string{
+				"x-opencode-session": "ses_messages",
+				"x-opencode-client":  "pi",
+			},
+		},
+		{
+			name:     "chat completions forwards the OpenCode session headers",
+			path:     "/w/pi/compat/opencode-go/v1/chat/completions",
+			body:     openAIBody,
+			response: openAIResponse,
+			inbound: map[string]string{
+				"authorization":      "Bearer sk-inbound",
+				"x-opencode-session": "ses_chat",
+				"x-opencode-client":  "pi",
+			},
+			wantURL:  "https://opencode.ai/zen/go/v1/chat/completions",
+			wantAuth: "Bearer sk-inbound",
+			wantHeaders: map[string]string{
+				"x-opencode-session": "ses_chat",
+				"x-opencode-client":  "pi",
+			},
+		},
+		{
+			name:     "responses forwards the OpenCode session headers",
+			path:     "/w/pi/compat/opencode-go/v1/responses",
+			body:     responsesBody,
+			response: responsesResponse,
+			inbound: map[string]string{
+				"authorization":      "Bearer sk-inbound",
+				"x-opencode-session": "ses_responses",
+				"x-opencode-client":  "pi",
+			},
+			wantURL:  "https://opencode.ai/zen/go/v1/responses",
+			wantAuth: "Bearer sk-inbound",
+			wantHeaders: map[string]string{
+				"x-opencode-session": "ses_responses",
+				"x-opencode-client":  "pi",
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("OPENCODE_API_KEY", "sk-env-opencode")
+			t.Setenv("OPENAI_COMPAT_API_KEY", "sk-legacy")
+			upstream := &captureUpstreamTransport{response: tc.response}
+			spend, err := store.Open(filepath.Join(t.TempDir(), "caveman.db"), nil)
+			if err != nil {
+				t.Fatalf("open store: %v", err)
+			}
+			defer spend.Close()
+			srv := New(config.Config{Mode: "record"}, spend, Options{HTTPClient: &http.Client{Transport: upstream}})
+
+			req := httptest.NewRequest(http.MethodPost, tc.path, strings.NewReader(tc.body))
+			req.Header.Set("content-type", "application/json")
+			for name, value := range tc.inbound {
+				req.Header.Set(name, value)
+			}
+			rec := httptest.NewRecorder()
+			srv.Handler().ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200 (body %s)", rec.Code, rec.Body.String())
+			}
+			if upstream.url != tc.wantURL {
+				t.Errorf("upstream url = %q, want %q", upstream.url, tc.wantURL)
+			}
+			if got := upstream.headers.Get("x-api-key"); got != tc.wantAPIKey {
+				t.Errorf("upstream x-api-key = %q, want %q", got, tc.wantAPIKey)
+			}
+			if got := upstream.headers.Get("authorization"); got != tc.wantAuth {
+				t.Errorf("upstream authorization = %q, want %q", got, tc.wantAuth)
+			}
+			if strings.Contains(upstream.headers.Get("authorization")+upstream.headers.Get("x-api-key"), "sk-legacy") {
+				t.Fatal("OPENAI_COMPAT_API_KEY reached the opencode-go mount")
+			}
+			for name, want := range tc.wantHeaders {
+				if got := upstream.headers.Get(name); got != want {
+					t.Errorf("upstream %s = %q, want %q", name, got, want)
+				}
+			}
+			// A case that sends no OpenCode header must not gain one.
+			if tc.wantHeaders["x-opencode-session"] == "" && upstream.headers.Get("x-opencode-session") != "" {
+				t.Errorf("upstream x-opencode-session = %q, want no header", upstream.headers.Get("x-opencode-session"))
+			}
+			if !bytes.Equal(upstream.body, []byte(tc.body)) {
+				t.Fatalf("record mode changed the body:\n got %s\nwant %s", upstream.body, tc.body)
+			}
+		})
 	}
 }

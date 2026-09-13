@@ -11,13 +11,16 @@ const {
   MAX_CONTEXT_BYTES,
   ROUTES_BY_API,
   additionalContextOf,
+  hostOf,
   isLoopbackUrl,
   outputReplacementOf,
   routeForApi,
+  compatUpstreamFor,
   sanitizeHookResponse,
   taskContinuation,
   taskTerms,
   taskType,
+  upstreamHostFor,
   promptDigest,
   resolveHookInvocations,
 } = await import(dist);
@@ -41,6 +44,46 @@ test("route table maps supported APIs and refuses everything else", () => {
     assert.equal(routeForApi(gw, api), undefined, `api ${api} must not route`);
   }
   assert.equal(Object.keys(ROUTES_BY_API).length, 4);
+});
+
+test("route gate compares the original provider host with the proxy upstream host", () => {
+  const gw = "http://127.0.0.1:8787";
+  assert.equal(routeForApi(gw, "openai-completions", "openai", "https://api.openai.com/v1"), `${gw}/w/pi/openai/v1`);
+  assert.equal(routeForApi(gw, "openai-completions", "openai", "http://127.0.0.1:4000/v1"), undefined, "a local relay named openai must stay direct");
+  assert.equal(routeForApi(gw, "openai-completions", "openai", "https://my-resource.openai.azure.com/openai"), undefined, "Azure named openai must stay direct");
+  assert.equal(routeForApi(gw, "anthropic-messages", "anthropic", "https://api.anthropic.com"), `${gw}/w/pi`);
+  assert.equal(routeForApi(gw, "anthropic-messages", "anthropic", "http://127.0.0.1:1"), undefined);
+  assert.equal(routeForApi(gw, "google-generative-ai", "google", "https://generativelanguage.googleapis.com"), `${gw}/w/pi/v1beta`);
+  assert.equal(routeForApi(gw, "anthropic-messages", "opencode-go", "https://opencode.ai/zen/go"), `${gw}/w/pi/compat/opencode-go`);
+  assert.equal(routeForApi(gw, "openai-completions", "opencode-go", "https://opencode.ai/zen/go/v1"), `${gw}/w/pi/compat/opencode-go/v1`);
+  assert.equal(routeForApi(gw, "openai-completions", "opencode-go", "https://other.example/v1"), undefined, "a moved opencode-go endpoint must stay direct");
+  assert.equal(routeForApi(gw, "openai-completions", "openai", "not a url"), undefined, "an unreadable base URL must stay direct");
+  assert.equal(upstreamHostFor("openai"), "api.openai.com");
+  assert.equal(upstreamHostFor("openrouter"), undefined);
+  assert.equal(hostOf("https://API.OpenAI.com/v1"), "api.openai.com");
+  assert.equal(hostOf("not a url"), undefined);
+});
+
+test("a published compat mount routes a custom provider and gates it on the mount host", () => {
+  const gw = "http://127.0.0.1:8787";
+  const mounts = { "my-relay": "http://127.0.0.1:4000", "opencode-go": "http://127.0.0.1:9000/zen" };
+  assert.equal(routeForApi(gw, "openai-completions", "my-relay", "http://127.0.0.1:4000/v1", mounts), `${gw}/w/pi/compat/my-relay/v1`);
+  assert.equal(routeForApi(gw, "openai-responses", "my-relay", "http://127.0.0.1:4000/v1", mounts), `${gw}/w/pi/compat/my-relay/v1`);
+  assert.equal(routeForApi(gw, "anthropic-messages", "my-relay", "http://127.0.0.1:4000", mounts), `${gw}/w/pi/compat/my-relay`);
+  assert.equal(routeForApi(gw, "google-generative-ai", "my-relay", "http://127.0.0.1:4000", mounts), undefined, "google has no compat route");
+  assert.equal(routeForApi(gw, "openai-completions", "my-relay", "https://api.openai.com/v1", mounts), undefined, "host mismatch must stay direct");
+  assert.equal(routeForApi(gw, "openai-completions", "my-relay", "http://127.0.0.1:4001/v1", mounts), undefined, "another loopback port is another upstream");
+  assert.equal(routeForApi(gw, "openai-completions", "unlisted-relay", "http://127.0.0.1:4000/v1", mounts), undefined, "a provider with no mount stays direct");
+  // A caveman.yaml entry that repoints a built-in name wins over the static table.
+  assert.equal(routeForApi(gw, "openai-completions", "opencode-go", "http://127.0.0.1:9000/zen/v1", mounts), `${gw}/w/pi/compat/opencode-go/v1`);
+  assert.equal(routeForApi(gw, "openai-completions", "opencode-go", "https://opencode.ai/zen/go/v1", mounts), undefined, "the static host no longer applies once the mount moved");
+  // A name that could not be a mount, or a non-string value, falls back to the static table.
+  assert.equal(routeForApi(gw, "openai-completions", "openai", "https://api.openai.com/v1", { "": "http://x", "UPPER": "http://x" }), `${gw}/w/pi/openai/v1`);
+  assert.equal(routeForApi(gw, "openai-completions", "constructor", "http://127.0.0.1:4000/v1", {}), undefined, "inherited properties are not mounts");
+  assert.equal(compatUpstreamFor("my-relay", mounts), "http://127.0.0.1:4000");
+  assert.equal(compatUpstreamFor("My-Relay", mounts), undefined);
+  assert.equal(compatUpstreamFor("my-relay", undefined), undefined);
+  assert.equal(hostOf("http://127.0.0.1:4000/v1"), "127.0.0.1:4000");
 });
 
 test("loopback detection", () => {
