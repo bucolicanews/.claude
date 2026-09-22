@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
-  modified: 2026-09-22T13:13:29.023Z
+  modified: 2026-09-22T14:12:24.295Z
 ---
 
 Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
@@ -844,3 +844,18 @@ Commit: `5d5223a` (`deliveryhub_white_label`) — pushado. `npm run build` (vite
 
 **Why:** o card do *restaurante* (RestCardGrid/RestCardList) continua mostrando lojas fechadas com badge "Fechado" — só os cards de *produto/combo/serviço* somem. Decisão explícita do usuário: "só na própria loja (fechada) o produto aparece opaco" — ou seja, esse comportamento de opacidade é exclusivo da página de uma loja, não do marketplace.
 **How to apply:** se pedirem o mesmo tipo de filtro em outro lugar que também lista produtos de múltiplos restaurantes (ex.: busca, categoria dedicada), reusar o padrão `restaurantesDisponiveisIds` — cruzar contra a lista de restaurantes já geo-filtrada, não inventar um novo fetch com lat/lng pros produtos (quebraria o cache Redis global desses endpoints).
+
+## Feature: link público de pagamento de fatura (Pix) gerado pelo admin (2026-09-22) — em produção
+
+`/admin/planos` (aba Faturas) ganhou botão "Gerar link Pix" por fatura pendente/vencida — gera (ou reaproveita) um token opaco salvo em `plano_faturas.link_pagamento_token` (migration `20260922000001_plano_faturas_link_pagamento.sql`, **aplicada em produção** com autorização do usuário) e mostra `{origin}/fatura/pagar/{token}` num modal pra copiar (`ModalLinkFatura`, mesmo estilo do `ModalNovaInstalacao`).
+
+**Nova rota pública** `/fatura/pagar/:token` (`src/pages/fatura-pagamento-publica/`, sem login, mesmo padrão de `/mesa/acompanhar/:token` e `/garcom/:loginKey`) — mostra valor/vencimento/nome da fatura e, se o modo de recebimento da plataforma for `manual`, monta o Pix copia-e-cola + QR **no próprio frontend** usando `utils/pixQrCode.js` (mesmo utilitário já usado no `PagamentoFaturaModal` do dono de restaurante) com a chave Pix cadastrada em `platform_settings`. Faz polling leve (8s) no mesmo endpoint público pra virar "Pago!" sozinha quando o admin confirmar manualmente — confirmação de pagamento continua 100% manual (sem webhook), igual já era.
+
+**Backend:** `PlanosService.gerarLinkPagamento()` (admin, `POST /planos/faturas/:id/gerar-link`, guardado) + `buscarFaturaPublicaPorToken()` resolvido por `PlanosPublicoController` novo (`GET /fatura-pagamento/:token`, **sem guard**, de propósito) — retorna só os campos necessários (nome, valor, vencimento, status, e a chave Pix apenas quando `modo === 'manual'`), nunca o registro inteiro da fatura. Token é `crypto.randomUUID()`, não reusa o id sequencial (evita IDOR por enumeração).
+
+**Botão "PagBank Checkout" existe na UI mas fica desabilitado** (tooltip "disponível quando o PagBank for ativado") — decisão consciente, confirmada com o usuário: o `PagBankClient` hoje só integra a **Orders API** (exige nome/e-mail/CPF do cliente na hora de criar a cobrança), não o **Checkout hospedado** da PagBank (link genérico, cliente escolhe Pix/cartão sozinho na página deles) que é o que o usuário descreveu querer pro futuro. Implementar isso de verdade é integração nova, ainda não feita.
+
+Commits: `29c14c8` (`serer_delivery` e submódulo, mesmo hash — sincronizado via `git reset --hard origin/main`, gotcha de hash duplicado já documentado), `ac22f0a` (`deliveryhub_white_label`, inclui migration + bump do ponteiro). `npm run build` (frontend) e `npm run build` (backend, os dois checkouts) rodaram limpos antes do commit. **Todos os 3 repos pushados + migration aplicada em produção** (autorização explícita do usuário pra cada passo).
+
+**Why:** admin precisava de um jeito de mandar a cobrança da mensalidade SaaS pro dono de restaurante pagar sem ele precisar logar — hoje o dono só via a fatura logado em `/restaurante/plano`.
+**How to apply:** se o PagBank for ativado e o usuário pedir pra "ligar" o botão desabilitado, a integração real precisa da API de Checkout/Payment Links da PagBank (produto diferente da Orders API já implementada) — pesquisar a documentação deles antes de implementar, não reaproveitar `criarOrdemPix`/`criarOrdemCartao` como estão (exigem dados do cliente upfront, incompatível com "link genérico pra qualquer um pagar"). Se pedirem o mesmo padrão de "link público pra pagar X sem login" em outro fluxo, reusar: token opaco em coluna própria + controller sem guard que só expõe os campos mínimos — não expor o registro inteiro, não reusar o id sequencial como identificador público.
