@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
-  modified: 2026-09-13T19:22:06.852Z
+  modified: 2026-09-22T12:48:50.367Z
 ---
 
 Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
@@ -466,7 +466,7 @@ Quarto módulo de plano (junto de delivery/salão/gdoor), mesmo padrão `modulo_
 
 Backend: módulo Nest novo `src/servicos/` (não embutido em `RestauranteController`, diferente de produtos — segue o padrão mais recente de módulo próprio tipo `salao.module.ts`), tabelas `services` e `solicitacoes_orcamento_servico` (RLS on, sem policy pública — mesmo padrão de `motoboy_repasse_solicitacoes`, tudo passa pelo backend com service role). 3 migrations: `20260903000001_modulo_servicos.sql`, `20260903000002_services.sql`, `20260903000003_solicitacoes_orcamento_servico.sql`.
 
-**Testado localmente via curl (não só tsc/build)** depois de plano/DI/prod-boot falharem silenciosamente em episódios anteriores (ver seção "Regressão do próprio fix" acima): `node dist/src/main.js` limpo (sem instância duplicada rodando — achei 4 processos `node`/`nest --watch` órfãos de sessões antigas ocupando a porta 3002, tive que `taskkill` todos antes de conseguir um boot limpo pra ler o log direito) mostrou `ServicosModule dependencies initialized` + todas as rotas mapeadas + `Nest application successfully started` sem `UnknownDependenciesException`. Fluxo completo validado via REST direto (PostgREST pra seed de dados + curl pro Nest): módulo habilitado no restaurante seed → serviço criado → `GET /r/restaurante-teste` retorna `servicos: [...]` → `POST solicitar-orcamento` cria solicitação (201) → painel autenticado (login real via `/auth/v1/token`, seed `resto@delivery.com`/`[senha redigida]`) lista serviço e solicitação, conta pendentes, marca como contatado (count decrementa), valida `preco_min > preco_max` (400) e posse do recurso em edição de id inexistente (404).
+**Testado localmente via curl (não só tsc/build)** depois de plano/DI/prod-boot falharem silenciosamente em episódios anteriores (ver seção "Regressão do próprio fix" acima): `node dist/src/main.js` limpo (sem instância duplicada rodando — achei 4 processos `node`/`nest --watch` órfãos de sessões antigas ocupando a porta 3002, tive que `taskkill` todos antes de conseguir um boot limpo pra ler o log direito) mostrou `ServicosModule dependencies initialized` + todas as rotas mapeadas + `Nest application successfully started` sem `UnknownDependenciesException`. Fluxo completo validado via REST direto (PostgREST pra seed de dados + curl pro Nest): módulo habilitado no restaurante seed → serviço criado → `GET /r/restaurante-teste` retorna `servicos: [...]` → `POST solicitar-orcamento` cria solicitação (201) → painel autenticado (login real via `/auth/v1/token`, seed `resto@delivery.com`/`1234567`) lista serviço e solicitação, conta pendentes, marca como contatado (count decrementa), valida `preco_min > preco_max` (400) e posse do recurso em edição de id inexistente (404).
 
 **Estado atual:** código completo nos dois checkouts de backend (`serer_delivery` + submódulo) e no frontend, `tsc --noEmit` limpo nos dois backends, `vite build` limpo no frontend — mas **nada commitado/pushado ainda**, e a migration só rodou local (`npx supabase migration up`), não em produção (`--linked`). Restaurante seed "Restaurante Teste" (id 1, slug `restaurante-teste`) ficou com `modulo_servicos=true` e 1 serviço + solicitações de teste no banco LOCAL — dado de demonstração proposital pra o usuário clicar-testar (ver [[feedback_browser_testing]]), não precisa limpar antes de revisar.
 **How to apply:** próximo passo é o usuário revisar clicando no painel (`/restaurante/servicos`) e na vitrine (`/r/restaurante-teste`), depois pedir commit+push explicitamente (regra padrão: nunca commitar sem pedido) e só então aplicar a migration em produção com confirmação (regra de sempre confirmar `db push --linked`).
@@ -616,6 +616,8 @@ Usuário tem chamado aberto com a PagBank (nº 1432665524, desde 20/08) pedindo 
 
 **Status em 2026-09-08 fim do dia:** usuário respondeu o chamado 1432665524 anexando o `EXEMPLODELOG_PediuVai.txt` (os dois logs + a pergunta direta sobre homologação vs. escopo faltando) e está aguardando resposta da PagBank. Nada a fazer da nossa parte até a PagBank responder — quando responder, retomar por aqui: se liberarem a conta, testar split de novo (webhook já corrigido, commit `d155069`); se pedirem mais alguma coisa, ajudar a produzir.
 
+**Atualização 2026-09-14:** a PagBank respondeu com um texto que parece padrão/automático — pediu de novo "o log com request/response reais", como se o chamado não já tivesse isso. Gerei uma segunda rodada: `logs_homologacao_pagbank.txt` (os mesmos dois logs, reorganizados) + `email_pagbank.txt` (texto explicando que o bloqueio é genérico em `/orders` pros dois métodos, contrastando com `/public-keys` funcionando, e repetindo a pergunta objetiva homologação-pendente vs. escopo-faltando). Usuário confirmou que enviou. Segue aguardando resposta — nada a fazer até a PagBank responder de novo. Esses arquivos (e qualquer homologação futura) agora vão em `C:\Users\jotac\OneDrive\Documents\DEV\HOMOLOGACAO\` (ver [[feedback_homologacao_pasta]]), não só no scratchpad da sessão.
+
 **Why:** usuário queria visibilidade financeira real por venda Stripe (o dashboard da Stripe já mostra isso por transação, mas não integrado ao sistema) e queria fechar o ciclo pra não precisar conferir manualmente quando o repasse acontece.
 **How to apply:** se pedirem o mesmo pro PagBank (que não usa Connect, dinheiro fica na conta da plataforma até repasse manual/diferente), a lógica de "onde o dinheiro pousa" é bem diferente — não replicar esse padrão de `payout.paid`/conta conectada sem reavaliar. Se `stripe_connect_webhook_secret` não estiver configurado e o usuário perguntar por que repasse nunca marca sozinho, é isso — confirmar que o endpoint separado existe no dashboard antes de investigar código.
 
@@ -706,3 +708,126 @@ Pedido inicial parecia simples ("a impressora corta em cima da última linha, av
 **How to apply:** qualquer bug de "impressão física não bate com o que a tela mostra" (formatação, corte, texto errado) — primeiro perguntar/checar se a impressora do restaurante tem `nome_sistema` preenchido (agente pareado) antes de mexer em `printComanda.js`. Se tiver, o fix é nos formatadores ESC/POS de `salao.service.ts` (ou nos outros 4 arquivos com `impressao_jobs.insert`) e/ou em `print-agent/printers.py` — nunca assumir que o fallback do navegador é o caminho ativo sem confirmar.
 
 Commits: backend `229d417` (`server_delivery`, migration+dispensar item já tinham ido em `72f5ecd` antes) + frontend `21e42e4` (`deliveryhub_white_label`, inclui migration + ponteiro do submódulo). Migration aplicada local (`supabase migration up --local`) e produção (`supabase db push --linked`). Usuário confirmou em produção: "tudo funcionando perfeitamente".
+
+## Bug real de produção corrigido (2026-09-16): bloqueio manual do admin não bloqueava nada + vencimento editável no card
+
+Admin bloqueava uma empresa em `/admin/empresas` (`restaurants.bloqueado = true`) e o dono continuava com acesso total ao painel em produção. Causa: `RestauranteGuard.jsx` (frontend) só redireciona pra `/restaurante/plano` com base em `planoStatus?.bloqueado`, e esse `planoStatus` vem de `PlanosService.sincronizarPeriodo` (`/restaurante/plano/status`) — que só calculava `bloqueado` a partir de atraso de fatura (dias em atraso > tolerância configurada), **nunca olhava `restaurants.bloqueado`**. Nenhum backend guard genérico (`RestaurantOwnerGuard`) checa esse campo também — é um bloqueio só de nível de rota no frontend, mesmo padrão (não reforçado) já usado pro bloqueio por atraso de pagamento.
+
+**Corrigido:** `sincronizarPeriodo` agora busca `restaurants.bloqueado` e faz OR com o cálculo de atraso no campo `bloqueado` já consumido pelo guard (nenhuma mudança necessária no `RestauranteGuard.jsx`), mais um campo novo `admin_bloqueado` separado só pra mensagem certa. `restaurante-plano/index.jsx` ganhou um banner vermelho dedicado "Empresa bloqueada pelo administrador" com prioridade sobre o aviso de fatura vencida.
+
+**Por tabela, mesmo pedido do usuário:** card de empresa em `/admin/empresas` (`EmpresaCard`) ganhou `VencimentoBadge` — mostra o vencimento da fatura pendente/vencida mais antiga da empresa (mesmo critério que decide o bloqueio automático) e, se há tolerância configurada em `/admin/plataforma`, a data real de bloqueio (vencimento + tolerância). Botão de lápis abre modal simples que edita essa data via `PATCH /planos/faturas/:id` (endpoint que já existia, criado no dia anterior pra tela de Faturas de `/admin/planos`).
+
+Commits: backend `0f8edde` (`serer_delivery` e submódulo, mesmo hash — sincronizado no checkout standalone via `git pull` depois do push, seguindo a regra padrão da seção "Two independent backend checkouts" acima) + frontend `30232b2` (`deliveryhub_white_label`, inclui ponteiro do submódulo).
+
+**Why:** bloqueio manual do admin é uma ação punitiva deliberada (diferente de atraso de pagamento, que o dono resolve sozinho pagando) — sintoma reportado foi literalmente "bloqueei e continua com acesso a tudo", ou seja, o botão "Bloquear" no admin não tinha efeito nenhum em produção antes desse fix.
+**How to apply:** se aparecer de novo "bloqueei/desbloqueei algo no admin e não fez efeito", suspeitar primeiro de um guard de frontend (`*Guard.jsx`) checando só um campo derivado (ex: status de pagamento) sem incluir o campo booleano bruto que o admin de fato edita — é fácil os dois ficarem desacoplados quando o guard foi escrito antes da feature de bloqueio manual existir.
+
+## Bug real de produção corrigido (2026-09-16): alerta falso de erro em ações sem corpo de resposta (ex: excluir fatura)
+
+Em `/admin/planos`, excluir uma fatura mostrava `alert("Resposta inválida do servidor. Verifique se o backend está rodando na porta 3002.")` mesmo com o backend rodando normal — e a exclusão de fato persistia ao atualizar a página, confirmando que o alerta era falso positivo, não falha real. Causa: o helper `apiFetch` (copiado, quase idêntico, em 7 arquivos de `src/services/`) tratava **qualquer resposta `res.ok` sem `Content-Type: application/json`** como erro fatal — mas vários endpoints (`DELETE`, alguns `PATCH`, ex. `removerFatura` no backend) respondem sem corpo nenhum quando dão certo, o que já era tratado corretamente só em `perfilService.js` (`return isJson ? res.json() : {}`), não nos outros 6.
+
+**Corrigido:** os 6 arquivos (`planosService.js`, `adminService.js`, `restauranteService.js`, `instalacoesService.js`, `marketplaceBoostAdminService.js`, `twoFactorService.js`) agora retornam `null` em vez de lançar erro quando a resposta é `ok` mas sem corpo JSON — mesmo tratamento que `perfilService.js` já usava. Erro real (`!res.ok`) continua tratado normalmente, sem mudança.
+
+Commit: `89b5247` (`deliveryhub_white_label`, só frontend — nenhuma mudança de backend necessária).
+
+**Why:** é um bug sistêmico copiado em 7 lugares (cada `service.js` tem seu próprio `apiFetch` local em vez de um helper compartilhado) — corrigir só o arquivo do sintoma reportado (`planosService.js`) deixaria a mesma falha latente nos outros 5, pronta pra reaparecer como "bug novo" no próximo endpoint que responder sem corpo.
+**How to apply:** se aparecer de novo "ação X funcionou mas mostrou erro" (ou o oposto — usuário jura que salvou mas a tela mostra erro), suspeitar de resposta `2xx` sem corpo JSON sendo tratada como falha — checar o `apiFetch` do `service.js` envolvido. Se pedirem uma 8ª função de serviço nova com esse mesmo padrão de `apiFetch` duplicado, considerar sugerir extrair um helper compartilhado (`src/lib/apiFetch.js`) em vez de copiar de novo — ainda não foi feito, os 7 arquivos continuam cada um com sua cópia.
+
+## Resolução (2026-09-18): homologação PagBank liberada — Orders API funcionando
+
+Continuação da investigação de 2026-09-08/09-14 (chamado 1432665524). A PagBank respondeu autorizando testar em Sandbox. Usuário passou o token novo da conta sandbox; adicionado em `server_delivery/.env` (`PAGBANK_TOKEN` + `PAGBANK_SANDBOX=true` — não vai no `.env` da raiz, que é só frontend/`VITE_*` e o backend nem lê).
+
+**Testei direto contra `sandbox.api.pagseguro.com` via script temporário usando o `PagBankClient` real do projeto:**
+- `GET /public-keys/card` → 200 OK.
+- `POST /orders` (PIX) → **200 OK**, ordem criada com QR code PIX válido, payload já mostra `J L SILVA TAVARES LTDA` como recebedor — confirma a conta certa.
+
+O bloqueio `403 ACCESS_DENIED "merchant account required"` documentado em 09-08/09-14 **não acontece mais** — a homologação foi liberada pela PagBank pra essa conta.
+
+**Pendência que ainda precisa ser validada** (não testada nessa rodada): o split automático pra conta do vendedor (`pagbank_seller_account_id`) continua sem confirmação — a hipótese de "conta precisa ser vinculada/autorizada explicitamente" (linha 601 acima) ainda não foi testada com uma ordem real de split agora que a Orders API está liberada.
+
+**How to apply:** se retomar o assunto PagBank, não repetir o teste de homologação (já resolvido) — focar direto em testar split real (PIX/cartão com `splits` preenchido) num pedido de loja de verdade (ex. Sereia do Mar) pra confirmar se o dinheiro cai certo na conta do vendedor ou tudo ainda vai pro admin.
+
+### Atualização (2026-09-15/21): split especificamente ainda bloqueado — aguardando PagBank
+
+A ressalva acima se confirmou: teste de split real (PIX e Cartão, ambos com `splits` preenchido — 95% loja / 5% plataforma, valores batendo com o total, confirmado no payload do log) contra a conta Marketplace/Facilitador `jmokatavares@gmail.com` (token `...e5d4`) retornou **403 ACCESS_DENIED "merchant account required" nos dois casos** (log IDs `bf4fc0c5-5f3d-4acd-a20d-fdff81c3b1aa` PIX, `64f414a2-2ee0-4ded-b607-e24ef50d6f6d` Cartão), mesmo com `GET /public-keys/card` retornando 200 OK com o mesmo token. Ou seja: a liberação de 09-18 destravou Orders API **sem split**; Orders API **com split** exige uma habilitação de "merchant account" separada, ainda pendente, no mesmo chamado 1432665524.
+
+Usuário reenviou os logs de sandbox pra PagBank (arquivo `HOMOLOGACAO\email_pagbank_20260915.txt`) confirmando que o split já está implementado e correto no payload — pedindo diretamente se a conta `jmokatavares@gmail.com` está com habilitação de merchant pendente pra Orders API com split. **Status em 2026-09-21: e-mail enviado, aguardando resposta/liberação da PagBank** — nada a fazer da nossa parte até responderem.
+
+**How to apply:** não retestar split até a PagBank confirmar a habilitação — o payload e o token já estão certos, o bloqueio é do lado deles. Quando a PagBank responder liberando, retomar testando uma ordem de split real (mesmo roteiro do script temporário via `PagBankClient`) antes de considerar o split pronto pra produção.
+
+## Bug crítico de produção corrigido (2026-09-18): checkout tratava falha de pagamento como sucesso — 5 pedidos reais cancelados
+
+`shopping-cart-checkout/index.jsx`'s `handleFinalizar` tinha um bug pré-existente (não introduzido nesta sessão): falha ao criar PIX e qualquer `paymentMethod` não reconhecido caíam no mesmo `navigate('/order-tracking-status', ...)` usado pro caminho de sucesso — cliente via "venda concluída" sem nenhum QR/cobrança real gerada. Causou **5 pedidos reais em produção sem pagamento coletado** (loja "Sereia do Mar", ids 752–756).
+
+**Corrigido:** branch de erro agora faz `throw new Error(...)` em vez de navegar; fallback final do `navigate` restrito a `paymentMethod === 'cash'` apenas.
+
+**Ação tomada nos 5 pedidos:** usuário confirmou explicitamente ("sim, cancela os 5") — cancelados direto em produção via `npx supabase db query --linked`, espelhando a lógica real de cancelamento do app (`status='canceled'` + RPC `ajustar_estoque` pra repor estoque), não um bypass.
+
+**Why:** bug estava silencioso — sem esse relato do usuário (testes reais na loja) não haveria sinal nenhum de que pagamentos não estavam sendo coletados.
+**How to apply:** qualquer fluxo de pagamento novo (novo gateway, novo método) — nunca deixar um branch de erro/método-desconhecido cair no mesmo `navigate` de sucesso. Se usuário relatar "pedido concluiu mas não recebi pagamento", suspeitar primeiro desse padrão de silent-fallthrough antes de investigar o gateway em si.
+
+## Feature: modo Manual/PagBank pra cobrança de fatura de plano/pacote (admin) + anexar comprovante (2026-09-18) — commitado e pushed, migration só aplicada localmente
+
+Mesma lógica já existente pro checkout do cliente final (`restaurants.pagamento_manual`), agora também pro **admin da plataforma** cobrar fatura de plano/pacote dos donos de restaurante: `platform_settings.config.faturamento_modo` (`'manual'` | `'pagbank'`, default `'pagbank'` — sem mudança de comportamento pra quem já usa). Stripe como 3º modo foi explicitamente adiado pelo usuário ("primeiro Manual ↔ PagBank").
+
+- **Admin configura em `/admin/configuracoes`:** novo card "Recebimento de fatura (plano/pacote)", radio Manual/PagBank + campo de chave PIX (obrigatório se Manual).
+- **Backend (`server_delivery/src/planos/planos.service.ts`):** `buscarConfigPagamentoFatura()` expõe `{modo, chave_pix, nome_recebedor}`; `pagarFatura()` bloqueia cartão e gera erro se `modo==='manual'` e método ≠ pix.
+- **Frontend (`PagamentoFaturaModal.jsx`, compartilhado entre `/restaurante/plano`, cadastro inicial, e `restaurante-impulsionar`):** em modo manual, monta o Pix **100% client-side** (`gerarPixPayload`/`qrCodeUrl` de `utils/pixQrCode.js`, mesma chave usada no checkout do cliente) em vez de chamar o PagBank; esconde as abas Crédito/Débito. Visual da tela de resultado restilizado pra bater exatamente com o `PixScreen` do checkout ("tem que ser igual", pedido explícito do usuário).
+- **Anexar comprovante (mesmo pedido "tem que ser igual"):** mirrorado do `PixScreen` do checkout — `plano_faturas` ganhou `comprovante_pagamento_url`/`comprovante_pulado` (migration `20260918000002_plano_faturas_comprovante.sql`, mesmo bucket Storage `comprovantes-pix` do checkout, prefixo `fatura-` em vez de `pedido-`). Novas rotas `POST /restaurante/plano/faturas/:id/comprovante` e `PATCH .../pular-comprovante`. `comprimirImagem()` (canvas, 1200px, JPEG 0.75) extraído do checkout pra `src/utils/imageCompress.js`, reusado nos dois lugares.
+
+Commits: backend `e015550` (`server_delivery`, standalone `serer_delivery` ainda não sincronizado nesta sessão — lembrar `git pull` lá na próxima) + frontend `8780766` (`deliveryhub_white_label`, inclui migration + ponteiro do submódulo). Ambos pushed pra `main` (2026-09-18).
+
+## Feature: notificações via Telegram (cliente + motoboy) — implementada e commitada 2026-09-21
+
+Depois de uma conversa longa sobre WhatsApp/Telegram pro "PediuVai" (nome real do produto, confirmado no `.env` via `NOMINATIM_USER_AGENT`), o escopo final ficou bem mais enxuto que a proposta inicial: **só Telegram no backend** (transacional, direto pra API do Telegram) — WhatsApp virou 100% um assistente conversacional já resolvido externamente num n8n que o usuário já tem configurado com Evolution API (`EVOLUTION_URL`/`EVOLUTION_KEY`/`N8N_*` já estavam no `.env` antes desta sessão, nunca usados em código) — zero código de backend pro WhatsApp.
+
+5 eventos implementados, todos best-effort (nunca quebram o fluxo principal se o envio falhar):
+- Cliente — pedido confirmado (`PedidosService.atualizarStatus`, transição pra `'confirmed'`) — mensagem inclui lista de itens (qtd/nome/valor) + total, pedido explícito do usuário
+- Cliente — pedido entregue (3 pontos que escrevem `status='delivered'`: `atualizarStatus`, `MotoboyService.confirmarEntrega`, `MotoboyService.entregarProprio`)
+- Cliente — pedido saiu pra entrega (2 pontos que escrevem `status='out_for_delivery'`: `MotoboyService.confirmarColeta` — bipa código de barras — e `MotoboyService.atribuir` — dono atribui motoboy direto), adicionado depois do teste inicial, a pedido do usuário
+- Motoboy — pedido pronto (`RestauranteService.marcarItemPronto`, só pra quem já registrou interesse via `pedido_interesses_motoboy` — na hora que fica `'ready'` ainda não existe `motoboy_id` atribuído, decisão explícita do usuário foi **não** fazer broadcast pra todo mundo)
+
+Vínculo é opt-in via deep-link do bot (`t.me/<bot>?start=<token>`), token de uso único (tabela `telegram_link_tokens`, TTL 30min, apagado no resgate) — cliente vincula em `/customer-profile`, motoboy no painel próprio (`/motoboy`, aba Perfil). Novo módulo `src/telegram/` (client + service + controller + module), seguindo os moldes do `PagBankClient` e do `TwoFactorEmailService` já existentes. Webhook (`POST /telegram/webhook`) verifica um secret real (`X-Telegram-Bot-Api-Secret-Token`) — mais forte que o webhook do PagBank, que não assina nada.
+
+Migration `20260921000001_telegram_notificacoes.sql` (aplicada só local). Env vars novas: `TELEGRAM_TOKEN` (renomeado de `TELEGRAN_TOKEN`, que era um typo nunca usado em código), `TELEGRAM_BOT_USERNAME=jotaMaster_bot` (bot: `@jotaMaster_bot`), `TELEGRAM_WEBHOOK_SECRET` (gerado), `TELEGRAM_WEBHOOK_URL` (vazio em dev local, Telegram não alcança localhost — só funciona pra vincular conta onde apontar pra uma URL pública real). Todas já setadas nos dois `.env` reais (2026-09-21).
+
+**Testado ponta a ponta pelo usuário (2026-09-21) via túnel local — funcionou** (vínculo cliente confirmado, webhook recebendo `/start`). Commits: `2a1303f` (`serer_delivery`), `783098a` (`deliveryhub_white_label/server_delivery`, submódulo), `7880260` (`deliveryhub_white_label`, inclui migration + bump do ponteiro do submódulo). **Nenhum push feito** — só local, como sempre.
+
+**Pendência real, não resolvida:**
+1. Migration só local — falta `npx supabase db push --linked` quando for pra produção (confirmar com usuário antes, regra padrão).
+
+**How to apply:** se retomar esse assunto, ver `C:\Users\jotac\.claude\plans\fluttering-greeting-acorn.md` pro plano completo com todos os arquivos/linhas tocados.
+
+### Padrão: `npm run dev:tunnel` — túnel Cloudflare configurável pra testar webhook em dev local (2026-09-21)
+
+Pra qualquer feature que dependa de um webhook público (Telegram aqui, mas serve pra qualquer integração futura — WhatsApp/Evolution, outro gateway de pagamento em sandbox, etc.), **não** reusar o túnel nomeado de produção (`docker-compose.yml` + `CLOUDFLARE_TUNNEL_TOKEN`, que exige token do painel Cloudflare atrelado ao domínio real `deliveryhub.teusite.top` — reusar o mesmo token localmente arriscaria disputar/misturar tráfego com a produção).
+
+Usuário pediu que isso fosse **configurável/reaproveitável**, não um comando manual toda vez — virou `scripts/dev-tunnel.ts` (nos dois checkouts backend, `npm run dev:tunnel`): sobe um túnel rápido (`cloudflared tunnel --url`, sem conta/token), captura a URL `*.trycloudflare.com` gerada, escreve sozinho `TELEGRAM_WEBHOOK_URL=<url>/telegram/webhook` no `.env`, e já sobe o `nest start --watch` com essa env injetada — um único comando faz tudo. Testado ponta a ponta (2026-09-21): túnel + `.env` + backend + `setWebhook` (via `OnModuleInit` do `TelegramService`) confirmados funcionando, checado direto na API do Telegram (`getWebhookInfo`).
+
+**Gotcha observado no teste:** logo depois do primeiro "Nest application successfully started", apareceu um `EADDRINUSE` transitório — é o próprio HMR do `nest start --watch` (webpack) recriando a app numa recompilação, socket antigo ainda não tinha liberado a porta. Autocura sozinho no próximo ciclo; não é bug do script. Se a porta ficar presa de verdade depois disso, `netstat -ano | grep :3002` + `taskkill //PID <pid> //F`.
+
+**Why:** `cloudflared` já roda via `npx` sem instalação prévia — não precisou de ngrok nem de conta nova. Script em vez de instrução manual porque o usuário vai precisar repetir esse teste várias vezes ao longo do desenvolvimento, não só uma vez.
+**How to apply:** pra testar qualquer webhook em dev local, rodar `npm run dev:tunnel` (dentro de `server_delivery/` ou `serer_delivery/`) em vez de `start:dev` — sobe tudo sozinho. Ctrl+C mata túnel e backend juntos. A URL gerada é efêmera (some quando o processo para), então cada sessão de teste gera uma nova.
+**How to apply:** a URL do quick tunnel **morre** quando o processo `cloudflared` para (fechar a sessão, reiniciar a máquina) — pra testar de novo depois, gerar uma URL nova e atualizar `TELEGRAM_WEBHOOK_URL` de novo (não é uma URL fixa reaproveitável). Não confundir com o túnel de produção — esse aqui nunca deve usar `CLOUDFLARE_TUNNEL_TOKEN`.
+
+**Pendência real, não resolvida:** migration `20260918000002` só rodou local (`npx supabase migration up --local`) — **não aplicada em produção ainda**. Sem ela, upload de comprovante de fatura vai quebrar em produção (`plano_faturas` sem as colunas). Avisei o usuário antes de "até amanhã"; próxima sessão, perguntar/confirmar `npx supabase db push --linked` antes de considerar essa feature pronta pra teste real.
+
+**Why:** usuário pediu explicitamente paridade visual e funcional total com o checkout do cliente ("tem que ser igual") — não é feature nova inventada, é replicação fiel de um padrão já validado em produção.
+**How to apply:** se retomar essa frente, primeiro aplicar a migration pendente em produção (com confirmação do usuário, regra padrão). Se pedirem o 3º modo (Stripe) pra fatura, é trabalho novo de verdade (Stripe pra fatura de plano não existe ainda — só existe via Connect pro checkout do cliente final), avisar isso antes de estimar.
+
+## Fix: acesso via IP de rede local (celular) — API e imagens quebradas (2026-09-22) — testado e em produção
+
+Usuário testou o app pelo celular via `http://172.24.16.156:4028` (Vite lista 3 "Network URLs" — `172.17.16.1`/`172.25.176.1` são adaptadores virtuais do Docker Desktop/WSL2, não alcançáveis por outro dispositivo; só `172.24.16.156`, IP real da placa Ethernet via DHCP, funciona pra isso). Dois bugs encontrados e corrigidos nessa sessão:
+
+**1) API não carregava dados** — `VITE_API_URL` no `.env` (raiz) estava setado pro túnel Cloudflare de produção (`https://deliveryhub.teucurso.top`), deixado assim de propósito numa sessão anterior (teste de webhook Telegram, ver seção acima). Isso fazia `apiPath()` (`src/lib/apiUrl.js`) montar toda chamada direto pro backend remoto — CORS bloqueava (origem local não está no `APP_ALLOWED_ORIGINS` do backend remoto) e, mesmo se passasse, seria o Supabase de produção, não o local. Corrigido comentando `VITE_API_URL` de volta (vazio = usa o proxy do Vite, `/api` → `localhost:3002`, que roda no PC e funciona de qualquer dispositivo da rede). **Lembrar sempre**: mudança de `.env` exige reiniciar o `npm run dev` pra pegar efeito.
+
+**2) Imagens não carregavam (mesmo com API ok)** — bug mais profundo, no **backend**: `getPublicUrl()` do Supabase SDK embute o `SUPABASE_URL` cru do backend (`http://127.0.0.1:54331`) nas URLs de imagem devolvidas pela API. `127.0.0.1` só funciona no próprio PC que roda o Supabase — quebra em qualquer outro dispositivo (celular). O frontend já tinha essa exata solução pras chamadas que ELE MESMO faz direto ao Supabase (`src/lib/supabase.js`, troca por `window.location.origin` + proxy do Vite), mas nunca tinha sido replicada pro backend.
+
+**Correção definitiva (não afeta produção):** `SupabaseService.toPublicUrl()` (`src/supabase/supabase.service.ts`, nos dois checkouts) — só reescreve a URL quando `SUPABASE_URL` é local (mesmo regex `127.0.0.1|localhost` já usado no frontend; produção usa Supabase remoto, nunca bate, comportamento intocado). Quando local, detecta sozinho o IP real de rede da máquina via `os.networkInterfaces()` (ignora adaptadores virtuais por nome — regex `vEthernet|Virtual|Loopback|WSL|Docker`) — não depende de editar `.env` a cada troca de IP por DHCP, diferente do gotcha já documentado do `VITE_LAN_URL`. Aplicado nos 7 pontos que geram URL pública de imagem: `restaurante.service.ts` (logo/banner), `perfil.service.ts` (avatar cliente), `motoboy.service.ts` (2x, comprovante PIX), `pedidos.service.ts` (comprovante PIX), `planos.service.ts` (comprovante fatura), `plataforma.service.ts` (banner plataforma).
+
+**Ressalva importante:** só corrige uploads **novos** a partir de agora. Imagens já salvas no banco antes desse fix continuam com `127.0.0.1` congelado na URL — precisam ser reenviadas pra corrigir (não existe migração de dados retroativa pra isso ainda).
+
+Commits: `d5c8e86`+merge `52dec38` (`serer_delivery`), sincronizado por conteúdo idêntico no submódulo (`deliveryhub_white_label/server_delivery`, resolvido via `git reset --hard origin/main` — mesmo gotcha de hash duplicado já documentado, dessa vez cruzado com divergência real da feature Telegram que tinha sido pushada nesse meio tempo). Ponteiro do submódulo atualizado e pushado em `deliveryhub_white_label` (`fdaae65`). **Todos os 3 repos pushados** (raro — normalmente fica só local até o usuário confirmar; usuário pediu explicitamente "commitar, sincronizar, documentar e push tudo" depois de testar).
+
+**Why:** padrão de bug real (não só teórico) — qualquer feature nova que gere URL de storage a partir do backend vai cair na mesma armadilha se não passar por `toPublicUrl()`.
+**How to apply:** qualquer novo `getPublicUrl()` adicionado no backend (novo tipo de upload/imagem) **sempre** deve passar o resultado por `this.supabase.toPublicUrl(...)` antes de devolver/salvar — não usar `data.publicUrl` cru. Se aparecer de novo "imagem não carrega só fora do PC", esse é o primeiro lugar a checar. Ver também [[feedback_monolito_modular_padrao]] — nada aqui muda a arquitetura, é um ajuste pontual dentro do mesmo monólito.
