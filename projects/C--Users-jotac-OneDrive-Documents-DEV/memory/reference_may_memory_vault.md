@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 4e2cc708-7996-4a68-9cfa-5d12e0a76935
-  modified: 2026-09-09T12:49:59.645Z
+  modified: 2026-09-22T11:33:30.781Z
 ---
 
 `C:\Users\jotac\OneDrive\Documents\DEV\may_memory` is a git repo (remote `github.com/bucolicanews/may_memory.git`, branch `main`) holding an Obsidian vault called "Ecossistema JHON" — the user's cross-project knowledge base: security policy, architecture decisions (ADRs), infra, incidents, and per-project docs (`07-PROJETOS/GESTAO-PROJETOS-VUE`, `07-PROJETOS/openclaw`, etc.). Entry point is `INDEX.md` (MOC — Map of Content).
@@ -21,6 +21,9 @@ Key docs in `21-SEGURANCA/` (security hub, see its `README.md`):
 Key docs in `26-DESIGNER/` (design hub, see its `README.md`):
 - `DIRETRIZES-UX-UI.md` — added 2026-09-02: the canonical UX/UI framework, mandatory for any design/UX/UI work across projects. Covers HCD (ISO 9241-210), usability metrics (ISO 9241-11), Garrett's 5 planes of UX (Strategy→Scope→Structure→Skeleton→Surface), Nielsen's 10 usability heuristics, accessibility checklist (ISO 9241-171/WCAG, 4.5:1 contrast, keyboard nav, alt text, aria-labels), Jordan's dialogue principles, and Lean UX practice (outcomes over outputs, GOOB prototyping). Was previously an unlinked file at the vault root (`UX_UI.md`); moved into `26-DESIGNER/` and wired into `INDEX.md` + the hub `README.md` on 2026-09-02 so it's discoverable like the security docs.
 - `DESIGN SYSTEM OFICIAL(DELIVERY-RESTAURANTES).md` — concrete design system for the delivery platform (Rappi-inspired: colors, typography, components, animation) — the Surface-plane (Plano 5) application of `DIRETRIZES-UX-UI.md` for [[project_deliveryhub]] specifically.
+
+Key doc in `23-DECISOES/` (ADR hub):
+- `ADR-004-MONOLITO-MODULAR.md` — added 2026-09-22: formalizes modular monolith (single NestJS backend, modules by domain, single database per app) as the default architecture for every project in the ecosystem; microservices/service split only on explicit user request per project. Extends what ADR-001 implied ("NestJS com arquitetura modular") into an explicit standing constraint. See [[feedback_monolito_modular_padrao]] for the Claude Code-side application rule.
 
 Key doc in `SEO_GEO_AIO/` (added 2026-09-09, was an orphaned root file — same situation `DIRETRIZES-UX-UI.md` was in before 2026-09-02, fixed the same way: renamed to `CHECKLIST-SEO-GEO-AIO.md`, given a `README.md` hub, wired into `INDEX.md` + root `README.md`'s folder table):
 - `CHECKLIST-SEO-GEO-AIO.md` — cross-project checklist for search-engine and LLM-search visibility (SEO + GEO/AIO): SSR/SSG, Core Web Vitals, semantic HTML5, metadata (title/description/OpenGraph/canonical), Schema.org JSON-LD, `/llms.txt`, robots.txt/sitemap, E-E-A-T institutional pages, WCAG accessibility. Applies only to **public user-facing pages** (storefronts, landing pages, docs) — not authenticated admin panels, where SEO has no effect. The hub `README.md` frames it explicitly as an **aspirational/max checklist to triage by priority**, not a day-one requirement — item 1 (SSR/SSG "obrigatório") directly conflicts with existing SPA stacks like [[project_deliveryhub]]'s React+Vite frontend; the hub's guidance is to evaluate lower-effort alternatives (pre-render/SSG on public routes only, prerender.io/Rendertron-style bot middleware) before ever proposing a framework migration for SEO alone, and to treat multi-tenant storefronts (dynamic title/meta/JSON-LD per tenant, e.g. DeliveryHub's `/r/:slug` White Label stores) as a distinct concern from the static-page examples in the checklist.
