@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
-  modified: 2026-09-22T12:48:50.367Z
+  modified: 2026-09-22T13:13:29.023Z
 ---
 
 Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
@@ -831,3 +831,16 @@ Commits: `d5c8e86`+merge `52dec38` (`serer_delivery`), sincronizado por conteúd
 
 **Why:** padrão de bug real (não só teórico) — qualquer feature nova que gere URL de storage a partir do backend vai cair na mesma armadilha se não passar por `toPublicUrl()`.
 **How to apply:** qualquer novo `getPublicUrl()` adicionado no backend (novo tipo de upload/imagem) **sempre** deve passar o resultado por `this.supabase.toPublicUrl(...)` antes de devolver/salvar — não usar `data.publicUrl` cru. Se aparecer de novo "imagem não carrega só fora do PC", esse é o primeiro lugar a checar. Ver também [[feedback_monolito_modular_padrao]] — nada aqui muda a arquitetura, é um ajuste pontual dentro do mesmo monólito.
+
+## Fix: marketplace (pediuvai.com.br) mostrava produto de loja fechada/fora do raio de km (2026-09-22) — testado (build) e em produção
+
+Página `menu-catalog-product-browse` (`src/pages/menu-catalog-product-browse/index.jsx`) — é a home/marketplace pública (`pediuvai.com.br/menu-catalog-product-browse`), compara produtos/combos/serviços de **vários** restaurantes ao mesmo tempo. Causa raiz: os endpoints do catálogo global (`GET /api/r/produtos`, `/api/r/combos`, `/api/r/servicos`) retornam itens de **todos** os restaurantes ativos (`bloqueado=false`, `modulo_delivery=true`), sem nenhum filtro de distância nem de status aberto/fechado — só o endpoint de restaurantes (`GET /api/r`) já filtrava por `raio_km` (via lat/lng do GPS). Resultado: produto de loja fechada aparecia acinzentado/"Indisponível" (não escondido) e produto de loja fora do raio de km selecionado aparecia normal, sem filtro nenhum.
+
+**Decisão de escopo, confirmada pelo usuário:** isso vale só pro **marketplace** (essa página, que compara várias lojas). A página de **uma** loja só (`/r/:slug`, `restaurante-catalogo/index.jsx`) continua mostrando o cardápio opaco com aviso "Restaurante Fechado" mesmo fechada — é navegação sem compra, comportamento intencional que não muda.
+
+**Correção (frontend only, sem mudança de backend):** os endpoints `/api/r/produtos`/`/combos`/`/servicos` são cacheados globalmente no Redis (`catalogo:produtos:marketplace` etc., mesmo resultado pra todo mundo) — filtrar por geolocalização ali quebraria essa estratégia de cache (cache por lat/lng explodiria de cardinalidade). Em vez disso, filtro no frontend: `restaurantesDisponiveisIds` = Set dos `restaurantes` (já vem geo-filtrado do backend) que também estão com `aparencia.aberto !== false`; `produtosDisponiveis`/`combosDisponiveis`/`servicosDisponiveis` cruzam contra esse Set. Essas listas filtradas alimentam **todas** as derivações da página (categoria, busca, carrosséis de tag, patrocinados/marketplace-boost, combos em destaque) — um item patrocinado de loja fechada some igual a um orgânico. Também ajustei os gates de skeleton/loading (`loadProd || loading`) pra não piscar "nenhum produto encontrado" no instante em que `produtos` já chegou mas `restaurantes` (que alimenta o filtro) ainda não.
+
+Commit: `5d5223a` (`deliveryhub_white_label`) — pushado. `npm run build` (vite) rodou limpo antes do commit.
+
+**Why:** o card do *restaurante* (RestCardGrid/RestCardList) continua mostrando lojas fechadas com badge "Fechado" — só os cards de *produto/combo/serviço* somem. Decisão explícita do usuário: "só na própria loja (fechada) o produto aparece opaco" — ou seja, esse comportamento de opacidade é exclusivo da página de uma loja, não do marketplace.
+**How to apply:** se pedirem o mesmo tipo de filtro em outro lugar que também lista produtos de múltiplos restaurantes (ex.: busca, categoria dedicada), reusar o padrão `restaurantesDisponiveisIds` — cruzar contra a lista de restaurantes já geo-filtrada, não inventar um novo fetch com lat/lng pros produtos (quebraria o cache Redis global desses endpoints).
