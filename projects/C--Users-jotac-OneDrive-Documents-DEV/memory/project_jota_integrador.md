@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: a711af78-b29f-4b55-92ce-d724ed2491ae
-  modified: 2026-09-13T16:11:53.961Z
+  modified: 2026-10-01T21:17:06.782Z
 ---
 
 `C:\Users\jotac\OneDrive\Documents\DEV\jota_integrador` — projeto iniciado em 2026-09-06. Plataforma SaaS que centraliza informações fiscais de empresas conectando-se às APIs oficiais do governo (Integra Contador/SERPRO), com dois produtos sobre a mesma base: **JOTA FISCAL** (visão do empresário) e **JOTA CONTÁBIL** (visão do contador, gestão de carteira de empresas).
@@ -17,6 +17,62 @@ Stack: React + Vite (frontend), NestJS (backend), PostgreSQL via Supabase, Redis
 O dado mais crítico do sistema é o **certificado digital (A1/A3)** de cada empresa — usado para assinar digitalmente perante o Fisco. Exige cofre dedicado + criptografia AES-256 em repouso + isolamento por empresa + auditoria de todo uso + controle de expiração/rotação — tratado como chave privada de produção, nunca como upload comum.
 
 Plano de produto original (brainstorm que originou o projeto): `may_memory/28-JotaIntegradorFiscal/primeiroPlano.md`. Fases planejadas: 1) Fundação (login, cadastro, certificado, créditos, dashboard) → 2) Fiscal (NF-e/NFC-e/NFS-e/XML) → 3) Receita/Simples Nacional → 4) Caixa Postal → 5) Inteligência fiscal (alertas automáticos, anomalias).
+
+## Plano aprovado (não implementado ainda) — 3 ajustes de hierarquia Admin/Contador/Empresa cliente (2026-10-01)
+
+Usuário testou os 3 papéis no navegador e reportou: Contador OK (carteira+lançamentos+menu
+funcionando); Empresa cliente (`empresa1@teste.com`, `EMPRESARIO_DONO`) tem acesso ao menu mas
+não consegue editar Lançamentos/Plano de Contas; Admin (`admin@teste.com`) vê o menu lateral
+inteiro mas nenhuma tela abre ao clicar em qualquer item. Investigação no código (não só
+memória) confirmou as 3 causas exatas — plano completo aprovado e salvo em
+`C:\Users\jotac\.claude\plans\fizzy-snacking-spindle.md`, **ainda não implementado** (sessão
+foi interrompida pelo usuário pra trocar de projeto antes de começar a codar).
+
+**Causa do bug do Admin (bloqueador dos outros dois pontos)**: `useEmpresaAtiva.js` trata
+`SUPER_ADMIN` como "papel de contador" que precisa escolher empresa num seletor, chamando
+`listarEmpresas()` sem `contadorId`. Backend (`empresas.controller.ts` `listar()`) exige
+`contadorId` via query pra `SUPER_ADMIN`, senão 400 — erro engolido
+(`.catch(() => setCarteira([]))`) — `empresaId` nunca resolve pro admin, toda tela que depende
+dele (`/lancamentos`, `/plano-contas` etc.) fica vazia. Fix: dar ao admin um workspace fixo
+próprio (empresa `tipo='interna_plataforma'`, "Jota Contabilidade", já seedada na migration
+`20260912000002`) igual a um dono de empresa — endpoint novo `GET /empresas/interna` (sem
+query params, resolve pelo papel) + ajuste em `useEmpresaAtiva.js`/`Header.tsx` pra não chamar
+`listarEmpresas()` pra papéis de plataforma e auto-selecionar a interna no mount.
+
+**Descoberta importante**: o requisito "admin e contador com todos os módulos liberados +
+lançamentos próprios, de forma independente" **já existe no backend hoje** —
+`empresa_tem_modulo()`/`empresa_modulos_liberados()` (SQL) já liberam tudo quando
+`empresas.tipo <> 'cliente'`; contador já ganha `interna_contador` automática na criação
+(`criar-contador.usecase.ts`). Só o bug do admin acima impede ele de alcançar a própria. Depois
+do fix, isso é só verificação, não implementação nova.
+
+**Causa do bloqueio de edição da empresa cliente**: `LancamentosController.criar/estornar` e
+`PlanoContasController.criar/atualizar/desativar/reativar` usam um método privado
+`exigirPosseDeContador` que só libera `SUPER_ADMIN` ou `contadorId === empresa.contadorId` —
+hardcoded, sem nenhum mecanismo de delegação pra empresa cliente, nem pro dono
+(`EMPRESARIO_DONO`) nem pra funcionário (`OPERADOR_EMPRESA`). RLS em
+`plano_contas`/`lancamentos_contabeis` replica a mesma regra mas é redundante na prática — a
+escrita real passa por `supabase.admin` (plano de contas, confirmado lendo o repositório) ou
+função `SECURITY DEFINER` (lançamentos), então o controller NestJS é o ponto de aplicação de
+verdade. Fix desenhado em 2 camadas: (1) novo campo
+`empresas.edicao_contabil_cliente_liberada` (interruptor por empresa, toggle que só
+contador-dono-da-carteira ou admin pode ligar, UI em `contabil-empresa-detalhe`); (2) dentro de
+uma empresa liberada, `EMPRESARIO_DONO` fica automaticamente livre (dono nunca é restringido por
+permissão granular — invariante já existente em `papelExigeChecagemGranular`), e
+`OPERADOR_EMPRESA` continua precisando da permissão granular individual (reaproveita o catálogo
+`permissoes`/`papel_permissoes`/`usuario_permissoes` já existente e a tela `GerenciarUsuarios.tsx`
+já existente — só precisa adicionar as linhas de catálogo pros recursos `lancamentos_contabeis`
+e `plano_contas`, que hoje não têm nenhuma entrada nesse catálogo).
+
+**Why:** usuário quer que a hierarquia real (Jota > Contador > Empresa) funcione com
+independência de módulos/lançamentos pra Admin e Contador, e com delegação explícita
+(contador OU admin) de edição pra empresa cliente — em vez do hardcode atual que nunca permite
+isso.
+**How to apply:** próxima sessão neste projeto, retomar direto pelo plano
+`fizzy-snacking-spindle.md` (Parte 1 → Parte 2 verificação → Parte 3), não re-investigar do
+zero. Login de teste pra validar: `admin@teste.com`/`contador@teste.com`/`empresa1@teste.com`/
+`empresa2@teste.com`, senha `Teste@123456` (ver [[reference_jota_fiscal_logins_teste]] se essa
+memória existir, senão os 4 fixos já documentados mais abaixo neste arquivo).
 
 ## Navegação unificada + dashboard financeiro + bugfix de gestão de ponto — COMMITADO, sessão pausada a pedido do usuário (2026-09-13, sessão seguinte à Fase 8)
 
@@ -30,7 +86,7 @@ Plano de produto original (brainstorm que originou o projeto): `may_memory/28-Jo
 
 **Pendência pra retomar**: a correção do 403 está commitada e o `dist/` já tem o build novo, mas **o usuário ainda não reiniciou o backend próprio (porta 3002)** pra pegar o código corrigido em memória — última mensagem da sessão foi ele dizendo que ia reiniciar manualmente. **Próxima ação ao retomar**: confirmar que o restart aconteceu e reclicar em `/folha-ponto → Ver folha` de um funcionário de empresa como `contador@teste.com`, deve mostrar a folha (não mais 403). Se ainda der 403, o bug não era só esse.
 
-**Logins de teste ativos** (Supabase local): os 4 fixos (`admin@teste.com`/`contador@teste.com`/`empresa1@teste.com`/`empresa2@teste.com`, senha `[senha de teste redigida — ver arquivo local]`) + dois novos criados nesta sessão pra ter cobertura de `OPERADOR_*`: `usuario@teste.com` (`OPERADOR_CONTADOR` do escritório do contador de teste, permissões `ponto_eletronico`+`suporte` concedidas) e `funcionario.ponto@teste.com` (`OPERADOR_EMPRESA` de "Empresa Cliente Smoke" = carteira do mesmo contador, mesma senha, mesmas permissões) — ambos aparecem hoje em `/folha-ponto` como contador.
+**Logins de teste ativos** (Supabase local): os 4 fixos (`admin@teste.com`/`contador@teste.com`/`empresa1@teste.com`/`empresa2@teste.com`, senha `Teste@123456`) + dois novos criados nesta sessão pra ter cobertura de `OPERADOR_*`: `usuario@teste.com` (`OPERADOR_CONTADOR` do escritório do contador de teste, permissões `ponto_eletronico`+`suporte` concedidas) e `funcionario.ponto@teste.com` (`OPERADOR_EMPRESA` de "Empresa Cliente Smoke" = carteira do mesmo contador, mesma senha, mesmas permissões) — ambos aparecem hoje em `/folha-ponto` como contador.
 
 ## Fase 8 — Ponto Eletrônico — IMPLEMENTADA, TESTADA E COMMITADA (2026-09-13, sessão seguinte ao módulo de Suporte)
 
@@ -46,11 +102,11 @@ Commits: `jota_integrador` `9ef7c9f`, `jota_fiscal_frontend` `10a4180`. Sem push
 
 **Gotcha real (2ª vez neste projeto)**: o `CHECK` de `permissoes.acao` no banco é fixo (`visualizar/criar/editar/excluir/bloquear`) — os verbos do plano original (`responder`/`gerenciar`, copiados do padrão do módulo Suporte) não existiam nesse enum. Já tinha acontecido exatamente isso na Fase de Suporte — represento aqui pra fixar: **antes de inventar verbo de permissão novo, checar o enum do banco primeiro** (`\d permissoes` via psql), não assumir que qualquer verbo em português serve.
 
-**Backend** (`jota_integrador`, módulo `src/ponto-eletronico/`): Clean Architecture 4 camadas. Domínio puro (`dominio/ponto.ts`) com `calcularResumoMensal` testável sem framework — jornada=horas_mensais×60min, saldo=trabalhado−jornada, folga fixa trabalhada sem Extra100/Compensação vira `diasQuePrecisamGestao`. `PontoEletronicoController` em `/ponto-eletronico` (não aninhado, igual `/suporte`, porque funcionário pode ser de escopo contador ou empresa) — 14 rotas, resolução "próprio vs gestor" via helper `resolverUsuarioAlvo` (mesmo padrão de `GET auth/usuarios` da Fase 7). Reusa `USUARIOS_REPOSITORIO` do `AuthModule` (Global) sem precisar importar módulo nenhum. **Testado via curl real ponta a ponta** (criou um funcionário `OPERADOR_EMPRESA` novo — `funcionario.ponto@teste.com`/`[senha de teste redigida — ver arquivo local]` — via o próprio endpoint de usuários da Fase 7, e concedeu as permissões granulares via `PUT .../permissoes/:id`, já que papel_permissoes é só teto, não concessão automática): toggle entrada→saída, isolamento cross-tenant (empresa2 bloqueada), resumo mensal correto em cada etapa, folga trabalhada como extra100 (zera `diasQuePrecisamGestao`, soma 480min em `extra100Minutos`), falta parcial 4h+4h válida / split errado 3h+3h rejeitado (400), ajuste manual de batidas do dia, folga trabalhada como compensação (auto-cria abono de 8h numa data futura, confirmado aparecendo no resumo do mês seguinte), reconfiguração de jornada (200h/mês) refletida no resumo, férias de 5 dias contadas certo no resumo, URL assinada de selfie acessível pelo próprio e pelo gestor mas bloqueada pra empresa2. `nest build` limpo, boot real sem `UnknownDependenciesException`.
+**Backend** (`jota_integrador`, módulo `src/ponto-eletronico/`): Clean Architecture 4 camadas. Domínio puro (`dominio/ponto.ts`) com `calcularResumoMensal` testável sem framework — jornada=horas_mensais×60min, saldo=trabalhado−jornada, folga fixa trabalhada sem Extra100/Compensação vira `diasQuePrecisamGestao`. `PontoEletronicoController` em `/ponto-eletronico` (não aninhado, igual `/suporte`, porque funcionário pode ser de escopo contador ou empresa) — 14 rotas, resolução "próprio vs gestor" via helper `resolverUsuarioAlvo` (mesmo padrão de `GET auth/usuarios` da Fase 7). Reusa `USUARIOS_REPOSITORIO` do `AuthModule` (Global) sem precisar importar módulo nenhum. **Testado via curl real ponta a ponta** (criou um funcionário `OPERADOR_EMPRESA` novo — `funcionario.ponto@teste.com`/`Teste@123456` — via o próprio endpoint de usuários da Fase 7, e concedeu as permissões granulares via `PUT .../permissoes/:id`, já que papel_permissoes é só teto, não concessão automática): toggle entrada→saída, isolamento cross-tenant (empresa2 bloqueada), resumo mensal correto em cada etapa, folga trabalhada como extra100 (zera `diasQuePrecisamGestao`, soma 480min em `extra100Minutos`), falta parcial 4h+4h válida / split errado 3h+3h rejeitado (400), ajuste manual de batidas do dia, folga trabalhada como compensação (auto-cria abono de 8h numa data futura, confirmado aparecendo no resumo do mês seguinte), reconfiguração de jornada (200h/mês) refletida no resumo, férias de 5 dias contadas certo no resumo, URL assinada de selfie acessível pelo próprio e pelo gestor mas bloqueada pra empresa2. `nest build` limpo, boot real sem `UnknownDependenciesException`.
 
 **Frontend** (`jota_fiscal_frontend`): **Confirmado que não existia câmera ao vivo nem geolocalização no projeto** (pesquisado antes de implementar) — selfie usa `<input capture="user">` (mesma simplificação deliberada já documentada em `AssinarContrato.tsx` da Fase 6), geo usa `useGeolocation` novo (hook simples, sem lib, com fallback de input manual). Impressão segue o padrão comprovado de `DialogImprimirProtocolo.tsx` (string HTML inline + `window.open().print()`), não o hook `usePrint` que existia órfão sem nenhum uso real. `PontoEletronico.tsx` (bater ponto) + `FolhaPonto.tsx` (lista funcionários, reusa `listarUsuarios` da Fase 7 filtrado a `OPERADOR_*`) + `DetalheFolhaPonto.tsx` (KPIs, tabela por dia, ações) + 4 dialogs de gestão (`AjustarRegistros`/`GerenciarFaltaAbono`/`GerenciarFolgaTrabalhada`/`GerenciarFerias`). Rotas `/ponto-eletronico` e `/folha-ponto` + itens no `MenuLateral` (seção "Administração", gated por papel). `tsc --noEmit` e `vite build` limpos.
 
-**Login extra de teste criado nesta sessão** (Supabase local, sobrevive a restart mas some em `db reset`): `funcionario.ponto@teste.com` / `[senha de teste redigida — ver arquivo local]`, `OPERADOR_EMPRESA` da mesma empresa de `empresa1@teste.com`, com permissões `ponto_eletronico:visualizar`+`criar` já concedidas — pronto pra clicar-testar "Bater Ponto" no navegador sem setup adicional.
+**Login extra de teste criado nesta sessão** (Supabase local, sobrevive a restart mas some em `db reset`): `funcionario.ponto@teste.com` / `Teste@123456`, `OPERADOR_EMPRESA` da mesma empresa de `empresa1@teste.com`, com permissões `ponto_eletronico:visualizar`+`criar` já concedidas — pronto pra clicar-testar "Bater Ponto" no navegador sem setup adicional.
 
 **Não clicado no navegador ainda** — câmera/geolocalização de verdade só dá pra validar lá.
 
@@ -104,10 +160,10 @@ Contador e a própria Jota ganham **empresa interna própria** (`empresas.tipo`:
 
 | Papel | Email | Senha |
 |---|---|---|
-| SUPER_ADMIN | `admin@teste.com` | `[senha de teste redigida — ver arquivo local]` |
-| CONTADOR_DONO ("Contador Smoke Teste", 2 empresas na carteira) | `contador@teste.com` | `[senha de teste redigida — ver arquivo local]` |
-| EMPRESARIO_DONO (Empresa Cliente Smoke — licença ativa Contratos+Protocolos) | `empresa1@teste.com` | `[senha de teste redigida — ver arquivo local]` |
-| EMPRESARIO_DONO (Empresa Cliente Smoke 2 — licença ativa Contratos+Protocolos) | `empresa2@teste.com` | `[senha de teste redigida — ver arquivo local]` |
+| SUPER_ADMIN | `admin@teste.com` | `Teste@123456` |
+| CONTADOR_DONO ("Contador Smoke Teste", 2 empresas na carteira) | `contador@teste.com` | `Teste@123456` |
+| EMPRESARIO_DONO (Empresa Cliente Smoke — licença ativa Contratos+Protocolos) | `empresa1@teste.com` | `Teste@123456` |
+| EMPRESARIO_DONO (Empresa Cliente Smoke 2 — licença ativa Contratos+Protocolos) | `empresa2@teste.com` | `Teste@123456` |
 
 **Why:** usuário quer um conjunto fixo e simples de logins pra testar a feature no navegador sem precisar redescobrir credenciais toda sessão.
 **How to apply:** esses 4 logins só existem em `supabase_db_jota_integrador` (Docker local) — sobrevivem a restart de container, mas são **apagados por `npx supabase db reset`**. Se o usuário pedir esses logins numa sessão futura e o reset já tiver rodado, recriar com os mesmos emails/senha (Admin API `auth/v1/admin/users` + `insert into usuarios`) em vez de inventar credenciais novas, pra manter a promessa de "permanente".
@@ -137,7 +193,7 @@ Plano `elegant-fluttering-cupcake.md` executado ponta a ponta na ordem descrita:
 
 ## STATUS ATUAL — checkpoint pra retomar (histórico anterior à Fase 6, mantido por contexto)
 
-**Login de teste no navegador (Supabase LOCAL, não produção):** `contadorextrato@example.com` / `[senha redigida]` -- CONTADOR_DONO com 1 empresa na carteira ("Empresa Teste Extrato LTDA", `78b99986-a3f7-419a-8ffc-b06128016a14`, só 2 contas no Plano de Contas ainda). Senha foi resetada via Admin API em 2026-09-12 (a original, de uma sessão anterior, não era recuperável -- fica hasheada). Selecionar a empresa no seletor do Header pra acessar as telas.
+**Login de teste no navegador (Supabase LOCAL, não produção):** `contadorextrato@example.com` / `TesteJota@2026!` -- CONTADOR_DONO com 1 empresa na carteira ("Empresa Teste Extrato LTDA", `78b99986-a3f7-419a-8ffc-b06128016a14`, só 2 contas no Plano de Contas ainda). Senha foi resetada via Admin API em 2026-09-12 (a original, de uma sessão anterior, não era recuperável -- fica hasheada). Selecionar a empresa no seletor do Header pra acessar as telas.
 
 **Retomar por aqui:** plano completo já aprovado pelo usuário em `C:\Users\jotac\.claude\plans\elegant-fluttering-cupcake.md` (Fase 6 — módulos `contratos/` e `documentos-societarios/`, dois módulos separados espelhando o jotaCaixa, com fluxo completo de assinatura eletrônica pública + selfie + blocos societários + aditivos contratuais, todos os detalhes de schema/usecases/frontend já decididos). Sessão foi interrompida pelo usuário ("vamos dar continuidade amanhã") **antes de qualquer código ser escrito** -- nada implementado ainda desta Fase 6, é só abrir o plano e seguir migration → backend `contratos/` → `documentos-societarios/` → frontend, na ordem descrita no próprio arquivo de plano.
 
@@ -500,7 +556,7 @@ Item #7 da lista de trabalho é grande demais pra uma tacada só (7 áreas de ba
 
 **Validação:** `vite build` rodou limpo (459 módulos, sem erro). `npm run lint` falha por `eslint.config.js` ausente — gap pré-existente do scaffold (ESLint v9 exige flat config, o projeto nunca teve um), não introduzido nesta sessão, não investigado a fundo (fora do escopo desta tarefa). Não testado visualmente no browser (preferência já registrada do usuário, [[feedback_browser_testing]] — deixar ele clicar).
 
-**Ambiente rodando ao fim da sessão:** backend (`node dist/main.js`, porta 3002) + frontend (`npm run dev`, subiu na porta **4029** porque 4028 já estava ocupada por outro projeto) + Supabase local (containers já de pé). Usuários de teste reutilizáveis (senha `[senha redigida]`): `admin@teste.com` (SUPER_ADMIN), `contadorA@teste.com`/`contadorB@teste.com` (CONTADOR_DONO, contadores `11111111-...`/`22222222-...`).
+**Ambiente rodando ao fim da sessão:** backend (`node dist/main.js`, porta 3002) + frontend (`npm run dev`, subiu na porta **4029** porque 4028 já estava ocupada por outro projeto) + Supabase local (containers já de pé). Usuários de teste reutilizáveis (senha `SenhaForte123!`): `admin@teste.com` (SUPER_ADMIN), `contadorA@teste.com`/`contadorB@teste.com` (CONTADOR_DONO, contadores `11111111-...`/`22222222-...`).
 
 **Item 2 (Procuração & Certificado) completo, commit `12b1037`.** `/contabil/empresas/:id/acesso-serpro` ramifica a UI conforme `modoAcessoSerpro` da empresa (nunca mistura os dois fluxos na mesma tela, per `docs/UX-UI.md`). Procuração: semáforo de status + mensagem humana por estado, edição manual restrita a papel de plataforma (mesma regra do backend). Certificado: primeiro **upload multipart** do projeto (`api.js` ganhou `postFormData`, cuidado de nunca setar `Content-Type` manual pra `FormData`) — cadastro/rotação, revogar, histórico. Opção A3 desabilitada no select (backend sempre rejeita hoje — heurística 5 de Nielsen, prevenir erro em vez de deixar o usuário descobrir por tentativa e erro).
 
