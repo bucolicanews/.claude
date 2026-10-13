@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
-  modified: 2026-10-13T19:09:43.952Z
+  modified: 2026-10-13T20:03:13.371Z
 ---
 
 Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
@@ -1111,3 +1111,29 @@ Validado via teste real nos dois lados: produção (upload pelo app, objeto apar
 
 **Why:** registra a arquitetura de mídia escolhida (R2 direto, não self-hosted Supabase Storage, não Mongo) pra não reabrir essa discussão do zero numa sessão futura, e documenta o fluxo de credencial do R2 porque já custou 3 rodadas de erro nessa sessão — provável de se repetir em outro projeto que também adote R2 (ver [[feedback_cloudflare_r2_credenciais]]).
 **How to apply:** qualquer novo fluxo de upload de mídia nesse projeto (vídeo de produto, por exemplo) deve usar `R2Service` (injeção padrão, já é `@Global()`) em vez de reabrir Supabase Storage. Se aparecer `AccessDenied` numa chamada R2, suspeitar primeiro de token com permissão Read-only ou criado na tela errada da Cloudflare. Se aparecer comportamento "a env var certa está no arquivo mas não funciona", checar chave duplicada no `.env` antes de desconfiar do código.
+
+### Todos os pontos de upload de imagem/vídeo migrados pro R2 (2026-10-13, mesmo dia) — em produção
+
+Usuário notou que a aparência do admin (marketplace) continuava salvando no Supabase Storage — pediu consistência total. Varredura em todo o `src` (`grep .storage.from(`) achou 4 pontos restantes além do upload de produto já migrado:
+
+- **`plataforma.service.ts`** (`uploadImagem`, aparência do marketplace/admin) — bucket `restaurante-imagens` (Supabase).
+- **`academia.service.ts`** (`uploadVideo`, vídeos de treinamento) — bucket `academia-videos`, até 200MB.
+- **`perfil.service.ts`** (`uploadFoto`, avatar do cliente) — bucket `customer-avatars`.
+- **`motoboy.service.ts`** `uploadImagemRepasse` (comprovante Pix/nota fiscal de repasse) — bucket `comprovantes-pix`.
+
+Esses 4 migrados direto (mesmo padrão do upload de produto) porque o banco sempre guardou a **URL completa**, não um path relativo — zero risco pro que já existe, só novo upload passa a ir pro R2.
+
+**Quinto ponto, tratado separado por ser mais arriscado:** documentos de motoboy (CNH/CRLV/foto de veículo/comprovante de endereço/foto de perfil, bucket privado `motoboy-documentos` + `createSignedUrl`). Esse guarda só o **path relativo** no banco (`motoboys.documento_frente_url` etc.), não a URL — trocar o código sem mais cuidado quebraria o acesso de todo motoboy já cadastrado. Perguntado ao usuário, que escolheu migrar os arquivos primeiro:
+
+1. Script (`@supabase/supabase-js` + `@aws-sdk/client-s3`) listou recursivamente o bucket Supabase de produção e copiou **22 arquivos** (nenhum erro) pro R2, **preservando a mesma chave exata** (`${motoboyId}/${campo}-${timestamp}.${ext}`, sem prefixo novo) — não apagou nada do Supabase, operação só de leitura lá.
+2. Só depois trocou `upload-documento-motoboy.util.ts` (agora recebe `R2Service` em vez de `SupabaseService`) e `MotoboyService.signedUrl()` (agora `r2.gerarUrlDownloadAssinada()`) pra gravar/ler do R2.
+3. Validado com teste real: URL assinada gerada pro R2 pra um dos arquivos migrados, `fetch` retornou `200` com `content-length` idêntico ao log da cópia.
+
+**Gotcha de processo, não de código:** pra rodar o script de migração, a credencial de produção do Supabase precisou ir pro `.env` local — usuário inicialmente **sobrescreveu `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`** (as variáveis que o app inteiro usa) com os valores de produção, o que faria o backend local inteiro (não só a migração) passar a ler/gravar em produção real no próximo restart. Corrigido usando nomes isolados (`SUPABASE_PROD_URL`/`SUPABASE_PROD_SERVICE_ROLE_KEY`, só lidos pelo script pontual) e as linhas originais locais, que tinham ficado **comentadas** (`#SUPABASE_URL=...`) em vez de restauradas, precisaram ser descomentadas — sem isso o app ficaria sem `SUPABASE_URL` nenhuma.
+
+Também apareceram no `.env`, sem uso em nenhum código, duas linhas de outro recurso da Cloudflare (`URI_DO_CATALOGO`/`NOME_DEPOSITO` — R2 Data Catalog/Iceberg, feature de data lake, não object storage) — removidas a pedido do usuário.
+
+Commits: `3477961`/`ca052cc` (mesmo conteúdo, `serer_delivery`/submódulo) + `34bdeb2` (ponteiro). Validado `tsc --noEmit` + boot real (porta alternativa via `PORT=`, já que o processo de dev do usuário ocupava a 3002) nos dois checkouts.
+
+**Why:** diferenciar "banco guarda URL completa" (migração seguro, zero coordenação) de "banco guarda path relativo + signed URL" (migração exige copiar o arquivo físico antes, senão quebra acesso de dado real já existente) é o critério que decide se dá pra trocar storage sem dor.
+**How to apply:** antes de migrar qualquer storage novo nesse projeto (ou em qualquer outro com Supabase Storage + signed URLs), checar primeiro **o que está salvo no banco** — URL absoluta (`toPublicUrl`/`getPublicUrl` já embutido) é seguro trocar o backend livremente; path relativo consumido por `createSignedUrl()`/equivalente exige migração física dos arquivos existentes antes de trocar o código de leitura. Nunca sobrescrever `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` principais pra rodar um script pontual contra produção — sempre usar variáveis com nome isolado.
