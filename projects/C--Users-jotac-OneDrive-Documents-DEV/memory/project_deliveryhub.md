@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4ec7b833-4d9f-46b0-8209-3da476a0451e
-  modified: 2026-10-13T17:52:59.447Z
+  modified: 2026-10-13T19:09:43.952Z
 ---
 
 Working directory `C:\Users\jotac\OneDrive\Documents\DEV` holds two git repos for a single product, "DeliveryHub" — a white-label delivery/restaurant management platform (ordering, motoboy/courier delivery, kitchen/bar printing, cash register, subscription plans):
@@ -1090,7 +1090,20 @@ Motivação: pediuvai.com.br (nome comercial do DeliveryHub) é UGC pesado em fo
 
 **Implementado:** módulo novo `src/r2/` (`R2Module` global + `R2Service`, mesmo padrão do `SupabaseService`) nos dois checkouts de backend — `enviarArquivo`, `gerarUrlUploadAssinada`, `gerarUrlDownloadAssinada`, `montarUrlPublica`. Ligado no endpoint genérico `POST /restaurante/storage/upload?folder=` (`RestauranteService.uploadImage`, usado por produto/logo/banner/cardápio impresso) — trocou o bucket Supabase `restaurante-imagens` pelo bucket R2 `pediuvai-media`, contrato pro frontend (`{url}`) não mudou. Testado: `tsc --noEmit` + boot real (`node dist/src/main.js`, log `Nest application successfully started`) nos dois checkouts, teste de conexão real (PutObject + fetch da URL pública, HTTP 200), teste pelo app real, e confirmado funcionando em produção (EasyPanel) depois do deploy manual. Commits: `79a8ae2` (`serer_delivery`, mesmo hash no submódulo via `git reset --hard origin/main` após confirmar diff vazio — [[project_deliveryhub]] já documentava esse padrão) + `1f07777` (ponteiro do submódulo no frontend).
 
-URL pública hoje usa a **Public Development URL** do R2 (`pub-<hash>.r2.dev`, variável `R2_PUBLIC_BASE_URL`) — Cloudflare avisa que é só pra teste (sem cache/rate limit), domínio custom + Cache Rule do Cloudflare na frente fica como próximo passo quando saírem de teste pra produção de verdade com volume.
+URL pública inicialmente usou a **Public Development URL** do R2 (`pub-<hash>.r2.dev`) só pra validar a conexão — substituída no mesmo dia pelo domínio custom definitivo, ver seção abaixo.
+
+### Domínio custom do R2 configurado: `imag.pediuvai.com.br` (2026-10-13, mesmo dia) — confirmado em produção e local
+
+Como a mídia já estava no R2 (não no Supabase Storage), o plano antigo de "domínio custom do Supabase por $10/mês" (discutido mais cedo nessa mesma sessão, antes do pivô pro R2) **não se aplicou** — R2 tem Custom Domain nativo e grátis, já que `pediuvai.com.br` é zona Cloudflare.
+
+**Gotcha real: primeira tentativa foi conectar o domínio raiz `pediuvai.com.br`** (não um subdomínio) como Custom Domain do bucket. O painel do R2 mostrou "Active" normalmente, mas testar um objeto real (`curl https://pediuvai.com.br/_teste-conexao/...txt`) devolvia o `index.html` do app, não o arquivo — **o domínio raiz já tinha DNS apontado pro app principal (EasyPanel), e esse ganhou a disputa de rota; o Custom Domain do R2 ficou conectado mas inerte, sem erro visível nem no painel nem pro usuário final.** App em produção não quebrou (sorte de o app já estar servindo aquele hostname antes), mas também não adiantou nada configurar. Corrigido criando um **subdomínio dedicado** (`imag.pediuvai.com.br`, escolhido no lugar do `cdn.pediuvai.com.br` sugerido) — sem conflito, porque nenhum outro serviço usava esse hostname ainda. Não foi necessário remover a conexão do domínio raiz (R2 aceita múltiplos Custom Domains por bucket; o antigo só ficou parado, inofensivo).
+
+**Segundo gotcha, no mesmo processo:** logo depois de conectar `imag.pediuvai.com.br`, testar devolvia `403` com `error code: 1014` ("CNAME Cross-User Banned") — não era erro de configuração, o painel mostrava status **"Inicializando"** (certificado TLS ainda sendo provisionado). Esperar ~1-2 minutos e testar de novo resolveu (`200`, conteúdo correto).
+
+Validado via teste real nos dois lados: produção (upload pelo app, objeto apareceu em `pediuvai-media/produtos/` no painel R2) e local. `R2_PUBLIC_BASE_URL` atualizado nos dois `.env` (local) e nas env vars do EasyPanel (produção) de `pub-<hash>.r2.dev` pra `https://imag.pediuvai.com.br`.
+
+**Why:** registra que Custom Domain "Active" no painel R2 não garante que o roteamento realmente funciona — precisa testar um objeto real, não só confiar no status. E que `error code: 1014` logo após conectar um domínio novo costuma ser só TLS ainda inicializando, não motivo pra desconfiar da configuração.
+**How to apply:** ao conectar Custom Domain de bucket R2 em qualquer projeto, sempre usar subdomínio dedicado (nunca o domínio raiz/apex se ele já serve outra coisa), e sempre confirmar com um `curl` num objeto real do bucket antes de considerar pronto — status "Active" sozinho não é prova suficiente. Ver também [[feedback_cloudflare_r2_credenciais]] (mesmo tema, gotchas de setup do R2).
 
 **Gotcha real, aconteceu 3x segidas ao gerar credencial R2:** a tela de criação de token da Cloudflare mostra **três valores diferentes** na confirmação (só aparece uma vez): **Token value** (prefixo `cfat_`/`cfut_`, é o token genérico Bearer da API REST da Cloudflare), **Access Key ID** (32 hex, sem prefixo) e **Secret Access Key** (64 hex, sem prefixo) — só os dois últimos servem de credencial S3-compatible. Usuário pegou o campo errado (Token value) duas vezes seguidas, e também confundiu a tela de "Account API Tokens" (genérica, template "Read all" por padrão, inclusive `Workers R2 Storage Read` **sem** Write — causa do primeiro `AccessDenied`) com a tela específica "R2 → Manage R2 API Tokens" (a única que gera o par Access Key ID/Secret Access Key certo, com opção de permissão "Object Read & Write" escopada por bucket).
 
