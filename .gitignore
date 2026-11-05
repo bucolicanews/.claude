@@ -3,3 +3,15 @@ backups/
 *secret*
 *.env
 *.env.*
+
+# Logs/transcrições de sessão e dados colados -- texto livre, sem padrão fixo pra
+# scrub automático de dado sensível (CNPJ/nome/e-mail aparecem em prosa). Decisão
+# 2026-11-05: parar de rastrear daqui pra frente (histórico antigo já commitado fica
+# como está -- repo é privado, sem reescrita de histórico por ora).
+history.jsonl
+projects/
+sessions/
+paste-cache/
+shell-snapshots/
+telemetry/
+file-history/
